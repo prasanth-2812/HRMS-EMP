@@ -36,12 +36,38 @@ interface WorkTypeRequest {
   comments?: string;
 }
 
+interface CreateWorkTypeRequestForm {
+  employee: string;
+  requestedWorkType: string;
+  effectiveDate: string;
+  endDate: string;
+  reason: string;
+  requestType: 'temporary' | 'permanent';
+}
+
 const WorkTypeRequests: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [requests, setRequests] = useState<WorkTypeRequest[]>([]);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
+  
+  const [createForm, setCreateForm] = useState<CreateWorkTypeRequestForm>({
+    employee: '',
+    requestedWorkType: '',
+    effectiveDate: '',
+    endDate: '',
+    reason: '',
+    requestType: 'temporary'
+  });
+  
   const { isCollapsed } = useSidebar();
 
   // Mock data for work type requests
@@ -221,6 +247,104 @@ const WorkTypeRequests: React.FC = () => {
     });
   };
 
+  // Initialize requests with mock data
+  React.useEffect(() => {
+    setRequests(mockRequests);
+  }, []);
+
+  // Generate next request ID
+  const generateNextRequestId = (): string => {
+    const maxId = requests.reduce((max, request) => {
+      const idNum = parseInt(request.id.replace('WTR-', ''));
+      return idNum > max ? idNum : max;
+    }, 0);
+    return `WTR-${(maxId + 1).toString().padStart(3, '0')}`;
+  };
+
+  // Handle form submission
+  const handleCreateWorkTypeRequest = async () => {
+    if (!createForm.employee || !createForm.requestedWorkType || !createForm.effectiveDate) {
+      setNotification({
+        type: 'error',
+        message: 'Please fill in all required fields'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Create new work type request
+      const newRequest: WorkTypeRequest = {
+        id: generateNextRequestId(),
+        employee: {
+          id: `EMP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+          name: createForm.employee,
+          avatar: 'https://via.placeholder.com/40',
+          badgeId: `B${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+          department: 'Operations',
+          position: 'Employee'
+        },
+        requestedWorkType: {
+          name: createForm.requestedWorkType,
+          description: `${createForm.requestedWorkType} work arrangement`,
+          isRemote: createForm.requestedWorkType.toLowerCase().includes('remote')
+        },
+        currentWorkType: {
+          name: 'On-site Full-time',
+          description: 'Traditional office-based work',
+          isRemote: false
+        },
+        requestDate: new Date().toISOString().split('T')[0],
+        effectiveDate: createForm.effectiveDate,
+        endDate: createForm.requestType === 'temporary' ? createForm.endDate : undefined,
+        reason: createForm.reason,
+        status: 'pending',
+        priority: 'medium',
+        requestType: createForm.requestType
+      };
+
+      // Add to requests
+      setRequests(prev => [newRequest, ...prev]);
+      
+      // Reset form
+      setCreateForm({
+        employee: '',
+        requestedWorkType: '',
+        effectiveDate: '',
+        endDate: '',
+        reason: '',
+        requestType: 'temporary'
+      });
+      
+      setShowCreateModal(false);
+      setNotification({
+        type: 'success',
+        message: 'Work type request created successfully!'
+      });
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: 'Failed to create work type request. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle form input changes
+  const handleFormChange = (field: keyof CreateWorkTypeRequestForm, value: string) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Close notification
+  const closeNotification = () => {
+    setNotification(null);
+  };
+
   return (
     <div className="oh-dashboard">
       <Sidebar />
@@ -231,8 +355,22 @@ const WorkTypeRequests: React.FC = () => {
             {/* Header Section */}
             <div className="oh-page-header">
               <div className="oh-page-header__content">
-                <h1 className="oh-page-title">Work Type Requests</h1>
-                <p className="oh-page-subtitle">Manage and track work type change requests</p>
+                <div className="oh-page-header__left">
+                  <h1 className="oh-page-title">Work Type Requests</h1>
+                  <p className="oh-page-subtitle">Manage and track work type change requests</p>
+                </div>
+                <div className="oh-page-header__right">
+                  <button 
+                    className="oh-btn oh-btn--primary oh-btn--icon"
+                    onClick={() => setShowCreateModal(true)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <line x1="12" y1="5" x2="12" y2="19"></line>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                    </svg>
+                    Create Request
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -537,6 +675,183 @@ const WorkTypeRequests: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Work Type Request Modal */}
+      {showCreateModal && (
+        <div className="oh-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="oh-create-worktype-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="oh-modal-header">
+              <h2 className="oh-modal-title">Create Work Type Request</h2>
+              <button 
+                className="oh-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="oh-modal-body">
+              <div className="oh-form-grid">
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Employee <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.employee}
+                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                  >
+                    <option value="">Select Employee</option>
+                    <option value="John Doe">John Doe</option>
+                    <option value="Jane Smith">Jane Smith</option>
+                    <option value="Mike Johnson">Mike Johnson</option>
+                    <option value="Sarah Wilson">Sarah Wilson</option>
+                    <option value="David Brown">David Brown</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Requested Work Type <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.requestedWorkType}
+                    onChange={(e) => handleFormChange('requestedWorkType', e.target.value)}
+                  >
+                    <option value="">Select Work Type</option>
+                    <option value="Remote Full-time">Remote Full-time</option>
+                    <option value="Hybrid">Hybrid</option>
+                    <option value="On-site Part-time">On-site Part-time</option>
+                    <option value="Remote Part-time">Remote Part-time</option>
+                    <option value="Flexible Hours">Flexible Hours</option>
+                    <option value="Compressed Schedule">Compressed Schedule</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Request Type <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.requestType}
+                    onChange={(e) => handleFormChange('requestType', e.target.value as 'temporary' | 'permanent')}
+                  >
+                    <option value="temporary">Temporary</option>
+                    <option value="permanent">Permanent</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Effective Date <span className="oh-required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.effectiveDate}
+                    onChange={(e) => handleFormChange('effectiveDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                {createForm.requestType === 'temporary' && (
+                  <div className="oh-form-group">
+                    <label className="oh-form-label">End Date</label>
+                    <input
+                      type="date"
+                      className="oh-form-input"
+                      value={createForm.endDate}
+                      onChange={(e) => handleFormChange('endDate', e.target.value)}
+                      min={createForm.effectiveDate || new Date().toISOString().split('T')[0]}
+                    />
+                  </div>
+                )}
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">
+                    Reason <span className="oh-required">*</span>
+                  </label>
+                  <textarea
+                    className="oh-form-textarea"
+                    rows={4}
+                    placeholder="Provide reason for work type change request..."
+                    value={createForm.reason}
+                    onChange={(e) => handleFormChange('reason', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="oh-modal-footer">
+              <button 
+                className="oh-btn oh-btn--secondary"
+                onClick={() => setShowCreateModal(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="oh-btn oh-btn--primary"
+                onClick={handleCreateWorkTypeRequest}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="oh-spinner"></div>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Request'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className={`oh-notification oh-notification--${notification.type}`}>
+          <div className="oh-notification-content">
+            <div className="oh-notification-icon">
+              {notification.type === 'success' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              )}
+            </div>
+            <span className="oh-notification-message">{notification.message}</span>
+            <button 
+              className="oh-notification-close"
+              onClick={closeNotification}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

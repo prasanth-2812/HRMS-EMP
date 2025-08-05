@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import './ShiftRequests.css';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
@@ -33,6 +33,15 @@ interface ShiftRequest {
   comments?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+interface CreateShiftRequestForm {
+  employee: string;
+  requestingShift: string;
+  requestedDate: string;
+  requestedTill: string;
+  description: string;
+  permanentRequest: boolean;
 }
 
 // Mock data
@@ -160,8 +169,24 @@ const ShiftRequests: React.FC = () => {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [sortField, setSortField] = useState<keyof ShiftRequest>('createdAt');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [requests, setRequests] = useState<ShiftRequest[]>(mockShiftRequests);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
+  
+  const [createForm, setCreateForm] = useState<CreateShiftRequestForm>({
+    employee: '',
+    requestingShift: '',
+    requestedDate: '',
+    requestedTill: '',
+    description: '',
+    permanentRequest: false
+  });
 
-  const filteredRequests = mockShiftRequests.filter(request => {
+  const filteredRequests = requests.filter(request => {
     const matchesSearch = 
       request.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       request.employee.badge.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -225,6 +250,112 @@ const ShiftRequests: React.FC = () => {
     });
   };
 
+  // Generate next request ID
+  const generateNextRequestId = (): string => {
+    const maxId = requests.reduce((max, request) => {
+      const idNum = parseInt(request.id.toString());
+      return idNum > max ? idNum : max;
+    }, 0);
+    return (maxId + 1).toString();
+  };
+
+  // Handle form submission
+  const handleCreateShiftRequest = async () => {
+    if (!createForm.employee || !createForm.requestingShift || !createForm.requestedDate) {
+      setNotification({
+        type: 'error',
+        message: 'Please fill in all required fields'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Create new shift request
+      const newRequest: ShiftRequest = {
+        id: parseInt(generateNextRequestId()),
+        employee: {
+          id: Math.floor(Math.random() * 1000),
+          name: createForm.employee,
+          badge: `EMP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+        },
+        fromShift: {
+          name: 'Day Shift',
+          startTime: '09:00',
+          endTime: '17:00'
+        },
+        toShift: {
+          name: createForm.requestingShift,
+          startTime: createForm.requestingShift === 'Day Shift' ? '09:00' : 
+                     createForm.requestingShift === 'Evening Shift' ? '14:00' :
+                     createForm.requestingShift === 'Night Shift' ? '22:00' : '06:00',
+          endTime: createForm.requestingShift === 'Day Shift' ? '17:00' : 
+                   createForm.requestingShift === 'Evening Shift' ? '22:00' :
+                   createForm.requestingShift === 'Night Shift' ? '06:00' : '14:00'
+        },
+        requestDate: createForm.requestedDate,
+        shiftDate: createForm.requestedDate,
+        reason: createForm.description || 'No reason provided',
+        status: 'pending',
+        priority: 'medium',
+        requestedBy: `${createForm.employee.toLowerCase().replace(' ', '.')}@company.com`,
+        comments: createForm.description || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      // Add to requests
+      setRequests(prev => [newRequest, ...prev]);
+      
+      // Reset form
+      setCreateForm({
+        employee: '',
+        requestingShift: '',
+        requestedDate: '',
+        requestedTill: '',
+        description: '',
+        permanentRequest: false
+      });
+      
+      setShowCreateModal(false);
+      setNotification({
+        type: 'success',
+        message: 'Shift request created successfully!'
+      });
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: 'Failed to create shift request. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle form input changes
+  const handleFormChange = (field: keyof CreateShiftRequestForm, value: string | boolean) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Close notification
+  const closeNotification = () => {
+    setNotification(null);
+  };
+
+  // Auto-close notification after 5 seconds
+  React.useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        closeNotification();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
   return (
     <div className="oh-wrapper">
       <Sidebar />
@@ -241,7 +372,10 @@ const ShiftRequests: React.FC = () => {
                 </p>
               </div>
               <div className="oh-shift-requests__header-right">
-                <button className="oh-btn oh-btn--primary oh-btn--icon">
+                <button 
+                  className="oh-btn oh-btn--primary oh-btn--icon"
+                  onClick={() => setShowCreateModal(true)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -539,7 +673,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{mockShiftRequests.filter(r => r.status === 'pending').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'pending').length}</span>
                   <span className="oh-stat-card__label">Pending</span>
                 </div>
               </div>
@@ -551,7 +685,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{mockShiftRequests.filter(r => r.status === 'approved').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'approved').length}</span>
                   <span className="oh-stat-card__label">Approved</span>
                 </div>
               </div>
@@ -564,7 +698,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{mockShiftRequests.filter(r => r.status === 'rejected').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'rejected').length}</span>
                   <span className="oh-stat-card__label">Rejected</span>
                 </div>
               </div>
@@ -579,7 +713,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{mockShiftRequests.length}</span>
+                  <span className="oh-stat-card__value">{requests.length}</span>
                   <span className="oh-stat-card__label">Total Requests</span>
                 </div>
               </div>
@@ -588,6 +722,175 @@ const ShiftRequests: React.FC = () => {
         </div>
         <QuickAccess />
       </div>
+
+      {/* Create Shift Request Modal */}
+      {showCreateModal && (
+        <div className="oh-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="oh-create-shift-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="oh-modal-header">
+              <h2 className="oh-modal-title">Create Shift Request</h2>
+              <button 
+                className="oh-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="oh-modal-body">
+              <div className="oh-form-grid">
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Employee <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.employee}
+                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                  >
+                    <option value="">Select Employee</option>
+                    <option value="John Doe">John Doe</option>
+                    <option value="Jane Smith">Jane Smith</option>
+                    <option value="Mike Johnson">Mike Johnson</option>
+                    <option value="Sarah Wilson">Sarah Wilson</option>
+                    <option value="David Brown">David Brown</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Requesting Shift <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.requestingShift}
+                    onChange={(e) => handleFormChange('requestingShift', e.target.value)}
+                  >
+                    <option value="">Select Shift</option>
+                    <option value="Day Shift">Day Shift (09:00 - 17:00)</option>
+                    <option value="Evening Shift">Evening Shift (14:00 - 22:00)</option>
+                    <option value="Night Shift">Night Shift (22:00 - 06:00)</option>
+                    <option value="Morning Shift">Morning Shift (06:00 - 14:00)</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Requested Date <span className="oh-required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.requestedDate}
+                    onChange={(e) => handleFormChange('requestedDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Requested Till</label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.requestedTill}
+                    onChange={(e) => handleFormChange('requestedTill', e.target.value)}
+                    min={createForm.requestedDate || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Description</label>
+                  <textarea
+                    className="oh-form-textarea"
+                    rows={4}
+                    placeholder="Provide reason for shift request..."
+                    value={createForm.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-checkbox-label">
+                    <input
+                      type="checkbox"
+                      className="oh-checkbox"
+                      checked={createForm.permanentRequest}
+                      onChange={(e) => handleFormChange('permanentRequest', e.target.checked)}
+                    />
+                    <span className="oh-checkbox-text">Make this a permanent shift change</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="oh-modal-footer">
+              <button 
+                className="oh-btn oh-btn--secondary"
+                onClick={() => setShowCreateModal(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="oh-btn oh-btn--primary"
+                onClick={handleCreateShiftRequest}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="oh-spinner"></div>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Request'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className={`oh-notification oh-notification--${notification.type}`}>
+          <div className="oh-notification-content">
+            <div className="oh-notification-icon">
+              {notification.type === 'success' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              )}
+            </div>
+            <span className="oh-notification-message">{notification.message}</span>
+            <button 
+              className="oh-notification-close"
+              onClick={closeNotification}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

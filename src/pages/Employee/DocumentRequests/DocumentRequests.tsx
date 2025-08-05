@@ -121,13 +121,27 @@ const DocumentRequests: React.FC = () => {
     description: ''
   });
 
+  // Filter requests based on search and filters
+  const filteredRequests = requests.filter(request => {
+    const matchesSearch = 
+      request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.purpose.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+    const matchesUrgency = urgencyFilter === 'all' || request.urgency === urgencyFilter;
+    
+    return matchesSearch && matchesStatus && matchesUrgency;
+  });
+
   // Show notification
   const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Generate next Request ID
+  // Generate next request ID
   const generateNextRequestId = () => {
     const existingIds = requests.map(req => req.requestId);
     const numericIds = existingIds
@@ -159,10 +173,16 @@ const DocumentRequests: React.FC = () => {
   };
 
   // Handle create document request
-  const handleCreateRequest = async () => {
+  const handleCreateDocumentRequest = async () => {
     // Validation
     if (!createForm.title || !createForm.employee || !createForm.format) {
       showNotification('error', 'Please fill in all required fields');
+      return;
+    }
+
+    // Validate max size format
+    if (createForm.maxSize && isNaN(Number(createForm.maxSize))) {
+      showNotification('error', 'Max size must be a valid number');
       return;
     }
 
@@ -176,13 +196,13 @@ const DocumentRequests: React.FC = () => {
         id: Date.now().toString(),
         requestId: generateNextRequestId(),
         employeeName: createForm.employee,
-        employeeId: 'EMP001', // This would come from selected employee
+        employeeId: 'EMP001', // This would come from employee selection
         documentType: createForm.title,
-        purpose: createForm.description || 'Not specified',
+        purpose: createForm.description || 'No description provided',
         requestDate: new Date().toISOString().split('T')[0],
         status: 'pending',
         urgency: 'medium',
-        remarks: `Format: ${createForm.format}, Max Size: ${createForm.maxSize}MB`
+        remarks: `Format: ${createForm.format}${createForm.maxSize ? `, Max size: ${createForm.maxSize}MB` : ''}`
       };
 
       setRequests(prev => [newRequest, ...prev]);
@@ -195,20 +215,6 @@ const DocumentRequests: React.FC = () => {
       setIsLoading(false);
     }
   };
-
-  // Filter requests based on search and filters
-  const filteredRequests = requests.filter(request => {
-    const matchesSearch = 
-      request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.purpose.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesUrgency = urgencyFilter === 'all' || request.urgency === urgencyFilter;
-    
-    return matchesSearch && matchesStatus && matchesUrgency;
-  });
 
   // Status counts for stats
   const statusCounts = {
@@ -281,7 +287,7 @@ const DocumentRequests: React.FC = () => {
             </div>
             <div className="oh-document-requests-actions">
               <button 
-                className="oh-btn oh-btn--primary oh-btn-create-main"
+                className="oh-btn oh-btn--primary oh-btn--icon"
                 onClick={() => setShowCreateModal(true)}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -567,7 +573,7 @@ const DocumentRequests: React.FC = () => {
       {/* Create Document Request Modal */}
       {showCreateModal && (
         <div className="oh-modal-overlay">
-          <div className="oh-create-request-modal">
+          <div className="oh-create-document-modal">
             <div className="oh-modal-header">
               <h2>Create Document Request</h2>
               <button 
@@ -585,7 +591,6 @@ const DocumentRequests: React.FC = () => {
             </div>
 
             <div className="oh-modal-body">
-              {/* Document Request Information */}
               <div className="oh-form-section">
                 <h3 className="oh-section-title">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -620,11 +625,11 @@ const DocumentRequests: React.FC = () => {
                       required
                     >
                       <option value="">Select employee</option>
-                      <option value="Prasanth Kathi">Prasanth Kathi</option>
-                      <option value="Sarah Wilson">Sarah Wilson</option>
-                      <option value="Michael Brown">Michael Brown</option>
-                      <option value="Emma Davis">Emma Davis</option>
-                      <option value="James Wilson">James Wilson</option>
+                      <option value="Prasanth Kathi">Prasanth Kathi (EMP001)</option>
+                      <option value="Sarah Wilson">Sarah Wilson (EMP002)</option>
+                      <option value="Michael Brown">Michael Brown (EMP003)</option>
+                      <option value="Emma Davis">Emma Davis (EMP004)</option>
+                      <option value="James Wilson">James Wilson (EMP005)</option>
                     </select>
                   </div>
                   <div className="oh-form-field">
@@ -650,13 +655,14 @@ const DocumentRequests: React.FC = () => {
                     <input
                       id="maxSize"
                       type="number"
-                      min="1"
-                      max="100"
+                      min="0"
+                      step="0.1"
                       value={createForm.maxSize}
                       onChange={(e) => handleInputChange('maxSize', e.target.value)}
-                      placeholder="Enter maximum file size"
+                      placeholder="Enter max file size"
                       className="oh-form-input"
                     />
+                    <small className="oh-field-help">Maximum file size in megabytes (optional)</small>
                   </div>
                   <div className="oh-form-field oh-form-field-full">
                     <label htmlFor="description">Description</label>
@@ -664,9 +670,9 @@ const DocumentRequests: React.FC = () => {
                       id="description"
                       value={createForm.description}
                       onChange={(e) => handleInputChange('description', e.target.value)}
-                      placeholder="Enter description or purpose of the document request"
+                      placeholder="Enter document description or purpose"
                       className="oh-form-textarea"
-                      rows={4}
+                      rows={3}
                     />
                   </div>
                 </div>
@@ -686,7 +692,7 @@ const DocumentRequests: React.FC = () => {
               </button>
               <button 
                 className="oh-btn oh-btn--primary oh-btn-create"
-                onClick={handleCreateRequest}
+                onClick={handleCreateDocumentRequest}
                 disabled={isLoading}
               >
                 {isLoading ? (

@@ -48,6 +48,15 @@ const RotatingWorkTypeAssign: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    employee: '',
+    workTypePattern: '',
+    startDate: '',
+    endDate: '',
+    notes: ''
+  });
   const { isCollapsed } = useSidebar();
 
   // Mock data for work types
@@ -229,6 +238,40 @@ const RotatingWorkTypeAssign: React.FC = () => {
     return currentWorkType;
   };
 
+  // Form handling functions
+  const handleFormChange = (field: string, value: string) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCreateAssignment = async () => {
+    if (!createForm.employee || !createForm.workTypePattern || !createForm.startDate) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reset form and close modal
+      setCreateForm({
+        employee: '',
+        workTypePattern: '',
+        startDate: '',
+        endDate: '',
+        notes: ''
+      });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creating assignment:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="oh-dashboard">
       <Sidebar />
@@ -243,7 +286,10 @@ const RotatingWorkTypeAssign: React.FC = () => {
                 <p className="oh-page-subtitle">Manage rotating work type assignments and patterns</p>
               </div>
               <div className="oh-page-header__actions">
-                <button className="oh-btn oh-btn--primary">
+                <button 
+                  className="oh-btn oh-btn--primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -555,6 +601,116 @@ const RotatingWorkTypeAssign: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Assignment Modal */}
+      {showCreateModal && (
+        <div className="oh-modal-overlay">
+          <div className="oh-create-rotating-modal">
+            <div className="oh-modal-header">
+              <h2 className="oh-modal-title">Assign Rotating Work Type</h2>
+              <button 
+                className="oh-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="oh-modal-body">
+              <div className="oh-form-grid">
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.employee}
+                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                  >
+                    <option value="">Select employee</option>
+                    {mockAssignments.map(assignment => (
+                      <option key={assignment.employee.id} value={assignment.employee.id}>
+                        {assignment.employee.name} - {assignment.employee.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Work Type Pattern <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.workTypePattern}
+                    onChange={(e) => handleFormChange('workTypePattern', e.target.value)}
+                  >
+                    <option value="">Select work type pattern</option>
+                    {mockWorkTypePatterns.filter(p => p.isActive).map(pattern => (
+                      <option key={pattern.id} value={pattern.id}>
+                        {pattern.name} - {pattern.rotationPeriod} days
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Start Date <span className="oh-required">*</span></label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.startDate}
+                    onChange={(e) => handleFormChange('startDate', e.target.value)}
+                  />
+                </div>
+                
+                <div className="oh-form-group">
+                  <label className="oh-form-label">End Date</label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.endDate}
+                    onChange={(e) => handleFormChange('endDate', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Notes</label>
+                  <textarea 
+                    className="oh-form-textarea"
+                    rows={3}
+                    placeholder="Additional notes for this assignment..."
+                    value={createForm.notes}
+                    onChange={(e) => handleFormChange('notes', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="oh-modal-footer">
+              <button 
+                className="oh-btn oh-btn--secondary"
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="oh-btn oh-btn--primary"
+                onClick={handleCreateAssignment}
+                disabled={isLoading || !createForm.employee || !createForm.workTypePattern || !createForm.startDate}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="oh-spinner"></div>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Assignment'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

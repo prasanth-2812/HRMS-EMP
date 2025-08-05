@@ -40,11 +40,35 @@ interface Assignment {
   assignedDate: string;
 }
 
+interface CreateRotatingShiftAssignForm {
+  employee: string;
+  shiftPattern: string;
+  startDate: string;
+  endDate: string;
+  notes: string;
+}
+
 const RotatingShiftAssign: React.FC = () => {
   const [viewMode, setViewMode] = useState<'assignments' | 'patterns'>('assignments');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
+  
+  const [createForm, setCreateForm] = useState<CreateRotatingShiftAssignForm>({
+    employee: '',
+    shiftPattern: '',
+    startDate: '',
+    endDate: '',
+    notes: ''
+  });
+  
   const { isCollapsed } = useSidebar();
 
   // Mock data for shift patterns
@@ -134,6 +158,92 @@ const RotatingShiftAssign: React.FC = () => {
   ];
 
   // Filter and search logic for assignments
+  React.useEffect(() => {
+    setAssignments(mockAssignments);
+  }, []);
+
+  // Generate next assignment ID
+  const generateNextAssignmentId = (): string => {
+    const maxId = assignments.reduce((max, assignment) => {
+      const idNum = parseInt(assignment.id.replace('RSA-', ''));
+      return idNum > max ? idNum : max;
+    }, 0);
+    return `RSA-${(maxId + 1).toString().padStart(3, '0')}`;
+  };
+
+  // Handle form submission
+  const handleCreateAssignment = async () => {
+    if (!createForm.employee || !createForm.shiftPattern || !createForm.startDate) {
+      setNotification({
+        type: 'error',
+        message: 'Please fill in all required fields'
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      // Create new assignment
+      const newAssignment: Assignment = {
+        id: generateNextAssignmentId(),
+        employee: {
+          id: `EMP-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+          name: createForm.employee,
+          avatar: '/avatars/default.jpg',
+          badgeId: `HOH-${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
+          department: 'Operations',
+          position: 'Employee',
+          currentShift: 'Day'
+        },
+        shiftPattern: mockShiftPatterns.find(p => p.name === createForm.shiftPattern) || mockShiftPatterns[0],
+        startDate: createForm.startDate,
+        endDate: createForm.endDate || undefined,
+        currentWeek: 1,
+        status: new Date(createForm.startDate) > new Date() ? 'upcoming' : 'active',
+        assignedBy: 'Manager Name',
+        assignedDate: new Date().toISOString().split('T')[0]
+      };
+
+      // Add to assignments
+      setAssignments(prev => [newAssignment, ...prev]);
+      
+      // Reset form
+      setCreateForm({
+        employee: '',
+        shiftPattern: '',
+        startDate: '',
+        endDate: '',
+        notes: ''
+      });
+      
+      setShowCreateModal(false);
+      setNotification({
+        type: 'success',
+        message: 'Rotating shift assignment created successfully!'
+      });
+    } catch (error) {
+      setNotification({
+        type: 'error',
+        message: 'Failed to create assignment. Please try again.'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle form input changes
+  const handleFormChange = (field: keyof CreateRotatingShiftAssignForm, value: string) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  // Close notification
+  const closeNotification = () => {
+    setNotification(null);
+  };
   const filteredAssignments = useMemo(() => {
     return mockAssignments.filter(assignment => {
       const matchesSearch = assignment.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -207,7 +317,10 @@ const RotatingShiftAssign: React.FC = () => {
                 <p className="oh-page-subtitle">Manage rotating shift assignments and patterns</p>
               </div>
               <div className="oh-page-header__actions">
-                <button className="oh-btn oh-btn--primary">
+                <button 
+                  className="oh-btn oh-btn--primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -506,6 +619,163 @@ const RotatingShiftAssign: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Rotating Shift Assignment Modal */}
+      {showCreateModal && (
+        <div className="oh-modal-overlay" onClick={() => setShowCreateModal(false)}>
+          <div className="oh-create-rotating-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="oh-modal-header">
+              <h2 className="oh-modal-title">Assign Rotating Shift</h2>
+              <button 
+                className="oh-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="oh-modal-body">
+              <div className="oh-form-grid">
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Employee <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.employee}
+                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                  >
+                    <option value="">Select Employee</option>
+                    <option value="John Doe">John Doe</option>
+                    <option value="Jane Smith">Jane Smith</option>
+                    <option value="Mike Johnson">Mike Johnson</option>
+                    <option value="Sarah Wilson">Sarah Wilson</option>
+                    <option value="David Brown">David Brown</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Shift Pattern <span className="oh-required">*</span>
+                  </label>
+                  <select
+                    className="oh-form-input"
+                    value={createForm.shiftPattern}
+                    onChange={(e) => handleFormChange('shiftPattern', e.target.value)}
+                  >
+                    <option value="">Select Shift Pattern</option>
+                    <option value="3-Shift Rotation">3-Shift Rotation</option>
+                    <option value="Day-Night Rotation">Day-Night Rotation</option>
+                    <option value="Weekly Rotation">Weekly Rotation</option>
+                    <option value="4-Day Rotation">4-Day Rotation</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Start Date <span className="oh-required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.startDate}
+                    onChange={(e) => handleFormChange('startDate', e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">End Date</label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.endDate}
+                    onChange={(e) => handleFormChange('endDate', e.target.value)}
+                    min={createForm.startDate || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Notes</label>
+                  <textarea
+                    className="oh-form-textarea"
+                    rows={4}
+                    placeholder="Add any additional notes about this assignment..."
+                    value={createForm.notes}
+                    onChange={(e) => handleFormChange('notes', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="oh-modal-footer">
+              <button 
+                className="oh-btn oh-btn--secondary"
+                onClick={() => setShowCreateModal(false)}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="oh-btn oh-btn--primary"
+                onClick={handleCreateAssignment}
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="oh-spinner"></div>
+                    Assigning...
+                  </>
+                ) : (
+                  'Create Assignment'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className={`oh-notification oh-notification--${notification.type}`}>
+          <div className="oh-notification-content">
+            <div className="oh-notification-icon">
+              {notification.type === 'success' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              )}
+            </div>
+            <span className="oh-notification-message">{notification.message}</span>
+            <button 
+              className="oh-notification-close"
+              onClick={closeNotification}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

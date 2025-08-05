@@ -39,6 +39,21 @@ const DisciplinaryActions: React.FC = () => {
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [actionTypeFilter, setActionTypeFilter] = useState<string>('all');
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [createForm, setCreateForm] = useState({
+    employee: '',
+    actionType: '',
+    reason: '',
+    description: '',
+    severity: '',
+    actionDate: '',
+    effectiveDate: '',
+    expiryDate: '',
+    witnessedBy: '',
+    followUpRequired: false,
+    followUpDate: ''
+  });
   const { isCollapsed } = useSidebar();
 
   // Mock data for disciplinary actions
@@ -157,6 +172,46 @@ const DisciplinaryActions: React.FC = () => {
     });
   }, [mockActions, searchTerm, statusFilter, severityFilter, actionTypeFilter, departmentFilter]);
 
+  // Form handling functions
+  const handleFormChange = (field: string, value: string | boolean) => {
+    setCreateForm(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handleCreateAction = async () => {
+    if (!createForm.employee || !createForm.actionType || !createForm.reason || !createForm.actionDate) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Reset form and close modal
+      setCreateForm({
+        employee: '',
+        actionType: '',
+        reason: '',
+        description: '',
+        severity: '',
+        actionDate: '',
+        effectiveDate: '',
+        expiryDate: '',
+        witnessedBy: '',
+        followUpRequired: false,
+        followUpDate: ''
+      });
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error('Error creating disciplinary action:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Statistics
   const stats = useMemo(() => {
     const total = mockActions.length;
@@ -245,7 +300,10 @@ const DisciplinaryActions: React.FC = () => {
                 <p className="oh-page-subtitle">Manage and track employee disciplinary actions</p>
               </div>
               <div className="oh-page-header__actions">
-                <button className="oh-btn oh-btn--primary">
+                <button 
+                  className="oh-btn oh-btn--primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
                     <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -492,6 +550,187 @@ const DisciplinaryActions: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Create Disciplinary Action Modal */}
+      {showCreateModal && (
+        <div className="oh-modal-overlay">
+          <div className="oh-create-rotating-modal">
+            <div className="oh-modal-header">
+              <h2 className="oh-modal-title">Take Disciplinary Action</h2>
+              <button 
+                className="oh-modal-close"
+                onClick={() => setShowCreateModal(false)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+              </button>
+            </div>
+            
+            <div className="oh-modal-body">
+              <div className="oh-form-grid">
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.employee}
+                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                  >
+                    <option value="">Select employee</option>
+                    {mockActions.map(action => (
+                      <option key={action.employee.id} value={action.employee.id}>
+                        {action.employee.name} - {action.employee.department}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Action Type <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.actionType}
+                    onChange={(e) => handleFormChange('actionType', e.target.value)}
+                  >
+                    <option value="">Select action type</option>
+                    <option value="verbal_warning">Verbal Warning</option>
+                    <option value="written_warning">Written Warning</option>
+                    <option value="suspension">Suspension</option>
+                    <option value="performance_improvement">Performance Improvement</option>
+                    <option value="termination">Termination</option>
+                  </select>
+                </div>
+                
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Severity <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.severity}
+                    onChange={(e) => handleFormChange('severity', e.target.value)}
+                  >
+                    <option value="">Select severity</option>
+                    <option value="minor">Minor</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="severe">Severe</option>
+                    <option value="critical">Critical</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Reason <span className="oh-required">*</span></label>
+                  <input 
+                    type="text"
+                    className="oh-form-input"
+                    placeholder="Enter reason for disciplinary action"
+                    value={createForm.reason}
+                    onChange={(e) => handleFormChange('reason', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Description</label>
+                  <textarea 
+                    className="oh-form-textarea"
+                    rows={3}
+                    placeholder="Detailed description of the incident..."
+                    value={createForm.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Action Date <span className="oh-required">*</span></label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.actionDate}
+                    onChange={(e) => handleFormChange('actionDate', e.target.value)}
+                  />
+                </div>
+                
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Effective Date</label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.effectiveDate}
+                    onChange={(e) => handleFormChange('effectiveDate', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Expiry Date</label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.expiryDate}
+                    onChange={(e) => handleFormChange('expiryDate', e.target.value)}
+                  />
+                </div>
+                
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Witnessed By</label>
+                  <input 
+                    type="text"
+                    className="oh-form-input"
+                    placeholder="Witness name"
+                    value={createForm.witnessedBy}
+                    onChange={(e) => handleFormChange('witnessedBy', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-checkbox">
+                    <input 
+                      type="checkbox"
+                      checked={createForm.followUpRequired}
+                      onChange={(e) => handleFormChange('followUpRequired', e.target.checked)}
+                    />
+                    <span className="oh-form-checkbox__checkmark"></span>
+                    Follow-up required
+                  </label>
+                </div>
+
+                {createForm.followUpRequired && (
+                  <div className="oh-form-group oh-form-group--full-width">
+                    <label className="oh-form-label">Follow-up Date</label>
+                    <input 
+                      type="date"
+                      className="oh-form-input"
+                      value={createForm.followUpDate}
+                      onChange={(e) => handleFormChange('followUpDate', e.target.value)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="oh-modal-footer">
+              <button 
+                className="oh-btn oh-btn--secondary"
+                onClick={() => setShowCreateModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="oh-btn oh-btn--primary"
+                onClick={handleCreateAction}
+                disabled={isLoading || !createForm.employee || !createForm.actionType || !createForm.reason || !createForm.actionDate}
+              >
+                {isLoading ? (
+                  <>
+                    <div className="oh-spinner"></div>
+                    Creating...
+                  </>
+                ) : (
+                  'Create Action'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

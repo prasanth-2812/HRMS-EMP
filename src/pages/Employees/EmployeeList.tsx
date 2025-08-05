@@ -359,7 +359,7 @@ const EmployeeList: React.FC = () => {
             </div>
             <div className="oh-employees-actions">
               <button 
-                className="oh-btn oh-btn-primary oh-btn-create-main"
+                className="oh-btn oh-btn--primary oh-btn--icon"
                 onClick={handleOpenCreateModal}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
