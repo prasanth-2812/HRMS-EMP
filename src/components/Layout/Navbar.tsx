@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom'; // To get current path for dynamic title
+import { useLocation, useNavigate } from 'react-router-dom'; // To get current path for dynamic title and navigation
 import { useSidebar } from '../../contexts/SidebarContext'; // Use the hook instead of context directly
 import './Navbar.css';
 
@@ -18,6 +18,7 @@ interface Notification {
 }
 
 const Navbar: React.FC<NavbarProps> = ({ pageTitle }) => {
+  const navigate = useNavigate();
   const { toggleSidebar, isCollapsed } = useSidebar();
 
   // State for Notifications dropdown
@@ -101,6 +102,15 @@ const Navbar: React.FC<NavbarProps> = ({ pageTitle }) => {
       case 'settings-outline': return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={classes}><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0-.33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82-.33V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09A1.65 1.65 0 0 0 15 4.6a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09z"></path></svg>;
       default: return null; // Fallback for unsupported icons
     }
+  };
+
+  // Logout function: clear storage and redirect
+  const handleLogout = () => {
+    // Clear tokens or user data as needed
+    localStorage.clear();
+    sessionStorage.clear();
+    setShowProfileDropdown(false);
+    window.location.replace('/login'); // Force reload and redirect
   };
 
   return (
@@ -231,22 +241,22 @@ const Navbar: React.FC<NavbarProps> = ({ pageTitle }) => {
               <div className="oh-dropdown__menu oh-dropdown__menu--right">
                 <ul className="oh-dropdown__items">
                   <li className="oh-dropdown__item">
-                    <a href="#" className="oh-dropdown__link">My Profile</a>
+                    <a href="#" className="oh-dropdown__link" onClick={e => { e.preventDefault(); setShowProfileDropdown(false); navigate('/employee/profile'); }}>My Profile</a>
                   </li>
                   <li className="oh-dropdown__item">
-                    <a href="#" className="oh-dropdown__link">Company Information</a>
+                    <a href="#" className="oh-dropdown__link" onClick={e => { e.preventDefault(); setShowProfileDropdown(false); navigate('/company-info'); }}>Company Information</a>
                   </li>
                   <li className="oh-dropdown__item">
-                    <a href="#" className="oh-dropdown__link">Notifications</a>
+                    <a href="#" className="oh-dropdown__link" onClick={e => { e.preventDefault(); setShowProfileDropdown(false); navigate('/notifications'); }}>Notifications</a>
                   </li>
                   <li className="oh-dropdown__item">
-                    <a href="#" className="oh-dropdown__link">Employees</a>
+                    <a href="#" className="oh-dropdown__link" onClick={e => { e.preventDefault(); setShowProfileDropdown(false); navigate('/employee/employees'); }}>Employees</a>
                   </li>
                 </ul>
                 <hr />
                 <ul className="oh-dropdown__items">
                   <li className="oh-dropdown__item">
-                    <a href="#" className="oh-dropdown__link">Log out</a>
+                    <a href="#" className="oh-dropdown__link" onClick={e => { e.preventDefault(); handleLogout(); }}>Log out</a>
                   </li>
                 </ul>
               </div>

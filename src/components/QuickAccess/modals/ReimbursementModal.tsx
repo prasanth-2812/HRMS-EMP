@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface ReimbursementModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose }) => {
+const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     type: 'reimbursement', // 'reimbursement' or 'leave_encashment'
     employeeId: '',
@@ -28,9 +29,51 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle reimbursement/leave encashment submission
-    console.log('Reimbursement request submitted:', formData);
-    onClose();
+    
+    // Basic validation
+    if (!formData.employeeId.trim()) {
+      if (onSuccess) {
+        onSuccess('Please select an employee');
+      }
+      return;
+    }
+    
+    if (!formData.amount.trim() || parseFloat(formData.amount) <= 0) {
+      if (onSuccess) {
+        onSuccess('Please enter a valid amount');
+      }
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      if (onSuccess) {
+        onSuccess('Please provide a description');
+      }
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        type: 'reimbursement',
+        employeeId: '',
+        amount: '',
+        description: '',
+        attachment: null,
+        leaveTypeId: '',
+        cfdToEncash: '',
+        adToEncash: ''
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess(formData.type === 'reimbursement' ? 'Reimbursement request submitted successfully!' : 'Leave encashment request submitted successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -57,50 +100,47 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="reimbursementModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog" style={{ maxWidth: '550px' }}>
-        <div className="oh-modal__dialog-header">
-          <h5 className="oh-modal__dialog-title">
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-reimbursement-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h5 className="oh-modal-title">
             {formData.type === 'reimbursement' ? 'Reimbursement Request' : 'Leave Encashment Request'}
           </h5>
           <button 
-            className="oh-modal__close" 
-            aria-label="Close"
+            className="oh-modal-close" 
             onClick={onClose}
+            type="button"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="type">Request Type *</label>
+        <div className="oh-modal-body">
+          <form onSubmit={handleSubmit} className="oh-form-grid">
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="type">Request Type *</label>
               <select
                 id="type"
                 name="type"
                 value={formData.type}
                 onChange={handleTypeChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="reimbursement">Reimbursement</option>
                 <option value="leave_encashment">Leave Encashment</option>
               </select>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="employeeId">Employee *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="employeeId">Employee *</label>
               <select
                 id="employeeId"
                 name="employeeId"
                 value={formData.employeeId}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="">Select Employee</option>
                 <option value="current">Current User</option>
@@ -110,8 +150,8 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
 
             {formData.type === 'reimbursement' ? (
               <>
-                <div className="form-group">
-                  <label htmlFor="amount">Amount *</label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label" htmlFor="amount">Amount *</label>
                   <input
                     type="number"
                     id="amount"
@@ -119,40 +159,40 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                     value={formData.amount}
                     onChange={handleChange}
                     required
-                    className="form-control"
+                    className="oh-form-input"
                     placeholder="Enter reimbursement amount"
                     step="0.01"
                     min="0"
                   />
                 </div>
 
-                <div className="form-group">
-                  <label htmlFor="attachment">Attachment *</label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label" htmlFor="attachment">Attachment *</label>
                   <input
                     type="file"
                     id="attachment"
                     name="attachment"
                     onChange={handleFileChange}
                     required
-                    className="form-control"
+                    className="oh-form-input"
                     accept=".jpg,.jpeg,.png,.pdf,.doc,.docx"
                   />
-                  <small className="form-text text-muted">
+                  <small className="oh-form-help">
                     Upload receipts, invoices, or supporting documents
                   </small>
                 </div>
               </>
             ) : (
               <>
-                <div className="form-group">
-                  <label htmlFor="leaveTypeId">Leave Type *</label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label" htmlFor="leaveTypeId">Leave Type *</label>
                   <select
                     id="leaveTypeId"
                     name="leaveTypeId"
                     value={formData.leaveTypeId}
                     onChange={handleChange}
                     required
-                    className="form-control"
+                    className="oh-form-input"
                   >
                     <option value="">Select Leave Type</option>
                     <option value="annual">Annual Leave</option>
@@ -160,9 +200,9 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                   </select>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group col-md-6">
-                    <label htmlFor="cfdToEncash">Carry Forward Days to Encash *</label>
+                <div className="oh-form-row">
+                  <div className="oh-form-group">
+                    <label className="oh-form-label" htmlFor="cfdToEncash">Carry Forward Days to Encash *</label>
                     <input
                       type="number"
                       id="cfdToEncash"
@@ -170,14 +210,14 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                       value={formData.cfdToEncash}
                       onChange={handleChange}
                       required
-                      className="form-control"
+                      className="oh-form-input"
                       min="0"
                       step="0.5"
                     />
                   </div>
 
-                  <div className="form-group col-md-6">
-                    <label htmlFor="adToEncash">Available Days to Encash *</label>
+                  <div className="oh-form-group">
+                    <label className="oh-form-label" htmlFor="adToEncash">Available Days to Encash *</label>
                     <input
                       type="number"
                       id="adToEncash"
@@ -185,7 +225,7 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                       value={formData.adToEncash}
                       onChange={handleChange}
                       required
-                      className="form-control"
+                      className="oh-form-input"
                       min="0"
                       step="0.5"
                     />
@@ -193,9 +233,9 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                 </div>
 
                 {/* Available Leave Table */}
-                <div className="form-group" id="availableTable">
-                  <label>Available Leave Balance</label>
-                  <table className="table table-sm">
+                <div className="oh-form-group" id="availableTable">
+                  <label className="oh-form-label">Available Leave Balance</label>
+                  <table className="oh-table">
                     <thead>
                       <tr>
                         <th>Leave Type</th>
@@ -205,7 +245,7 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
                     </thead>
                     <tbody>
                       {availableLeaves.map((leave, index) => (
-                        <tr key={index} className="toggle-highlight">
+                        <tr key={index}>
                           <td>{leave.leaveType}</td>
                           <td>{leave.availableDays}</td>
                           <td>{leave.carryforwardDays}</td>
@@ -217,28 +257,28 @@ const ReimbursementModal: React.FC<ReimbursementModalProps> = ({ isOpen, onClose
               </>
             )}
 
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="description">Description</label>
               <textarea
                 id="description"
                 name="description"
                 value={formData.description}
                 onChange={handleChange}
                 rows={4}
-                className="form-control"
+                className="oh-form-input"
                 placeholder="Enter description or additional details..."
               />
             </div>
-
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Submit Request
-              </button>
-            </div>
           </form>
+        </div>
+
+        <div className="oh-modal-footer">
+          <button type="button" className="oh-btn oh-btn--secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="oh-btn oh-btn--primary" onClick={handleSubmit}>
+            Submit Request
+          </button>
         </div>
       </div>
     </div>

@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface LeaveRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }) => {
+const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     leaveTypeId: '',
     employeeId: '',
@@ -21,9 +22,40 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle leave request submission
-    console.log('Leave request submitted:', formData);
-    onClose();
+    
+    // Basic validation
+    if (!formData.leaveTypeId || !formData.employeeId || !formData.startDate || !formData.endDate) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Validate date range
+    if (new Date(formData.startDate) > new Date(formData.endDate)) {
+      alert('Start date cannot be after end date');
+      return;
+    }
+
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        leaveTypeId: '',
+        employeeId: '',
+        startDate: '',
+        endDate: '',
+        startDateBreakdown: '',
+        endDateBreakdown: '',
+        description: ''
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess('Leave request submitted successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -34,12 +66,12 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="leaveRequestModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog oh-modal__dialog--timeoff oh-modal__dialog-relative oh-timeoff-modal">
-        <div className="oh-modal__dialog-header">
-          <h5 className="oh-modal__dialog-title">Leave Request</h5>
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-leave-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h2 className="oh-modal-title">Leave Request</h2>
           <button 
-            className="oh-modal__close" 
+            className="oh-modal-close" 
             aria-label="Close"
             onClick={onClose}
           >
@@ -50,46 +82,45 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
+        <div className="oh-modal-body">
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="leaveTypeId">Leave Type *</label>
-              <select
-                id="leaveTypeId"
-                name="leaveTypeId"
-                value={formData.leaveTypeId}
-                onChange={handleChange}
-                required
-                className="form-control"
-              >
-                <option value="">Select Leave Type</option>
-                <option value="annual">Annual Leave</option>
-                <option value="sick">Sick Leave</option>
-                <option value="personal">Personal Leave</option>
-                <option value="maternity">Maternity Leave</option>
-                <option value="paternity">Paternity Leave</option>
-              </select>
-            </div>
+            <div className="oh-form-grid">
+              <div className="oh-form-group">
+                <label className="oh-form-label">Leave Type <span className="oh-required">*</span></label>
+                <select
+                  id="leaveTypeId"
+                  name="leaveTypeId"
+                  value={formData.leaveTypeId}
+                  onChange={handleChange}
+                  required
+                  className="oh-form-input"
+                >
+                  <option value="">Select Leave Type</option>
+                  <option value="annual">Annual Leave</option>
+                  <option value="sick">Sick Leave</option>
+                  <option value="personal">Personal Leave</option>
+                  <option value="maternity">Maternity Leave</option>
+                  <option value="paternity">Paternity Leave</option>
+                </select>
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="employeeId">Employee *</label>
-              <select
-                id="employeeId"
-                name="employeeId"
-                value={formData.employeeId}
-                onChange={handleChange}
-                required
-                className="form-control"
-              >
-                <option value="">Select Employee</option>
-                <option value="current">Current User</option>
-                {/* Add more employees as needed */}
-              </select>
-            </div>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
+                <select
+                  id="employeeId"
+                  name="employeeId"
+                  value={formData.employeeId}
+                  onChange={handleChange}
+                  required
+                  className="oh-form-input"
+                >
+                  <option value="">Select Employee</option>
+                  <option value="current">Current User</option>
+                </select>
+              </div>
 
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="startDate">Start Date *</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Start Date <span className="oh-required">*</span></label>
                 <input
                   type="date"
                   id="startDate"
@@ -97,12 +128,12 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
                   value={formData.startDate}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                 />
               </div>
 
-              <div className="form-group col-md-6">
-                <label htmlFor="endDate">End Date *</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">End Date <span className="oh-required">*</span></label>
                 <input
                   type="date"
                   id="endDate"
@@ -110,20 +141,18 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
                   value={formData.endDate}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                 />
               </div>
-            </div>
 
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="startDateBreakdown">Start Date Breakdown</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Start Date Breakdown</label>
                 <select
                   id="startDateBreakdown"
                   name="startDateBreakdown"
                   value={formData.startDateBreakdown}
                   onChange={handleChange}
-                  className="form-control"
+                  className="oh-form-input"
                 >
                   <option value="">Select breakdown</option>
                   <option value="full_day">Full Day</option>
@@ -132,14 +161,14 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
                 </select>
               </div>
 
-              <div className="form-group col-md-6">
-                <label htmlFor="endDateBreakdown">End Date Breakdown</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">End Date Breakdown</label>
                 <select
                   id="endDateBreakdown"
                   name="endDateBreakdown"
                   value={formData.endDateBreakdown}
                   onChange={handleChange}
-                  className="form-control"
+                  className="oh-form-input"
                 >
                   <option value="">Select breakdown</option>
                   <option value="full_day">Full Day</option>
@@ -147,26 +176,26 @@ const LeaveRequestModal: React.FC<LeaveRequestModalProps> = ({ isOpen, onClose }
                   <option value="second_half">Second Half</option>
                 </select>
               </div>
+
+              <div className="oh-form-group oh-form-group--full-width">
+                <label className="oh-form-label">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={4}
+                  className="oh-form-textarea"
+                  placeholder="Enter leave description..."
+                />
+              </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={4}
-                className="form-control"
-                placeholder="Enter leave description..."
-              />
-            </div>
-
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <div className="oh-modal-footer">
+              <button type="button" className="oh-btn oh-btn--secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="oh-btn oh-btn--primary">
                 Submit Request
               </button>
             </div>

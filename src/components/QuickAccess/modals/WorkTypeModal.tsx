@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface WorkTypeModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose }) => {
+const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     workTypeName: '',
     description: '',
@@ -21,9 +22,36 @@ const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle work type creation submission
-    console.log('Work type created:', formData);
-    onClose();
+    
+    // Basic validation
+    if (!formData.workTypeName.trim()) {
+      if (onSuccess) {
+        onSuccess('Please enter a work type name');
+      }
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        workTypeName: '',
+        description: '',
+        isActive: true,
+        workingHours: '',
+        breakTime: '',
+        overtimeRate: '',
+        category: 'full-time'
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess('Work type created successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -35,12 +63,12 @@ const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="workTypeModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog">
-        <div className="oh-modal__dialog-header">
-          <h5 className="oh-modal__dialog-title">Create Work Type</h5>
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-worktype-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h2 className="oh-modal-title">Create Work Type</h2>
           <button 
-            className="oh-modal__close" 
+            className="oh-modal-close" 
             aria-label="Close"
             onClick={onClose}
           >
@@ -51,51 +79,51 @@ const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose }) => {
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
+        <div className="oh-modal-body">
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="workTypeName">Work Type Name *</label>
-              <input
-                type="text"
-                id="workTypeName"
-                name="workTypeName"
-                value={formData.workTypeName}
-                onChange={handleChange}
-                required
-                className="form-control"
-                placeholder="Enter work type name"
-              />
-            </div>
+            <div className="oh-form-grid">
+              <div className="oh-form-group">
+                <label className="oh-form-label">Work Type Name <span className="oh-required">*</span></label>
+                <input
+                  type="text"
+                  id="workTypeName"
+                  name="workTypeName"
+                  value={formData.workTypeName}
+                  onChange={handleChange}
+                  required
+                  className="oh-form-input"
+                  placeholder="Enter work type name"
+                />
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="category">Category *</label>
-              <select
-                id="category"
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                required
-                className="form-control"
-              >
-                <option value="full-time">Full Time</option>
-                <option value="part-time">Part Time</option>
-                <option value="contract">Contract</option>
-                <option value="temporary">Temporary</option>
-                <option value="intern">Intern</option>
-                <option value="freelance">Freelance</option>
-              </select>
-            </div>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Category <span className="oh-required">*</span></label>
+                <select
+                  id="category"
+                  name="category"
+                  value={formData.category}
+                  onChange={handleChange}
+                  required
+                  className="oh-form-input"
+                >
+                  <option value="full-time">Full Time</option>
+                  <option value="part-time">Part Time</option>
+                  <option value="contract">Contract</option>
+                  <option value="temporary">Temporary</option>
+                  <option value="intern">Intern</option>
+                  <option value="freelance">Freelance</option>
+                </select>
+              </div>
 
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="workingHours">Working Hours per Day</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Working Hours per Day</label>
                 <input
                   type="number"
                   id="workingHours"
                   name="workingHours"
                   value={formData.workingHours}
                   onChange={handleChange}
-                  className="form-control"
+                  className="oh-form-input"
                   placeholder="8"
                   step="0.5"
                   min="0"
@@ -103,75 +131,70 @@ const WorkTypeModal: React.FC<WorkTypeModalProps> = ({ isOpen, onClose }) => {
                 />
               </div>
 
-              <div className="form-group col-md-6">
-                <label htmlFor="breakTime">Break Time (minutes)</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label">Break Time (minutes)</label>
                 <input
                   type="number"
                   id="breakTime"
                   name="breakTime"
                   value={formData.breakTime}
                   onChange={handleChange}
-                  className="form-control"
+                  className="oh-form-input"
                   placeholder="60"
                   min="0"
                   max="480"
                 />
               </div>
-            </div>
 
-            <div className="form-group">
-              <label htmlFor="overtimeRate">Overtime Rate Multiplier</label>
-              <input
-                type="number"
-                id="overtimeRate"
-                name="overtimeRate"
-                value={formData.overtimeRate}
-                onChange={handleChange}
-                className="form-control"
-                placeholder="1.5"
-                step="0.1"
-                min="1"
-                max="5"
-              />
-              <small className="form-text text-muted">
-                Multiplier for overtime pay calculation (e.g., 1.5 for time and a half)
-              </small>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleChange}
-                rows={4}
-                className="form-control"
-                placeholder="Enter work type description..."
-              />
-            </div>
-
-            <div className="form-group">
-              <div className="form-check">
+              <div className="oh-form-group">
+                <label className="oh-form-label">Overtime Rate Multiplier</label>
                 <input
-                  type="checkbox"
-                  id="isActive"
-                  name="isActive"
-                  checked={formData.isActive}
+                  type="number"
+                  id="overtimeRate"
+                  name="overtimeRate"
+                  value={formData.overtimeRate}
                   onChange={handleChange}
-                  className="form-check-input"
+                  className="oh-form-input"
+                  placeholder="1.5"
+                  step="0.1"
+                  min="1"
+                  max="5"
                 />
-                <label htmlFor="isActive" className="form-check-label">
-                  Active (employees can be assigned to this work type)
+              </div>
+
+              <div className="oh-form-group oh-form-group--full-width">
+                <label className="oh-form-label">Description</label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleChange}
+                  rows={4}
+                  className="oh-form-textarea"
+                  placeholder="Enter work type description..."
+                />
+              </div>
+
+              <div className="oh-form-group oh-form-group--full-width">
+                <label className="oh-checkbox-label">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    name="isActive"
+                    checked={formData.isActive}
+                    onChange={handleChange}
+                    className="oh-checkbox"
+                  />
+                  <span className="oh-checkbox-text">Active (employees can be assigned to this work type)</span>
                 </label>
               </div>
             </div>
 
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
+            <div className="oh-modal-footer">
+              <button type="button" className="oh-btn oh-btn--secondary" onClick={onClose}>
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="oh-btn oh-btn--primary">
                 Create Work Type
               </button>
             </div>

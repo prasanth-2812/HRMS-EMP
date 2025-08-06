@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import { useSidebar } from '../../../contexts/SidebarContext';
+import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './RotatingShiftAssign.css';
 
 interface Employee {
@@ -776,6 +777,8 @@ const RotatingShiftAssign: React.FC = () => {
           </div>
         </div>
       )}
+
+      <QuickAccess />
     </div>
   );
 };

@@ -2,10 +2,9 @@ import React from 'react';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import Dashboard from '../pages/Dashboard/Dashboard';
 import Login from '../pages/Auth/Login';
-import HorillaLogin from '../pages/Auth/HorillaLogin';
-import HorillaLoginAdvanced from '../pages/Auth/HorillaLoginAdvanced';
-import HorillaForgotPassword from '../pages/Auth/HorillaForgotPassword';
-import HorillaRegister from '../pages/Auth/HorillaRegister';
+import Register from '../pages/Auth/Register';
+import ForgotPassword from '../pages/Auth/ForgotPassword';
+import ResetPassword from '../pages/Auth/ResetPassword';
 import EmployeeList from '../pages/Employees/EmployeeList';
 import DocumentRequests from '../pages/Employee/DocumentRequests/DocumentRequests';
 import ShiftRequests from '../pages/Employee/ShiftRequests/ShiftRequests';
@@ -95,22 +94,25 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
 
   return (
     <Routes>
-      <Route path="/login" element={<HorillaLogin />} />
-      <Route path="/register" element={<HorillaRegister />} />
-      <Route path="/forgot-password" element={<HorillaForgotPassword />} />
-      <Route path="/legacy-login" element={<Login />} />
-      <Route path="/horilla-login" element={<HorillaLogin />} />
-      <Route path="/horilla-login-advanced" element={<HorillaLoginAdvanced />} />
-      {/* Protected Routes */}
+      <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      
+      {/* Entry point: redirect '/' to /login if not authenticated, else dashboard */}
       <Route path="/" element={
-        <ProtectedRoute>
-          <Dashboard
-            companyInfo={companyInfo}
-            userPermissions={userPermissions}
-            menuItems={menuItems}
-            pageTitle={currentPageTitle} // Pass pageTitle
-          />
-        </ProtectedRoute>
+        isAuthenticated ? (
+          <ProtectedRoute>
+            <Dashboard
+              companyInfo={companyInfo}
+              userPermissions={userPermissions}
+              menuItems={menuItems}
+              pageTitle={currentPageTitle}
+            />
+          </ProtectedRoute>
+        ) : (
+          <Login />
+        )
       } />
       <Route path="/dashboard" element={
         <ProtectedRoute>

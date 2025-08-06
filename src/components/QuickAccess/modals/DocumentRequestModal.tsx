@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface DocumentRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onClose }) => {
+const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     documentType: '',
     purpose: '',
@@ -20,20 +21,49 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle document request submission
-    console.log('Document request submitted:', formData);
     
-    // Reset form
-    setFormData({
-      documentType: '',
-      purpose: '',
-      urgency: 'medium',
-      additionalInfo: '',
-      deliveryMethod: 'email',
-      deliveryAddress: ''
-    });
+    // Basic validation
+    if (!formData.documentType.trim()) {
+      if (onSuccess) {
+        onSuccess('Please select a document type');
+      }
+      return;
+    }
     
-    onClose();
+    if (!formData.purpose.trim()) {
+      if (onSuccess) {
+        onSuccess('Please provide the purpose for this document');
+      }
+      return;
+    }
+    
+    if (formData.deliveryMethod === 'mail' && !formData.deliveryAddress.trim()) {
+      if (onSuccess) {
+        onSuccess('Please provide a delivery address for mail delivery');
+      }
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        documentType: '',
+        purpose: '',
+        urgency: 'medium',
+        additionalInfo: '',
+        deliveryMethod: 'email',
+        deliveryAddress: ''
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess('Document request submitted successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -44,33 +74,30 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="documentRequestModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog oh-modal__dialog--timeoff oh-modal__dialog-relative oh-document-modal">
-        <div className="oh-modal__dialog-header">
-          <h5 className="oh-modal__dialog-title">Document Request</h5>
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-document-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h5 className="oh-modal-title">Document Request</h5>
           <button 
-            className="oh-modal__close" 
-            aria-label="Close"
+            className="oh-modal-close" 
             onClick={onClose}
+            type="button"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="documentType">Document Type *</label>
+        <div className="oh-modal-body">
+          <form onSubmit={handleSubmit} className="oh-form-grid">
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="documentType">Document Type *</label>
               <select
                 id="documentType"
                 name="documentType"
                 value={formData.documentType}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="">Select Document Type</option>
                 <option value="experience_certificate">Experience Certificate</option>
@@ -86,8 +113,8 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
               </select>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="purpose">Purpose *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="purpose">Purpose *</label>
               <input
                 type="text"
                 id="purpose"
@@ -95,20 +122,20 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
                 value={formData.purpose}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
                 placeholder="e.g., Bank Loan, Job Application, Visa Processing"
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="urgency">Urgency Level *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="urgency">Urgency Level *</label>
               <select
                 id="urgency"
                 name="urgency"
                 value={formData.urgency}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="low">Low - Within 1 week</option>
                 <option value="medium">Medium - Within 3 days</option>
@@ -116,15 +143,15 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
               </select>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="deliveryMethod">Delivery Method *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="deliveryMethod">Delivery Method *</label>
               <select
                 id="deliveryMethod"
                 name="deliveryMethod"
                 value={formData.deliveryMethod}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="email">Email</option>
                 <option value="pickup">Office Pickup</option>
@@ -134,8 +161,8 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
             </div>
 
             {formData.deliveryMethod === 'email' && (
-              <div className="form-group">
-                <label htmlFor="deliveryAddress">Email Address *</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label" htmlFor="deliveryAddress">Email Address *</label>
                 <input
                   type="email"
                   id="deliveryAddress"
@@ -143,57 +170,58 @@ const DocumentRequestModal: React.FC<DocumentRequestModalProps> = ({ isOpen, onC
                   value={formData.deliveryAddress}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                   placeholder="Enter email address for document delivery"
                 />
               </div>
             )}
 
             {(formData.deliveryMethod === 'post' || formData.deliveryMethod === 'courier') && (
-              <div className="form-group">
-                <label htmlFor="deliveryAddress">Delivery Address *</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label" htmlFor="deliveryAddress">Delivery Address *</label>
                 <textarea
                   id="deliveryAddress"
                   name="deliveryAddress"
                   value={formData.deliveryAddress}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                   rows={3}
                   placeholder="Enter complete delivery address"
                 />
               </div>
             )}
 
-            <div className="form-group">
-              <label htmlFor="additionalInfo">Additional Information</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="additionalInfo">Additional Information</label>
               <textarea
                 id="additionalInfo"
                 name="additionalInfo"
                 value={formData.additionalInfo}
                 onChange={handleChange}
-                className="form-control"
+                className="oh-form-input"
                 rows={3}
                 placeholder="Any specific requirements or additional details..."
               />
             </div>
-
-            <div className="form-actions">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onClose}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-              >
-                Submit Request
-              </button>
-            </div>
           </form>
+        </div>
+
+        <div className="oh-modal-footer">
+          <button
+            type="button"
+            className="oh-btn oh-btn--secondary"
+            onClick={onClose}
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="oh-btn oh-btn--primary"
+            onClick={handleSubmit}
+          >
+            Submit Request
+          </button>
         </div>
       </div>
     </div>

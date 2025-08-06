@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import { useSidebar } from '../../../contexts/SidebarContext';
+import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './OrganizationChart.css';
 
 interface Employee {
@@ -326,6 +327,8 @@ const OrganizationChart: React.FC = () => {
           </div>
         </div>
       </div>
+
+      <QuickAccess />
     </div>
   );
 };

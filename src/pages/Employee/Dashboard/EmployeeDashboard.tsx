@@ -1,7 +1,31 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { Employee } from '../../../types/employee.d';
+import { getAllEmployees } from '../../../services/employeeService';
 import './EmployeeDashboard.css';
 
 const EmployeeDashboard: React.FC = () => {
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEmployees = async () => {
+      try {
+        const data = await getAllEmployees();
+        setEmployees(data);
+      } catch (err) {
+        setEmployees([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchEmployees();
+  }, []);
+
+  // Show loading state if needed
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
   return (
     <div className="oh-main-wrapper">
       <section className="oh-wrapper oh-main__topbar">
@@ -26,7 +50,7 @@ const EmployeeDashboard: React.FC = () => {
                     </svg>
                   </div>
                   <div className="oh-stat__content">
-                    <div className="oh-stat__number">156</div>
+                    <div className="oh-stat__number">{employees.length}</div>
                     <div className="oh-stat__label">Total Employees</div>
                   </div>
                 </div>
@@ -113,69 +137,29 @@ const EmployeeDashboard: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="oh-profile oh-profile--sm me-3">
-                              <img src="/images/upload/userphoto.png" alt="Employee" className="oh-profile__avatar" />
+                      {employees.slice(-5).reverse().map((emp) => (
+                        <tr key={emp.id}>
+                          <td>
+                            <div className="d-flex align-items-center">
+                              <div className="oh-profile oh-profile--sm me-3">
+                                <img src={emp.avatar || "/images/upload/userphoto.png"} alt="Employee" className="oh-profile__avatar" />
+                              </div>
+                              <div>
+                                <div className="fw-semibold">{emp.firstName} {emp.lastName}</div>
+                                <div className="text-muted small">{emp.email}</div>
+                              </div>
                             </div>
-                            <div>
-                              <div className="fw-semibold">John Doe</div>
-                              <div className="text-muted small">john.doe@company.com</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>Engineering</td>
-                        <td>Software Developer</td>
-                        <td>
-                          <span className="oh-badge oh-badge--success">Active</span>
-                        </td>
-                        <td>
-                          <button className="oh-btn oh-btn--light oh-btn--sm">View</button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="oh-profile oh-profile--sm me-3">
-                              <img src="/images/upload/userphoto.png" alt="Employee" className="oh-profile__avatar" />
-                            </div>
-                            <div>
-                              <div className="fw-semibold">Jane Smith</div>
-                              <div className="text-muted small">jane.smith@company.com</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>Marketing</td>
-                        <td>Marketing Manager</td>
-                        <td>
-                          <span className="oh-badge oh-badge--success">Active</span>
-                        </td>
-                        <td>
-                          <button className="oh-btn oh-btn--light oh-btn--sm">View</button>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td>
-                          <div className="d-flex align-items-center">
-                            <div className="oh-profile oh-profile--sm me-3">
-                              <img src="/images/upload/userphoto.png" alt="Employee" className="oh-profile__avatar" />
-                            </div>
-                            <div>
-                              <div className="fw-semibold">Mike Johnson</div>
-                              <div className="text-muted small">mike.johnson@company.com</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>Sales</td>
-                        <td>Sales Representative</td>
-                        <td>
-                          <span className="oh-badge oh-badge--warning">On Leave</span>
-                        </td>
-                        <td>
-                          <button className="oh-btn oh-btn--light oh-btn--sm">View</button>
-                        </td>
-                      </tr>
+                          </td>
+                          <td>{emp.department}</td>
+                          <td>{emp.position}</td>
+                          <td>
+                            <span className={`oh-badge oh-badge--${emp.status === 'active' ? 'success' : emp.status === 'on_leave' ? 'warning' : 'danger'}`}>{emp.status.charAt(0).toUpperCase() + emp.status.slice(1).replace('_', ' ')}</span>
+                          </td>
+                          <td>
+                            <button className="oh-btn oh-btn--light oh-btn--sm">View</button>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
                 </div>

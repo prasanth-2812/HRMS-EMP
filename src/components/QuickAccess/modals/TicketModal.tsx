@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface TicketModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
+const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     title: '',
     category: '',
@@ -20,9 +21,49 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle ticket creation submission
-    console.log('Ticket created:', formData);
-    onClose();
+    
+    // Basic validation
+    if (!formData.title.trim()) {
+      if (onSuccess) {
+        onSuccess('Please enter a ticket title');
+      }
+      return;
+    }
+    
+    if (!formData.category.trim()) {
+      if (onSuccess) {
+        onSuccess('Please select a category');
+      }
+      return;
+    }
+    
+    if (!formData.description.trim()) {
+      if (onSuccess) {
+        onSuccess('Please provide a description');
+      }
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        title: '',
+        category: '',
+        priority: 'medium',
+        assignedTo: '',
+        description: '',
+        attachment: null
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess('Ticket created successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -42,28 +83,25 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="createDialogModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog">
-        <div className="oh-modal__dialog-header">
-          <h2 className="oh-modal__dialog-title" id="createTitle">
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-ticket-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h2 className="oh-modal-title" id="createTitle">
             Create Ticket
           </h2>
           <button 
-            className="oh-modal__close" 
-            aria-label="Close"
+            className="oh-modal-close" 
             onClick={onClose}
+            type="button"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="title">Ticket Title *</label>
+        <div className="oh-modal-body">
+          <form onSubmit={handleSubmit} className="oh-form-grid">
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="title">Ticket Title *</label>
               <input
                 type="text"
                 id="title"
@@ -71,20 +109,20 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 value={formData.title}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
                 placeholder="Enter ticket title"
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="category">Category *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="category">Category *</label>
               <select
                 id="category"
                 name="category"
                 value={formData.category}
                 onChange={handleChange}
                 required
-                className="form-control"
+                className="oh-form-input"
               >
                 <option value="">Select Category</option>
                 <option value="technical">Technical Support</option>
@@ -98,16 +136,16 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
               </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="priority">Priority *</label>
+            <div className="oh-form-row">
+              <div className="oh-form-group">
+                <label className="oh-form-label" htmlFor="priority">Priority *</label>
                 <select
                   id="priority"
                   name="priority"
                   value={formData.priority}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                 >
                   <option value="low">Low</option>
                   <option value="medium">Medium</option>
@@ -116,14 +154,14 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 </select>
               </div>
 
-              <div className="form-group col-md-6">
-                <label htmlFor="assignedTo">Assign To</label>
+              <div className="oh-form-group">
+                <label className="oh-form-label" htmlFor="assignedTo">Assign To</label>
                 <select
                   id="assignedTo"
                   name="assignedTo"
                   value={formData.assignedTo}
                   onChange={handleChange}
-                  className="form-control"
+                  className="oh-form-input"
                 >
                   <option value="">Auto-assign</option>
                   <option value="it_support">IT Support Team</option>
@@ -134,8 +172,8 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
               </div>
             </div>
 
-            <div className="form-group">
-              <label htmlFor="description">Description *</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="description">Description *</label>
               <textarea
                 id="description"
                 name="description"
@@ -143,35 +181,35 @@ const TicketModal: React.FC<TicketModalProps> = ({ isOpen, onClose }) => {
                 onChange={handleChange}
                 required
                 rows={6}
-                className="form-control"
+                className="oh-form-input"
                 placeholder="Please describe your issue or request in detail..."
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="attachment">Attachment</label>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="attachment">Attachment</label>
               <input
                 type="file"
                 id="attachment"
                 name="attachment"
                 onChange={handleFileChange}
-                className="form-control"
+                className="oh-form-input"
                 accept=".jpg,.jpeg,.png,.pdf,.doc,.docx,.txt"
               />
-              <small className="form-text text-muted">
+              <small className="oh-form-help">
                 Upload screenshots, documents, or any relevant files (Max 10MB)
               </small>
             </div>
-
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={onClose}>
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-primary">
-                Create Ticket
-              </button>
-            </div>
           </form>
+        </div>
+
+        <div className="oh-modal-footer">
+          <button type="button" className="oh-btn oh-btn--secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="submit" className="oh-btn oh-btn--primary" onClick={handleSubmit}>
+            Create Ticket
+          </button>
         </div>
       </div>
     </div>

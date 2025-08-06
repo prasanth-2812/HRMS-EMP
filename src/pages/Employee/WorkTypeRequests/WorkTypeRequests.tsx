@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import { useSidebar } from '../../../contexts/SidebarContext';
+import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './WorkTypeRequests.css';
 
 interface WorkTypeRequest {
@@ -355,22 +356,20 @@ const WorkTypeRequests: React.FC = () => {
             {/* Header Section */}
             <div className="oh-page-header">
               <div className="oh-page-header__content">
-                <div className="oh-page-header__left">
-                  <h1 className="oh-page-title">Work Type Requests</h1>
-                  <p className="oh-page-subtitle">Manage and track work type change requests</p>
-                </div>
-                <div className="oh-page-header__right">
-                  <button 
-                    className="oh-btn oh-btn--primary oh-btn--icon"
-                    onClick={() => setShowCreateModal(true)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="12" y1="5" x2="12" y2="19"></line>
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                    </svg>
-                    Create Request
-                  </button>
-                </div>
+                <h1 className="oh-page-title">Work Type Requests</h1>
+                <p className="oh-page-subtitle">Manage and track work type change requests</p>
+              </div>
+              <div className="oh-page-header__actions">
+                <button 
+                  className="oh-btn oh-btn--primary"
+                  onClick={() => setShowCreateModal(true)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                  </svg>
+                  Create Request
+                </button>
               </div>
             </div>
 
@@ -852,6 +851,8 @@ const WorkTypeRequests: React.FC = () => {
           </div>
         </div>
       )}
+
+      <QuickAccess />
     </div>
   );
 };

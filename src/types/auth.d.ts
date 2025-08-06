@@ -9,7 +9,7 @@ export interface User {
 }
 
 export interface LoginCredentials {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -24,8 +24,10 @@ export interface RegisterData {
 export interface AuthContextType {
   user: User | null;
   login: (credentials: LoginCredentials) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   register: (data: RegisterData) => Promise<void>;
+  forgotPassword: (email: string) => Promise<void>;
+  resetPassword: (token: string, password: string, confirmPassword: string) => Promise<void>;
   isLoading: boolean;
   error: string | null;
   isAuthenticated: boolean;

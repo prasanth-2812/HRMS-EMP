@@ -4,9 +4,10 @@ import '../QuickAccess.css';
 interface DashboardChartsModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
-const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onClose }) => {
+const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     chartType: '',
     dataSource: '',
@@ -25,9 +26,61 @@ const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle dashboard chart creation
-    console.log('Dashboard chart created:', formData);
-    onClose();
+    
+    // Basic validation
+    if (!formData.chartType.trim()) {
+      if (onSuccess) {
+        onSuccess('Please select a chart type');
+      }
+      return;
+    }
+    
+    if (!formData.dataSource.trim()) {
+      if (onSuccess) {
+        onSuccess('Please select a data source');
+      }
+      return;
+    }
+    
+    if (!formData.chartTitle.trim()) {
+      if (onSuccess) {
+        onSuccess('Please provide a chart title');
+      }
+      return;
+    }
+    
+    if (formData.dateRange === 'custom' && (!formData.customStartDate || !formData.customEndDate)) {
+      if (onSuccess) {
+        onSuccess('Please provide both start and end dates for custom date range');
+      }
+      return;
+    }
+    
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        chartType: '',
+        dataSource: '',
+        department: '',
+        dateRange: 'last_30_days',
+        customStartDate: '',
+        customEndDate: '',
+        includeFilters: false,
+        chartTitle: '',
+        showLegend: true,
+        showDataLabels: false,
+        colorScheme: 'default'
+      });
+      
+      // Close modal
+      onClose();
+      
+      // Show success notification
+      if (onSuccess) {
+        onSuccess('Dashboard chart configuration saved successfully!');
+      }
+    }, 500);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -39,35 +92,31 @@ const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onC
   };
 
   return (
-    <div className="oh-modal" role="dialog" aria-labelledby="dashboardChartsModal" aria-hidden={!isOpen}>
-      <div className="oh-modal__dialog" style={{ maxWidth: '700px' }}>
-        <div className="oh-modal__dialog-header">
-          <h5 className="oh-modal__dialog-title">Dashboard Charts Configuration</h5>
+    <div className="oh-modal-overlay" onClick={onClose}>
+      <div className="oh-create-dashboard-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h5 className="oh-modal-title">Dashboard Charts Configuration</h5>
           <button 
-            className="oh-modal__close" 
-            aria-label="Close"
+            className="oh-modal-close" 
             onClick={onClose}
+            type="button"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
 
-        <div className="oh-modal__dialog-body">
-          <form onSubmit={handleSubmit}>
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="chartType">Chart Type *</label>
-                <select
-                  id="chartType"
-                  name="chartType"
-                  value={formData.chartType}
-                  onChange={handleChange}
-                  required
-                  className="form-control"
-                >
+        <div className="oh-modal-body">
+          <form onSubmit={handleSubmit} className="oh-form-grid">
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="chartType">Chart Type *</label>
+              <select
+                id="chartType"
+                name="chartType"
+                value={formData.chartType}
+                onChange={handleChange}
+                required
+                className="oh-form-input"
+              >
                   <option value="">Select Chart Type</option>
                   <option value="bar">Bar Chart</option>
                   <option value="line">Line Chart</option>
@@ -80,61 +129,59 @@ const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onC
                 </select>
               </div>
 
-              <div className="form-group col-md-6">
-                <label htmlFor="dataSource">Data Source *</label>
-                <select
-                  id="dataSource"
-                  name="dataSource"
-                  value={formData.dataSource}
-                  onChange={handleChange}
-                  required
-                  className="form-control"
-                >
-                  <option value="">Select Data Source</option>
-                  <option value="attendance">Attendance Data</option>
-                  <option value="leave">Leave Statistics</option>
-                  <option value="employee">Employee Demographics</option>
-                  <option value="performance">Performance Metrics</option>
-                  <option value="recruitment">Recruitment Analytics</option>
-                  <option value="payroll">Payroll Summary</option>
-                  <option value="training">Training Progress</option>
-                  <option value="assets">Asset Utilization</option>
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="dataSource">Data Source *</label>
+              <select
+                id="dataSource"
+                name="dataSource"
+                value={formData.dataSource}
+                onChange={handleChange}
+                required
+                className="oh-form-input"
+              >
+                <option value="">Select Data Source</option>
+                <option value="attendance">Attendance Data</option>
+                <option value="leave">Leave Statistics</option>
+                <option value="employee">Employee Demographics</option>
+                <option value="performance">Performance Metrics</option>
+                <option value="recruitment">Recruitment Analytics</option>
+                <option value="payroll">Payroll Summary</option>
+                <option value="training">Training Progress</option>
+                <option value="assets">Asset Utilization</option>
                   <option value="projects">Project Statistics</option>
                   <option value="tickets">Ticket Resolution</option>
                 </select>
               </div>
+
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="department">Department Filter</label>
+              <select
+                id="department"
+                name="department"
+                value={formData.department}
+                onChange={handleChange}
+                className="oh-form-input"
+              >
+                <option value="">All Departments</option>
+                <option value="hr">Human Resources</option>
+                <option value="it">Information Technology</option>
+                <option value="finance">Finance</option>
+                <option value="marketing">Marketing</option>
+                <option value="sales">Sales</option>
+                <option value="operations">Operations</option>
+                <option value="admin">Administration</option>
+              </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group col-md-6">
-                <label htmlFor="department">Department Filter</label>
-                <select
-                  id="department"
-                  name="department"
-                  value={formData.department}
-                  onChange={handleChange}
-                  className="form-control"
-                >
-                  <option value="">All Departments</option>
-                  <option value="hr">Human Resources</option>
-                  <option value="it">Information Technology</option>
-                  <option value="finance">Finance</option>
-                  <option value="marketing">Marketing</option>
-                  <option value="sales">Sales</option>
-                  <option value="operations">Operations</option>
-                  <option value="admin">Administration</option>
-                </select>
-              </div>
-
-              <div className="form-group col-md-6">
-                <label htmlFor="dateRange">Date Range *</label>
-                <select
+            <div className="oh-form-group">
+              <label className="oh-form-label" htmlFor="dateRange">Date Range *</label>
+              <select
                   id="dateRange"
                   name="dateRange"
                   value={formData.dateRange}
                   onChange={handleChange}
                   required
-                  className="form-control"
+                  className="oh-form-input"
                 >
                   <option value="last_7_days">Last 7 Days</option>
                   <option value="last_30_days">Last 30 Days</option>
@@ -147,37 +194,36 @@ const DashboardChartsModal: React.FC<DashboardChartsModalProps> = ({ isOpen, onC
                   <option value="custom">Custom Range</option>
                 </select>
               </div>
-            </div>
 
             {formData.dateRange === 'custom' && (
-              <div className="form-row">
-                <div className="form-group col-md-6">
-                  <label htmlFor="customStartDate">Start Date *</label>
-                  <input
-                    type="date"
-                    id="customStartDate"
-                    name="customStartDate"
-                    value={formData.customStartDate}
-                    onChange={handleChange}
-                    required={formData.dateRange === 'custom'}
-                    className="form-control"
-                  />
-                </div>
+                <>
+                  <div className="form-group col-md-6">
+                    <label htmlFor="customStartDate">Start Date *</label>
+                    <input
+                      type="date"
+                      id="customStartDate"
+                      name="customStartDate"
+                      value={formData.customStartDate}
+                      onChange={handleChange}
+                      required={formData.dateRange === 'custom'}
+                      className="form-control"
+                    />
+                  </div>
 
-                <div className="form-group col-md-6">
-                  <label htmlFor="customEndDate">End Date *</label>
-                  <input
-                    type="date"
-                    id="customEndDate"
-                    name="customEndDate"
-                    value={formData.customEndDate}
-                    onChange={handleChange}
-                    required={formData.dateRange === 'custom'}
-                    className="form-control"
-                  />
-                </div>
-              </div>
-            )}
+                  <div className="form-group col-md-6">
+                    <label htmlFor="customEndDate">End Date *</label>
+                    <input
+                      type="date"
+                      id="customEndDate"
+                      name="customEndDate"
+                      value={formData.customEndDate}
+                      onChange={handleChange}
+                      required={formData.dateRange === 'custom'}
+                      className="form-control"
+                    />
+                  </div>
+                </>
+              )}
 
             <div className="form-group">
               <label htmlFor="chartTitle">Chart Title</label>

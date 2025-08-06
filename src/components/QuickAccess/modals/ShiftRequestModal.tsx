@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 interface ShiftRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: (message: string) => void;
 }
 
 interface ShiftOption {
@@ -21,7 +22,7 @@ const mockShifts: ShiftOption[] = [
   { id: '6', name: 'Split Shift B', startTime: '12:00', endTime: '20:00' }
 ];
 
-const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }) => {
+const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     fromShift: '',
     toShift: '',
@@ -104,22 +105,30 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
     e.preventDefault();
     
     if (validateForm()) {
-      console.log('Shift request submitted:', formData);
-      // Here you would typically submit to your API
-      onClose();
-      // Reset form
-      setFormData({
-        fromShift: '',
-        toShift: '',
-        shiftDate: '',
-        reason: '',
-        priority: 'medium',
-        justification: '',
-        coverageArrangement: '',
-        isRecurring: false,
-        recurringEndDate: '',
-        recurringDays: []
-      });
+      // Simulate API call
+      setTimeout(() => {
+        // Reset form
+        setFormData({
+          fromShift: '',
+          toShift: '',
+          shiftDate: '',
+          reason: '',
+          priority: 'medium',
+          justification: '',
+          coverageArrangement: '',
+          isRecurring: false,
+          recurringEndDate: '',
+          recurringDays: []
+        });
+        
+        // Close modal
+        onClose();
+        
+        // Show success notification
+        if (onSuccess) {
+          onSuccess('Shift request submitted successfully!');
+        }
+      }, 500);
     }
   };
 
@@ -147,23 +156,20 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
 
   return (
     <div className="oh-modal-overlay" onClick={handleBackdropClick}>
-      <div className="oh-modal oh-modal--lg">
-        <div className="oh-modal__header">
-          <h2 className="oh-modal__title">Create Shift Request</h2>
+      <div className="oh-create-shift-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="oh-modal-header">
+          <h2 className="oh-modal-title">Create Shift Request</h2>
           <button 
-            className="oh-modal__close" 
+            className="oh-modal-close" 
             onClick={onClose}
-            aria-label="Close modal"
+            type="button"
           >
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
+            ×
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="oh-modal__body">
-          <div className="oh-form-grid oh-form-grid--2">
+        <div className="oh-modal-body">
+          <form onSubmit={handleSubmit} className="oh-form-grid">
             {/* Current Shift */}
             <div className="oh-form-group">
               <label htmlFor="fromShift" className="oh-form-label">
@@ -174,7 +180,7 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
                 name="fromShift"
                 value={formData.fromShift}
                 onChange={handleInputChange}
-                className={`oh-form-select ${errors.fromShift ? 'oh-form-select--error' : ''}`}
+                className={`oh-form-input ${errors.fromShift ? 'oh-form-input--error' : ''}`}
               >
                 <option value="">Select current shift</option>
                 {mockShifts.map(shift => (
@@ -196,7 +202,7 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
                 name="toShift"
                 value={formData.toShift}
                 onChange={handleInputChange}
-                className={`oh-form-select ${errors.toShift ? 'oh-form-select--error' : ''}`}
+                className={`oh-form-input ${errors.toShift ? 'oh-form-input--error' : ''}`}
               >
                 <option value="">Select requested shift</option>
                 {mockShifts.filter(shift => shift.id !== formData.fromShift).map(shift => (
@@ -207,7 +213,6 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
               </select>
               {errors.toShift && <span className="oh-form-error">{errors.toShift}</span>}
             </div>
-          </div>
 
           {/* Shift Change Preview */}
           {formData.fromShift && formData.toShift && (
@@ -246,35 +251,34 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
             </div>
           )}
 
-          <div className="oh-form-grid oh-form-grid--2">
-            {/* Shift Date */}
-            <div className="oh-form-group">
-              <label htmlFor="shiftDate" className="oh-form-label">
-                Shift Date *
-              </label>
-              <input
-                type="date"
-                id="shiftDate"
-                name="shiftDate"
-                value={formData.shiftDate}
-                onChange={handleInputChange}
-                min={new Date().toISOString().split('T')[0]}
-                className={`oh-form-input ${errors.shiftDate ? 'oh-form-input--error' : ''}`}
-              />
-              {errors.shiftDate && <span className="oh-form-error">{errors.shiftDate}</span>}
-            </div>
+          {/* Shift Date */}
+          <div className="oh-form-group">
+            <label htmlFor="shiftDate" className="oh-form-label">
+              Shift Date *
+            </label>
+            <input
+              type="date"
+              id="shiftDate"
+              name="shiftDate"
+              value={formData.shiftDate}
+              onChange={handleInputChange}
+              min={new Date().toISOString().split('T')[0]}
+              className={`oh-form-input ${errors.shiftDate ? 'oh-form-input--error' : ''}`}
+            />
+            {errors.shiftDate && <span className="oh-form-error">{errors.shiftDate}</span>}
+          </div>
 
-            {/* Priority */}
-            <div className="oh-form-group">
-              <label htmlFor="priority" className="oh-form-label">
-                Priority
-              </label>
-              <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
+          {/* Priority */}
+          <div className="oh-form-group">
+            <label htmlFor="priority" className="oh-form-label">
+              Priority
+            </label>
+            <select
+              id="priority"
+              name="priority"
+              value={formData.priority}
                 onChange={handleInputChange}
-                className="oh-form-select"
+                className="oh-form-input"
               >
                 <option value="low">Low</option>
                 <option value="medium">Medium</option>
@@ -282,7 +286,6 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
                 <option value="urgent">Urgent</option>
               </select>
             </div>
-          </div>
 
           {/* Recurring Request */}
           <div className="oh-form-group">
@@ -386,28 +389,29 @@ const ShiftRequestModal: React.FC<ShiftRequestModalProps> = ({ isOpen, onClose }
                 onChange={handleInputChange}
                 placeholder="How will your current shift be covered? Any arrangements made?"
                 rows={2}
-                className="oh-form-textarea"
+                className="oh-form-input"
               />
             </div>
           </div>
+          </form>
+        </div>
 
-          {/* Form Actions */}
-          <div className="oh-form-actions">
-            <button
-              type="button"
-              onClick={onClose}
-              className="oh-btn oh-btn--secondary"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="oh-btn oh-btn--primary"
-            >
-              Submit Request
-            </button>
-          </div>
-        </form>
+        <div className="oh-modal-footer">
+          <button
+            type="button"
+            onClick={onClose}
+            className="oh-btn oh-btn--secondary"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            onClick={handleSubmit}
+            className="oh-btn oh-btn--primary"
+          >
+            Submit Request
+          </button>
+        </div>
       </div>
     </div>
   );

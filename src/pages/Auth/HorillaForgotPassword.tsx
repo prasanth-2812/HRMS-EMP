@@ -1,97 +1,116 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import './HorillaForgotPassword.css';
+import './LoginPage.css';
 
-const HorillaForgotPassword: React.FC = () => {
+const ForgotPassword: React.FC = () => {
   const [email, setEmail] = useState('');
+  const [isSubmitted, setIsSubmitted] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [message, setMessage] = useState('');
-  const [error, setError] = useState('');
+  const [cardVisible, setCardVisible] = useState(false);
+
+  React.useEffect(() => {
+    setTimeout(() => setCardVisible(true), 100);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    setError('');
-    setMessage('');
     
-    try {
-      // Simulate API call for forgot password
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setMessage('Password reset instructions have been sent to your email.');
-    } catch (error) {
-      setError('Failed to send reset instructions. Please try again.');
-      console.error('Forgot password error:', error);
-    } finally {
+    // Simulate API call
+    setTimeout(() => {
+      setIsSubmitted(true);
       setIsLoading(false);
-    }
+    }, 1000);
   };
 
+  if (isSubmitted) {
+    return (
+      <div className="login-bg-light">
+        <div className="login-container">
+          <div className={`login-card${cardVisible ? ' login-card--visible' : ''}`}>
+            <h1 className="login-title">Check Your Email</h1>
+            <p className="login-subtitle">
+              We've sent a password reset link to <strong>{email}</strong>
+            </p>
+            
+            <div className="success-message">
+              <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="success-icon">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <p>Please check your email and click the reset link to continue.</p>
+            </div>
+            
+            <div className="form-footer">
+              <Link to="/login" className="forgot-password-link">
+                Back to Login
+              </Link>
+            </div>
+          </div>
+          
+          <div className="login-logo">
+            <img src="/logo.svg" alt="SYNC" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div id="main">
-      <main className="oh-auth">
-        <div className="oh-auth-card">
-          <h1 className="oh-onboarding-card__title oh-onboarding-card__title--h2 text-center my-3">
-            Forgot Password?
-          </h1>
-          <p className="text-muted text-center">
-            Type in your email to reset the password
+    <div className="login-bg-light">
+      <div className="login-container">
+        <div className={`login-card${cardVisible ? ' login-card--visible' : ''}`}>
+          <h1 className="login-title">Forgot Password</h1>
+          <p className="login-subtitle">
+            Enter your email address and we'll send you a link to reset your password.
           </p>
           
-          {message && (
-            <div className="oh-alert oh-alert--success">
-              {message}
-            </div>
-          )}
-          
-          {error && (
-            <div className="oh-alert oh-alert--error">
-              {error}
-            </div>
-          )}
-          
-          <form className="oh-form-group" onSubmit={handleSubmit}>
-            <div className="oh-input-group">
-              <label className="oh-label" htmlFor="email">E-mail</label>
-              <input 
-                type="email" 
-                id="email" 
+          <form className="login-form" onSubmit={handleSubmit} autoComplete="off">
+            <div className="form-group">
+              <label htmlFor="email" className="form-label">Email Address</label>
+              <input
+                type="email"
+                id="email"
                 name="email"
-                className="oh-input w-100" 
-                placeholder="e.g. jane.doe@acme.com" 
-                autoFocus 
-                required
+                className="form-input"
+                placeholder="e.g. john.doe@SYNC.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
+                autoFocus
               />
             </div>
-
+            
             <button
               type="submit"
-              className="oh-btn oh-onboarding-card__button mt-4 oh-btn--secondary oh-btn--shadow w-100 mb-4"
-              role="button"
+              className="login-btn"
               disabled={isLoading}
             >
-              {isLoading ? 'Sending...' : 'Change Password'}
+              {isLoading ? (
+                <span className="login-spinner"></span>
+              ) : (
+                <>
+                  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" className="btn-icon">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  Send Reset Link
+                </>
+              )}
             </button>
             
-            <div className="text-center">
-              <Link to="/login" className="oh-link oh-link--secondary">
-                Back to Sign In
+            <div className="form-footer">
+              <Link to="/login" className="forgot-password-link">
+                Back to Login
               </Link>
             </div>
           </form>
         </div>
         
-        <div className="oh-auth-logo">
-          <img 
-            src="/images/ui/auth-logo.png" 
-            alt="Horilla"
-            className="oh-auth-logo__image"
-          />
+        <div className="login-logo">
+          <img src="/logo.svg" alt="SYNC" />
         </div>
-      </main>
+      </div>
     </div>
   );
 };
 
-export default HorillaForgotPassword;
+export default ForgotPassword;

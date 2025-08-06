@@ -30,21 +30,24 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
   const [showTicketModal, setShowTicketModal] = useState(false);
   const [showDashboardChartsModal, setShowDashboardChartsModal] = useState(false);
   const [showDocumentRequestModal, setShowDocumentRequestModal] = useState(false);
+  
+  // Notification state
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
-  // Debug: Log modal states
-  React.useEffect(() => {
-    console.log('Modal states:', {
-      showAttendanceModal,
-      showLeaveModal,
-      showShiftModal,
-      showWorkTypeModal,
-      showReimbursementModal,
-      showAssetRequestModal,
-      showTicketModal,
-      showDashboardChartsModal,
-      showDocumentRequestModal
-    });
-  }, [showAttendanceModal, showLeaveModal, showShiftModal, showWorkTypeModal, showReimbursementModal, showAssetRequestModal, showTicketModal, showDashboardChartsModal, showDocumentRequestModal]);
+  // Show success notification
+  const showSuccessNotification = (message: string) => {
+    setNotification({ type: 'success', message });
+    setTimeout(() => setNotification(null), 3000);
+  };
+
+  // Show error notification
+  const showErrorNotification = (message: string) => {
+    setNotification({ type: 'error', message });
+    setTimeout(() => setNotification(null), 4000);
+  };
 
   const quickActions = [
     {
@@ -54,7 +57,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Attendance modal opening...');
         setShowAttendanceModal(true);
         setIsOpen(false);
       }
@@ -66,7 +68,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Leave modal opening...');
         setShowLeaveModal(true);
         setIsOpen(false);
       }
@@ -78,7 +79,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Shift modal opening...');
         setShowShiftModal(true);
         setIsOpen(false);
       }
@@ -90,7 +90,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Work type modal opening...');
         setShowWorkTypeModal(true);
         setIsOpen(false);
       }
@@ -102,7 +101,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Reimbursement modal opening...');
         setShowReimbursementModal(true);
         setIsOpen(false);
       }
@@ -114,7 +112,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Asset modal opening...');
         setShowAssetRequestModal(true);
         setIsOpen(false);
       }
@@ -126,7 +123,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Ticket modal opening...');
         setShowTicketModal(true);
         setIsOpen(false);
       }
@@ -138,7 +134,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Dashboard Charts modal opening...');
         setShowDashboardChartsModal(true);
         setIsOpen(false);
       }
@@ -150,7 +145,6 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       onClick: (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Document Request modal opening...');
         setShowDocumentRequestModal(true);
         setIsOpen(false);
       }
@@ -305,39 +299,88 @@ const QuickAccess: React.FC<QuickAccessProps> = () => {
       <AttendanceRequestModal 
         isOpen={showAttendanceModal} 
         onClose={() => setShowAttendanceModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <LeaveRequestModal 
         isOpen={showLeaveModal} 
         onClose={() => setShowLeaveModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <ShiftRequestModal 
         isOpen={showShiftModal} 
         onClose={() => setShowShiftModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <WorkTypeModal 
         isOpen={showWorkTypeModal} 
         onClose={() => setShowWorkTypeModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <ReimbursementModal 
         isOpen={showReimbursementModal} 
         onClose={() => setShowReimbursementModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <AssetRequestModal 
         isOpen={showAssetRequestModal} 
         onClose={() => setShowAssetRequestModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <TicketModal 
         isOpen={showTicketModal} 
         onClose={() => setShowTicketModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <DashboardChartsModal 
         isOpen={showDashboardChartsModal} 
         onClose={() => setShowDashboardChartsModal(false)} 
+        onSuccess={showSuccessNotification}
       />
       <DocumentRequestModal 
         isOpen={showDocumentRequestModal} 
         onClose={() => setShowDocumentRequestModal(false)} 
+        onSuccess={showSuccessNotification}
       />
+
+      {/* Notification Toast */}
+      {notification && (
+        <div className={`oh-notification oh-notification--${notification.type}`}>
+          <div className="oh-notification__content">
+            <div className="oh-notification__icon">
+              {notification.type === 'success' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                  <polyline points="22,4 12,14.01 9,11.01"></polyline>
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="16" x2="12" y2="12"></line>
+                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                </svg>
+              )}
+            </div>
+            <span className="oh-notification__message">{notification.message}</span>
+            <button 
+              className="oh-notification__close"
+              onClick={() => setNotification(null)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };

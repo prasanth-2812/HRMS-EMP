@@ -33,7 +33,11 @@
 
 /* Page Header */
 .oh-page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 32px;
+  gap: 24px;
 }
 
 .oh-page-header__content {
@@ -53,6 +57,11 @@
   font-size: 16px;
   color: #6b7280;
   margin: 0;
+}
+
+.oh-page-header__actions {
+  display: flex;
+  gap: 12px;
 }
 
 /* Statistics Grid */
@@ -491,7 +500,7 @@
 }
 
 .oh-btn--icon {
-  padding: 12px 20px;
+  padding: 12px 24px;
   min-width: 44px;
   justify-content: center;
 }
@@ -838,22 +847,6 @@
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-/* Page Header Updates */
-.oh-page-header__content {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 24px;
-}
-
-.oh-page-header__left {
-  flex: 1;
-}
-
-.oh-page-header__right {
-  flex-shrink: 0;
 }
 
 /* Modal Form Styles */
