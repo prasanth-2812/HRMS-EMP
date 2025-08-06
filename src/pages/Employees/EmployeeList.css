@@ -320,29 +320,36 @@
 }
 
 .oh-employee-card {
-  background: white;
-  border-radius: 8px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.2s;
-  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px 20px 20px 20px;
+  box-shadow: none;
+  border: 1.5px solid #e5e7eb;
   overflow: hidden;
   word-wrap: break-word;
-  min-height: 160px;
+  min-height: 120px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+  position: relative;
 }
 
 .oh-employee-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-2px);
+  border-color: #b6d0fa;
+  background: #fff;
+  box-shadow: 0 2px 8px 0 rgba(0,0,0,0.04);
+  transform: translateY(-2px) scale(1.01);
 }
 
 .oh-employee-card-header {
   display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 16px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 0 18px 0 0;
+  padding: 0;
+  border: none;
 }
 
 .oh-employee-avatar {
@@ -408,6 +415,10 @@
   text-align: left;
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  justify-content: center;
 }
 
 .oh-employee-name {
@@ -517,7 +528,7 @@
 }
 
 .oh-employee-details .oh-employee-name a {
-  border: none;
+  border: none !important;
   text-decoration: none;
   color: #1a1a1a;
   font-weight: 600;
@@ -531,6 +542,7 @@
 .oh-employee-details .oh-employee-email {
   font-size: 13px;
   color: #666;
+  border: none !important;
 }
 
 .oh-status-badge {
