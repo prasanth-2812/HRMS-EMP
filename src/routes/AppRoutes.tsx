@@ -19,7 +19,7 @@ import Candidates from '../pages/Recruitment/Candidates';
 import JobPostings from '../pages/Recruitment/JobPostings';
 import AttendanceRecords from '../pages/Attendance/AttendanceRecords';
 import OnboardingPlans from '../pages/Onboarding/OnboardingPlans';
-import EmployeeDashboard from '../pages/Employee/Dashboard/EmployeeDashboard';
+
 import EmployeeProfile from '../pages/Employee/Profile/EmployeeProfile';
 import LeaveApplications from '../pages/Leave/LeaveApplications';
 import PayrollOverview from '../pages/Payroll/PayrollOverview';
@@ -130,11 +130,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
           <EmployeeProfile />
         </ProtectedRoute>
       } />
-      <Route path="/employee/dashboard" element={
-        <ProtectedRoute>
-          <EmployeeDashboard />
-        </ProtectedRoute>
-      } />
+      
       <Route path="/employee/employees" element={
         <ProtectedRoute>
           <EmployeeList />
