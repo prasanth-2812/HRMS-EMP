@@ -1,24 +1,98 @@
-
 import { apiClient } from '../utils/api';
+
+// Transform employee data from snake_case to camelCase
+const transformEmployeeData = (employee: any) => {
+  return {
+    id: employee.id,
+    employeeId: employee.badge_id,
+    firstName: employee.employee_first_name,
+    lastName: employee.employee_last_name,
+    email: employee.email,
+    department: employee.department_name,
+    position: employee.job_position_name,
+    status: employee.is_active ? 'online' : 'offline',
+    hireDate: employee.employee_work_info?.date_joining,
+    phone: employee.phone,
+    avatar: employee.employee_profile,
+    country: employee.country,
+    state: employee.state,
+    city: employee.city,
+    zip: employee.zip,
+    dob: employee.dob,
+    gender: employee.gender,
+    qualification: employee.qualification,
+    experience: employee.experience,
+    maritalStatus: employee.marital_status,
+    children: employee.children,
+    emergencyContact: employee.emergency_contact,
+    emergencyContactName: employee.emergency_contact_name,
+    emergencyContactRelation: employee.emergency_contact_relation,
+  };
+};
 
 // Get all employees
 export const getAllEmployees = async () => {
-  return await apiClient.get('/api/v1/employee/employees/');
+  const response: any = await apiClient.get('/api/v1/employee/employees/');
+  if (response?.results) {
+    return response.results.map(transformEmployeeData);
+  }
+  return [];
 };
 
 // Get employee by ID
 export const getEmployeeById = async (id: string | number) => {
-  return await apiClient.get(`/api/v1/employee/employees/${id}/`);
+  const response = await apiClient.get(`/api/v1/employee/employees/${id}/`);
+  return transformEmployeeData(response);
 };
 
 // Create employee
 export const createEmployee = async (data: any) => {
-  return await apiClient.post('/api/v1/employee/employees/', data);
+  const payload = {
+    employee_first_name: data.firstName,
+    employee_last_name: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    country: data.country,
+    state: data.state,
+    city: data.city,
+    zip: data.zip,
+    dob: data.dob,
+    gender: data.gender,
+    qualification: data.qualification,
+    experience: data.experience,
+    marital_status: data.maritalStatus,
+    children: data.children,
+    emergency_contact: data.emergencyContact,
+    emergency_contact_name: data.emergencyContactName,
+    emergency_contact_relation: data.emergencyContactRelation,
+  };
+  const response = await apiClient.post('/api/v1/employee/employees/', payload);
+  return transformEmployeeData(response);
 };
 
 // Update employee
 export const updateEmployee = async (id: string | number, data: any) => {
-  return await apiClient.put(`/api/v1/employee/employees/${id}/`, data);
+  const payload = {
+    employee_first_name: data.firstName,
+    employee_last_name: data.lastName,
+    email: data.email,
+    phone: data.phone,
+    country: data.country,
+    state: data.state,
+    city: data.city,
+    zip: data.zip,
+    dob: data.dob,
+    gender: data.gender,
+    qualification: data.qualification,
+    experience: data.experience,
+    marital_status: data.maritalStatus,
+    children: data.children,
+    emergency_contact: data.emergencyContact,
+    emergency_contact_name: data.emergencyContactName,
+    emergency_contact_relation: data.emergencyContactRelation,
+  };
+  const response = await apiClient.put(`/api/v1/employee/employees/${id}/`, payload);
+  return transformEmployeeData(response);
 };
 
 // Delete employee
@@ -99,7 +173,6 @@ export const bulkUpdateEmployees = async (data: any) => {
   const response = await apiClient.put('/api/v1/employee/employee-bulk-update/', data);
   return response;
 };
-
 // Disciplinary Action CRUD
 export const getAllDisciplinaryActions = async () => {
   const response = await apiClient.get('/api/v1/employee/disciplinary-action/');
@@ -238,3 +311,4 @@ export const getEmployeeSelector = async () => {
 export const managerCheck = async () => {
   return await apiClient.get('/api/v1/employee/manager-check/');
 };
+

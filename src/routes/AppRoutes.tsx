@@ -5,7 +5,7 @@ import Login from '../pages/Auth/Login';
 import Register from '../pages/Auth/Register';
 import ForgotPassword from '../pages/Auth/ForgotPassword';
 import ResetPassword from '../pages/Auth/ResetPassword';
-import EmployeeList from '../pages/Employees/EmployeeList';
+import EmployeeList from '../pages/Employee/Employees/EmployeeList';
 import DocumentRequests from '../pages/Employee/DocumentRequests/DocumentRequests';
 import ShiftRequests from '../pages/Employee/ShiftRequests/ShiftRequests';
 import WorkTypeRequests from '../pages/Employee/WorkTypeRequests/WorkTypeRequests';

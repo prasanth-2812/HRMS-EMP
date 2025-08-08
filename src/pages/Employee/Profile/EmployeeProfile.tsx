@@ -1,50 +1,51 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
+import apiClient from '../../../services/authService';
 import './EmployeeProfile.css';
 
-// Mock data - replace with actual data from props or API
-const mockEmployee = {
-  id: 1,
-  employeeId: 'EMP001',
-  firstName: 'John',
-  lastName: 'Doe',
-  email: 'john.doe@company.com',
-  phone: '+1234567890',
-  dateOfBirth: '1990-01-15',
-  gender: 'Male',
-  address: '123 Main St, City, State 12345',
-  country: 'United States',
-  state: 'California',
-  city: 'San Francisco',
-  qualification: 'Bachelor of Computer Science',
-  experience: '5 years',
-  maritalStatus: 'Married',
-  children: '2',
-  emergencyContact: '+1234567891',
-  emergencyContactName: 'Jane Doe',
-  emergencyContactRelation: 'Spouse',
-  department: 'Engineering',
-  position: 'Senior Developer',
-  manager: 'Jane Smith',
-  dateOfJoining: '2020-03-15',
-  employmentType: 'Full-time',
-  workLocation: 'Head Office',
-  salary: '$75,000',
-  contractStartDate: '2020-03-15',
-  contractEndDate: '2025-03-15',
-  probationPeriod: '6 months',
-};
+// Remove mock data and use fetched data
+interface EmployeeProfileData {
+  id: number;
+  employeeId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: string;
+  address: string;
+  country: string;
+  state: string;
+  city: string;
+  qualification: string;
+  experience: string;
+  maritalStatus: string;
+  children: string;
+  emergencyContact: string;
+  emergencyContactName: string;
+  emergencyContactRelation: string;
+  department: string;
+  position: string;
+  manager: string;
+  dateOfJoining: string;
+  employmentType: string;
+  workLocation: string;
+  salary: string;
+  contractStartDate: string;
+  contractEndDate: string;
+  probationPeriod: string;
+}
 
-const mockBankInfo = {
-  bankName: 'Bank of America',
-  accountNumber: '****1234',
-  routingNumber: '021000322',
-  accountType: 'Checking',
-  branch: 'Downtown Branch',
-};
+interface BankInfo {
+  bankName: string;
+  accountNumber: string;
+  routingNumber: string;
+  accountType: string;
+  branch: string;
+}
 
 const EmployeeProfile: React.FC = () => {
   const [activeTab, setActiveTab] = useState('about');
@@ -52,8 +53,8 @@ const EmployeeProfile: React.FC = () => {
   const [isEditingWork, setIsEditingWork] = useState(false);
   const [isEditingBank, setIsEditingBank] = useState(false);
   const [isEditingContract, setIsEditingContract] = useState(false);
-  const [personalFormData, setPersonalFormData] = useState({...mockEmployee});
-  const [bankFormData, setBankFormData] = useState({...mockBankInfo});
+  const [personalFormData, setPersonalFormData] = useState<EmployeeProfileData | null>(null);
+  const [bankFormData, setBankFormData] = useState<BankInfo | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('success');
@@ -61,6 +62,57 @@ const EmployeeProfile: React.FC = () => {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTab, setPendingTab] = useState<string>('');
   const { isCollapsed } = useSidebar();
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
+  // Map API response keys to UI fields
+  function mapApiToProfileData(apiData: any): EmployeeProfileData {
+    return {
+      id: apiData.id,
+      employeeId: apiData.badge_id ?? '',
+      firstName: apiData.employee_first_name ?? '',
+      lastName: apiData.employee_last_name ?? '',
+      email: apiData.email ?? '',
+      phone: apiData.phone ?? '',
+      dateOfBirth: apiData.dob ?? '',
+      gender: apiData.gender ?? '',
+      address: apiData.address ?? '',
+      country: apiData.country ?? '',
+      state: apiData.state ?? '',
+      city: apiData.city ?? '',
+      qualification: apiData.qualification ?? '',
+      experience: apiData.experience ?? '',
+      maritalStatus: apiData.marital_status ?? '',
+      children: apiData.children ?? '',
+      emergencyContact: apiData.emergency_contact ?? '',
+      emergencyContactName: apiData.emergency_contact_name ?? '',
+      emergencyContactRelation: apiData.emergency_contact_relation ?? '',
+      department: apiData.department ?? '',
+      position: apiData.job_position ?? '',
+      manager: apiData.reporting_manager ?? '',
+      dateOfJoining: '', // not in API
+      employmentType: apiData.employee_type ?? '',
+      workLocation: '', // not in API
+      salary: '', // not in API
+      contractStartDate: '', // not in API
+      contractEndDate: '', // not in API
+      probationPeriod: '', // not in API
+    };
+  }
+
+  useEffect(() => {
+    setIsLoading(true);
+    apiClient.get('/api/v1/auth/profile/')
+      .then((res) => {
+        const data = res.data;
+        setPersonalFormData(mapApiToProfileData(data));
+        setBankFormData(null); // No bank info in API
+        setFetchError(null);
+      })
+      .catch((err) => {
+        setFetchError(err.message || 'Failed to fetch profile');
+      })
+      .finally(() => setIsLoading(false));
+  }, []);
 
   const hasUnsavedChanges = () => {
     return isEditingPersonal || isEditingWork || isEditingBank || isEditingContract;
@@ -83,8 +135,8 @@ const EmployeeProfile: React.FC = () => {
     setIsEditingContract(false);
     
     // Reset form data
-    setPersonalFormData({...mockEmployee});
-    setBankFormData({...mockBankInfo});
+    setPersonalFormData(null);
+    setBankFormData(null);
     
     // Switch to pending tab
     setActiveTab(pendingTab);
@@ -125,7 +177,7 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handlePersonalCancel = () => {
-    setPersonalFormData({...mockEmployee});
+    setPersonalFormData(null);
     setIsEditingPersonal(false);
     showNotificationMessage('Changes discarded', 'info');
   };
@@ -149,7 +201,7 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleBankCancel = () => {
-    setBankFormData({...mockBankInfo});
+    setBankFormData(null);
     setIsEditingBank(false);
     showNotificationMessage('Changes discarded', 'info');
   };
@@ -172,7 +224,7 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleWorkCancel = () => {
-    setPersonalFormData({...mockEmployee});
+    setPersonalFormData(null);
     setIsEditingWork(false);
     showNotificationMessage('Changes discarded', 'info');
   };
@@ -195,7 +247,7 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleContractCancel = () => {
-    setPersonalFormData({...mockEmployee});
+    setPersonalFormData(null);
     setIsEditingContract(false);
     showNotificationMessage('Changes discarded', 'info');
   };
@@ -228,8 +280,8 @@ const EmployeeProfile: React.FC = () => {
 
   const handleCancelAllChanges = () => {
     // Reset all form data
-    setPersonalFormData({...mockEmployee});
-    setBankFormData({...mockBankInfo});
+    setPersonalFormData(null);
+    setBankFormData(null);
     
     // Reset all edit states
     setIsEditingPersonal(false);
@@ -265,7 +317,12 @@ const EmployeeProfile: React.FC = () => {
     showNotificationMessage(`Switched to ${tabName} section in edit mode`, 'info');
   };
 
+  // In renderTabContent, add loading and error states
   const renderTabContent = () => {
+    if (isLoading && !personalFormData) return <div>Loading...</div>;
+    if (fetchError) return <div style={{color:'red'}}>Error: {fetchError}</div>;
+    if (!personalFormData) return <div>No profile data found.</div>;
+
     switch (activeTab) {
       case 'about':
         return (
@@ -814,12 +871,18 @@ const EmployeeProfile: React.FC = () => {
                     <div className="oh-profile-field">
                       <label>Bank Name</label>
                       {!isEditingBank ? (
-                        <span>{bankFormData.bankName}</span>
+                        <span>{bankFormData?.bankName}</span>
                       ) : (
                         <input
                           type="text"
-                          value={bankFormData.bankName}
-                          onChange={(e) => setBankFormData({...bankFormData, bankName: e.target.value})}
+                          value={bankFormData?.bankName}
+                          onChange={(e) => bankFormData && setBankFormData({
+                            bankName: e.target.value,
+                            accountNumber: bankFormData.accountNumber ?? '',
+                            routingNumber: bankFormData.routingNumber ?? '',
+                            accountType: bankFormData.accountType ?? '',
+                            branch: bankFormData.branch ?? ''
+                          })}
                           className="oh-profile-input"
                         />
                       )}
@@ -827,12 +890,18 @@ const EmployeeProfile: React.FC = () => {
                     <div className="oh-profile-field">
                       <label>Account Number</label>
                       {!isEditingBank ? (
-                        <span>{bankFormData.accountNumber}</span>
+                        <span>{bankFormData?.accountNumber}</span>
                       ) : (
                         <input
                           type="text"
-                          value={bankFormData.accountNumber}
-                          onChange={(e) => setBankFormData({...bankFormData, accountNumber: e.target.value})}
+                          value={bankFormData?.accountNumber}
+                          onChange={(e) => bankFormData && setBankFormData({
+                            bankName: bankFormData.bankName ?? '',
+                            accountNumber: e.target.value,
+                            routingNumber: bankFormData.routingNumber ?? '',
+                            accountType: bankFormData.accountType ?? '',
+                            branch: bankFormData.branch ?? ''
+                          })}
                           className="oh-profile-input"
                         />
                       )}
@@ -840,12 +909,18 @@ const EmployeeProfile: React.FC = () => {
                     <div className="oh-profile-field">
                       <label>Routing Number</label>
                       {!isEditingBank ? (
-                        <span>{bankFormData.routingNumber}</span>
+                        <span>{bankFormData?.routingNumber}</span>
                       ) : (
                         <input
                           type="text"
-                          value={bankFormData.routingNumber}
-                          onChange={(e) => setBankFormData({...bankFormData, routingNumber: e.target.value})}
+                          value={bankFormData?.routingNumber}
+                          onChange={(e) => bankFormData && setBankFormData({
+                            bankName: bankFormData.bankName ?? '',
+                            accountNumber: bankFormData.accountNumber ?? '',
+                            routingNumber: e.target.value,
+                            accountType: bankFormData.accountType ?? '',
+                            branch: bankFormData.branch ?? ''
+                          })}
                           className="oh-profile-input"
                         />
                       )}
@@ -853,11 +928,17 @@ const EmployeeProfile: React.FC = () => {
                     <div className="oh-profile-field">
                       <label>Account Type</label>
                       {!isEditingBank ? (
-                        <span>{bankFormData.accountType}</span>
+                        <span>{bankFormData?.accountType}</span>
                       ) : (
                         <select
-                          value={bankFormData.accountType}
-                          onChange={(e) => setBankFormData({...bankFormData, accountType: e.target.value})}
+                          value={bankFormData?.accountType}
+                          onChange={(e) => bankFormData && setBankFormData({
+                            bankName: bankFormData.bankName ?? '',
+                            accountNumber: bankFormData.accountNumber ?? '',
+                            routingNumber: bankFormData.routingNumber ?? '',
+                            accountType: e.target.value,
+                            branch: bankFormData.branch ?? ''
+                          })}
                           className="oh-profile-select"
                         >
                           <option value="Checking">Checking</option>
@@ -868,12 +949,18 @@ const EmployeeProfile: React.FC = () => {
                     <div className="oh-profile-field">
                       <label>Branch</label>
                       {!isEditingBank ? (
-                        <span>{bankFormData.branch}</span>
+                        <span>{bankFormData?.branch}</span>
                       ) : (
                         <input
                           type="text"
-                          value={bankFormData.branch}
-                          onChange={(e) => setBankFormData({...bankFormData, branch: e.target.value})}
+                          value={bankFormData?.branch}
+                          onChange={(e) => bankFormData && setBankFormData({
+                            bankName: bankFormData.bankName ?? '',
+                            accountNumber: bankFormData.accountNumber ?? '',
+                            routingNumber: bankFormData.routingNumber ?? '',
+                            accountType: bankFormData.accountType ?? '',
+                            branch: e.target.value
+                          })}
                           className="oh-profile-input"
                         />
                       )}
@@ -1544,14 +1631,14 @@ const EmployeeProfile: React.FC = () => {
             <div className="oh-profile-header-info">
               <div className="oh-profile-avatar">
                 <img 
-                  src={`https://ui-avatars.com/api/?name=${mockEmployee.firstName}+${mockEmployee.lastName}&background=007bff&color=fff`} 
-                  alt={`${mockEmployee.firstName} ${mockEmployee.lastName}`}
+                  src={`https://ui-avatars.com/api/?name=${personalFormData?.firstName}+${personalFormData?.lastName}&background=007bff&color=fff`} 
+                  alt={`${personalFormData?.firstName} ${personalFormData?.lastName}`}
                 />
               </div>
               <div className="oh-profile-details">
-                <h1>{mockEmployee.firstName} {mockEmployee.lastName}</h1>
-                <p>{mockEmployee.position} • {mockEmployee.department}</p>
-                <p>{mockEmployee.email}</p>
+                <h1>{personalFormData?.firstName} {personalFormData?.lastName}</h1>
+                <p>{personalFormData?.position}  {personalFormData?.department}</p>
+                <p>{personalFormData?.email}</p>
                 {hasUnsavedChanges() && (
                   <div className="oh-edit-mode-indicator">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -1803,7 +1890,7 @@ const EmployeeProfile: React.FC = () => {
           <div className="oh-notification-content">
             <div className="oh-notification-icon">
               {notificationType === 'success' && (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="20,6 9,17 4,12"></polyline>
                 </svg>
               )}
@@ -1840,3 +1927,6 @@ const EmployeeProfile: React.FC = () => {
 };
 
 export default EmployeeProfile;
+
+
+
