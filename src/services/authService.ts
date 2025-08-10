@@ -84,26 +84,21 @@ export interface ResetPasswordResponse {
 // Login API
 export const loginApi = async (username: string, password: string): Promise<LoginResponse> => {
   try {
-    console.log('Attempting login with:', { username, password: '***' });
-    console.log('API URL:', `${API_BASE_URL}/api/v1/auth/login/`);
-    
     const response = await apiClient.post('/api/v1/auth/login/', {
       username,
       password,
     });
-    
-    console.log('Login response:', response.data);
+    // Store tokens in localStorage for axiosInstance.js usage
+    if (response.data.access) {
+      localStorage.setItem('access', response.data.access);
+    }
+    if (response.data.refresh) {
+      localStorage.setItem('refresh', response.data.refresh);
+    }
     return response.data;
   } catch (error: any) {
-    console.error('Login API error:', error);
-    
     let errorMessage = 'Login failed';
-    
     if (error.response) {
-      // Server responded with error status
-      console.error('Error status:', error.response.status);
-      console.error('Error data:', error.response.data);
-      
       if (error.response.data?.detail) {
         errorMessage = error.response.data.detail;
       } else if (error.response.data?.message) {
@@ -118,15 +113,10 @@ export const loginApi = async (username: string, password: string): Promise<Logi
         errorMessage = 'Server error. Please try again later.';
       }
     } else if (error.request) {
-      // Request was made but no response received
-      console.error('No response received');
       errorMessage = 'No response from server. Please check if the backend is running at http://127.0.0.1:8000';
     } else {
-      // Something else happened
-      console.error('Request setup error:', error.message);
       errorMessage = error.message || 'Network error';
     }
-    
     throw new Error(errorMessage);
   }
 };

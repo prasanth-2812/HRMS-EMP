@@ -8,6 +8,8 @@ import { useSidebar } from '../../../contexts/SidebarContext';
 import './EmployeeList.css';
 
 // Corrected import paths: changed '../../' to '../../../'
+
+import EmployeeCreateForm from '../../../components/employee/EmployeeCreateForm';
 import { getAllEmployees, createEmployee } from '../../../services/employeeService';
 
 interface Employee {
@@ -318,6 +320,32 @@ const EmployeeList: React.FC = () => {
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
         <Navbar pageTitle="Employees" />
         <div className="oh-employees-container">
+          {/* Modal for Create Employee */}
+          {showCreateModal && (
+            <div className="oh-modal-overlay">
+              <div className="oh-create-employee-modal">
+                <div className="oh-modal-header">
+                  <h2>Create New Employee</h2>
+                  <button
+                    className="oh-modal-close-btn"
+                    onClick={() => {
+                      setShowCreateModal(false);
+                      resetForm();
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="18" y1="6" x2="6" y2="18"></line>
+                      <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="oh-modal-body">
+                  <EmployeeCreateForm onSuccess={() => setShowCreateModal(false)} />
+                </div>
+              </div>
+            </div>
+          )}
           {/* Header */}
           <div className="oh-employees-header">
             <div className="oh-employees-title">
@@ -672,346 +700,7 @@ const EmployeeList: React.FC = () => {
         </div>
       )}
 
-      {/* Create Employee Modal */}
-      {showCreateModal && (
-        <div className="oh-modal-overlay">
-          <div className="oh-create-employee-modal">
-            <div className="oh-modal-header">
-              <h2>Create New Employee</h2>
-              <button
-                className="oh-modal-close-btn"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetForm();
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
-              </button>
-            </div>
-
-            <div className="oh-modal-body">
-              {/* Basic Information */}
-              <div className="oh-form-section">
-                <h3 className="oh-section-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                  Basic Information
-                </h3>
-                <div className="oh-form-grid">
-                  <div className="oh-form-field">
-                    <label htmlFor="badgeId">Badge ID *</label>
-                    <input
-                      id="badgeId"
-                      type="text"
-                      value={createForm.badgeId}
-                      placeholder="Auto-generated"
-                      className="oh-form-input oh-form-input-readonly"
-                      readOnly
-                    />
-                    <small className="oh-field-help">Badge ID is auto-generated</small>
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="firstName">First Name *</label>
-                    <input
-                      id="firstName"
-                      type="text"
-                      value={createForm.firstName}
-                      onChange={(e) => handleInputChange('firstName', e.target.value)}
-                      placeholder="Enter first name"
-                      className="oh-form-input"
-                      required
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="lastName">Last Name *</label>
-                    <input
-                      id="lastName"
-                      type="text"
-                      value={createForm.lastName}
-                      onChange={(e) => handleInputChange('lastName', e.target.value)}
-                      placeholder="Enter last name"
-                      className="oh-form-input"
-                      required
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="email">Email *</label>
-                    <input
-                      id="email"
-                      type="email"
-                      value={createForm.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      placeholder="Enter email address"
-                      className="oh-form-input"
-                      required
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="phone">Phone</label>
-                    <input
-                      id="phone"
-                      type="tel"
-                      value={createForm.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      placeholder="Enter phone number"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="dob">Date of Birth</label>
-                    <input
-                      id="dob"
-                      type="date"
-                      value={createForm.dob}
-                      onChange={(e) => handleInputChange('dob', e.target.value)}
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="gender">Gender</label>
-                    <select
-                      id="gender"
-                      value={createForm.gender}
-                      onChange={(e) => handleInputChange('gender', e.target.value)}
-                      className="oh-form-select"
-                    >
-                      <option value="">Select gender</option>
-                      <option value="Male">Male</option>
-                      <option value="Female">Female</option>
-                      <option value="Other">Other</option>
-                      <option value="Prefer not to say">Prefer not to say</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              {/* Address Information */}
-              <div className="oh-form-section">
-                <h3 className="oh-section-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                    <circle cx="12" cy="10" r="3"></circle>
-                  </svg>
-                  Address Information
-                </h3>
-                <div className="oh-form-grid">
-                  <div className="oh-form-field">
-                    <label htmlFor="country">Country</label>
-                    <input
-                      id="country"
-                      type="text"
-                      value={createForm.country}
-                      onChange={(e) => handleInputChange('country', e.target.value)}
-                      placeholder="Enter country"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="state">State</label>
-                    <input
-                      id="state"
-                      type="text"
-                      value={createForm.state}
-                      onChange={(e) => handleInputChange('state', e.target.value)}
-                      placeholder="Enter state"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="city">City</label>
-                    <input
-                      id="city"
-                      type="text"
-                      value={createForm.city}
-                      onChange={(e) => handleInputChange('city', e.target.value)}
-                      placeholder="Enter city"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="zip">ZIP/Postal Code</label>
-                    <input
-                      id="zip"
-                      type="text"
-                      value={createForm.zip}
-                      onChange={(e) => handleInputChange('zip', e.target.value)}
-                      placeholder="Enter ZIP code"
-                      className="oh-form-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Professional Information */}
-              <div className="oh-form-section">
-                <h3 className="oh-section-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
-                    <line x1="8" y1="21" x2="16" y2="21"></line>
-                    <line x1="12" y1="17" x2="12" y2="21"></line>
-                  </svg>
-                  Professional Information
-                </h3>
-                <div className="oh-form-grid">
-                  <div className="oh-form-field">
-                    <label htmlFor="qualification">Qualification</label>
-                    <input
-                      id="qualification"
-                      type="text"
-                      value={createForm.qualification}
-                      onChange={(e) => handleInputChange('qualification', e.target.value)}
-                      placeholder="Enter qualification"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="experience">Experience</label>
-                    <input
-                      id="experience"
-                      type="text"
-                      value={createForm.experience}
-                      onChange={(e) => handleInputChange('experience', e.target.value)}
-                      placeholder="Enter experience"
-                      className="oh-form-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Personal Information */}
-              <div className="oh-form-section">
-                <h3 className="oh-section-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="9" cy="7" r="4"></circle>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                  </svg>
-                  Personal Information
-                </h3>
-                <div className="oh-form-grid">
-                  <div className="oh-form-field">
-                    <label htmlFor="maritalStatus">Marital Status</label>
-                    <select
-                      id="maritalStatus"
-                      value={createForm.maritalStatus}
-                      onChange={(e) => handleInputChange('maritalStatus', e.target.value)}
-                      className="oh-form-select"
-                    >
-                      <option value="">Select status</option>
-                      <option value="Single">Single</option>
-                      <option value="Married">Married</option>
-                      <option value="Divorced">Divorced</option>
-                      <option value="Widowed">Widowed</option>
-                    </select>
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="children">Children</label>
-                    <input
-                      id="children"
-                      type="number"
-                      min="0"
-                      value={createForm.children}
-                      onChange={(e) => handleInputChange('children', e.target.value)}
-                      placeholder="Number of children"
-                      className="oh-form-input"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Emergency Contact */}
-              <div className="oh-form-section">
-                <h3 className="oh-section-title">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                  </svg>
-                  Emergency Contact
-                </h3>
-                <div className="oh-form-grid">
-                  <div className="oh-form-field">
-                    <label htmlFor="emergencyContactName">Contact Name</label>
-                    <input
-                      id="emergencyContactName"
-                      type="text"
-                      value={createForm.emergencyContactName}
-                      onChange={(e) => handleInputChange('emergencyContactName', e.target.value)}
-                      placeholder="Enter contact name"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="emergencyContact">Contact Number</label>
-                    <input
-                      id="emergencyContact"
-                      type="tel"
-                      value={createForm.emergencyContact}
-                      onChange={(e) => handleInputChange('emergencyContact', e.target.value)}
-                      placeholder="Enter contact number"
-                      className="oh-form-input"
-                    />
-                  </div>
-                  <div className="oh-form-field">
-                    <label htmlFor="emergencyContactRelation">Relationship</label>
-                    <select
-                      id="emergencyContactRelation"
-                      value={createForm.emergencyContactRelation}
-                      onChange={(e) => handleInputChange('emergencyContactRelation', e.target.value)}
-                      className="oh-form-select"
-                    >
-                      <option value="">Select relationship</option>
-                      <option value="Spouse">Spouse</option>
-                      <option value="Parent">Parent</option>
-                      <option value="Sibling">Sibling</option>
-                      <option value="Child">Child</option>
-                      <option value="Friend">Friend</option>
-                      <option value="Relative">Relative</option>
-                      <option value="Other">Other</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="oh-modal-footer">
-              <button
-                className="oh-btn oh-btn-secondary"
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetForm();
-                }}
-                disabled={isLoading}
-              >
-                Cancel
-              </button>
-              <button
-                className="oh-btn oh-btn-primary oh-btn-create"
-                onClick={handleCreateEmployee}
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <div className="oh-loading-spinner"></div>
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M12 5v14m-7-7h14"></path>
-                    </svg>
-                    Create Employee
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+  {/* ...existing code... */}
     </div>
   );
 };
