@@ -159,21 +159,9 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handlePersonalSave = async () => {
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would typically make an API call to save the data
-      console.log('Saving personal data:', personalFormData);
-      
-      setIsEditingPersonal(false);
-      showNotificationMessage('Personal information updated successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to update personal information. Please try again.', 'error');
-    } finally {
-      setIsLoading(false);
-    }
+  if (!personalFormData) return;
+  // Do not set isEditingPersonal to false here; keep it true until Save All Changes
+  showNotificationMessage('Personal information changes staged. Click Save All Changes to update.', 'info');
   };
 
   const handlePersonalCancel = () => {
@@ -185,14 +173,9 @@ const EmployeeProfile: React.FC = () => {
   const handleBankSave = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would typically make an API call to save the data
-      console.log('Saving bank data:', bankFormData);
-      
+      // TODO: Implement real bank info API call here
       setIsEditingBank(false);
-      showNotificationMessage('Bank information updated successfully!');
+      showNotificationMessage('Bank information updated.', 'success');
     } catch (error) {
       showNotificationMessage('Failed to update bank information. Please try again.', 'error');
     } finally {
@@ -209,13 +192,9 @@ const EmployeeProfile: React.FC = () => {
   const handleWorkSave = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Saving work data:', personalFormData);
-      
+      // TODO: Implement real work info API call here
       setIsEditingWork(false);
-      showNotificationMessage('Work information updated successfully!');
+      showNotificationMessage('Work information updated.', 'success');
     } catch (error) {
       showNotificationMessage('Failed to update work information. Please try again.', 'error');
     } finally {
@@ -232,13 +211,9 @@ const EmployeeProfile: React.FC = () => {
   const handleContractSave = async () => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Saving contract data:', personalFormData);
-      
+      // TODO: Implement real contract info API call here
       setIsEditingContract(false);
-      showNotificationMessage('Contract details updated successfully!');
+      showNotificationMessage('Contract details updated.', 'success');
     } catch (error) {
       showNotificationMessage('Failed to update contract details. Please try again.', 'error');
     } finally {
@@ -255,24 +230,47 @@ const EmployeeProfile: React.FC = () => {
   const handleSaveAllChanges = async () => {
     setIsLoading(true);
     try {
-      // Simulate API calls for all sections
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Save all data
-      console.log('Saving all data:', {
-        personal: personalFormData,
-        bank: bankFormData
-      });
-      
-      // Reset all edit states
+      let updated = false;
+      // Always update if there is form data and any edit mode is active
+      if (personalFormData && (isEditingPersonal || isEditingWork || isEditingContract)) {
+        const payload = {
+          employee_first_name: personalFormData.firstName,
+          employee_last_name: personalFormData.lastName,
+          email: personalFormData.email,
+          phone: personalFormData.phone,
+          address: personalFormData.address,
+          country: personalFormData.country,
+          state: personalFormData.state,
+          city: personalFormData.city,
+          zip: (personalFormData as any).zip ?? '',
+          dob: personalFormData.dateOfBirth,
+          gender: personalFormData.gender,
+          qualification: personalFormData.qualification,
+          experience: personalFormData.experience,
+          marital_status: personalFormData.maritalStatus,
+          children: personalFormData.children,
+          emergency_contact: personalFormData.emergencyContact,
+          emergency_contact_name: personalFormData.emergencyContactName,
+          emergency_contact_relation: personalFormData.emergencyContactRelation,
+        };
+        console.log('[EmployeeProfile] PUT payload:', payload);
+        const putRes = await apiClient.put(`/api/v1/employee/employees/${personalFormData.id}/`, payload);
+        console.log('[EmployeeProfile] PUT response:', putRes);
+        // Re-fetch the latest profile from backend using the correct endpoint
+        const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`);
+        console.log('[EmployeeProfile] GET after PUT response:', refetch);
+        setPersonalFormData(mapApiToProfileData(refetch.data));
+        updated = true;
+      }
+      // Reset all edit states only after successful update
       setIsEditingPersonal(false);
       setIsEditingWork(false);
       setIsEditingBank(false);
       setIsEditingContract(false);
-      
-      showNotificationMessage('All changes saved successfully!');
+      showNotificationMessage(updated ? 'Profile updated successfully!' : 'No changes to save.');
     } catch (error) {
-      showNotificationMessage('Failed to save some changes. Please try again.', 'error');
+      console.error('[EmployeeProfile] Error in handleSaveAllChanges:', error);
+      showNotificationMessage('Failed to update profile. Please try again.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -1650,31 +1648,41 @@ const EmployeeProfile: React.FC = () => {
                 )}
               </div>
               <div className="oh-profile-actions">
-                <button 
-                  className="oh-profile-edit-btn"
-                  onClick={() => handleTabEdit('about')}
-                >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                    <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                  </svg>
-                  {hasUnsavedChanges() ? 
-                    `Editing (${[isEditingPersonal, isEditingWork, isEditingBank, isEditingContract].filter(Boolean).length} sections)` : 
-                    'Edit Profile'
-                  }
-                </button>
-                {hasUnsavedChanges() && (
+                {!isEditingPersonal ? (
                   <button 
-                    className="oh-profile-view-btn"
-                    onClick={handleCancelAllChanges}
-                    disabled={isLoading}
+                    className="oh-profile-edit-btn"
+                    onClick={() => setIsEditingPersonal(true)}
                   >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                     </svg>
-                    View Mode
+                    Edit Profile
                   </button>
+                ) : (
+                  <>
+                    <button 
+                      className="oh-profile-edit-btn"
+                      onClick={handlePersonalSave}
+                      disabled={isLoading}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <polyline points="20,6 9,17 4,12"></polyline>
+                      </svg>
+                      Save
+                    </button>
+                    <button 
+                      className="oh-profile-view-btn"
+                      onClick={handlePersonalCancel}
+                      disabled={isLoading}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                      </svg>
+                      Cancel
+                    </button>
+                  </>
                 )}
               </div>
             </div>
@@ -1890,7 +1898,7 @@ const EmployeeProfile: React.FC = () => {
           <div className="oh-notification-content">
             <div className="oh-notification-icon">
               {notificationType === 'success' && (
-                <svg width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <polyline points="20,6 9,17 4,12"></polyline>
                 </svg>
               )}
