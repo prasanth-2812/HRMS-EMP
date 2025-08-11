@@ -162,18 +162,47 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handlePersonalSave = async () => {
+    if (!personalFormData) return;
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would typically make an API call to save the data
-      console.log('Saving personal data:', personalFormData);
-      
+      const token = localStorage.getItem('access');
+      const payload = {
+        employee_first_name: personalFormData.firstName,
+        employee_last_name: personalFormData.lastName,
+        email: personalFormData.email,
+        phone: personalFormData.phone,
+        address: personalFormData.address,
+        country: personalFormData.country,
+        state: personalFormData.state,
+        city: personalFormData.city,
+        dob: personalFormData.dateOfBirth,
+        gender: personalFormData.gender,
+        qualification: personalFormData.qualification,
+  experience: personalFormData.experience ? parseInt(personalFormData.experience, 10) : 0,
+        marital_status: personalFormData.maritalStatus,
+  children: personalFormData.children ? parseInt(personalFormData.children, 10) : 0,
+        emergency_contact: personalFormData.emergencyContact,
+        emergency_contact_name: personalFormData.emergencyContactName,
+        emergency_contact_relation: personalFormData.emergencyContactRelation,
+      };
+      const res = await apiClient.put(
+        `/api/v1/employee/employees/${personalFormData.id}/`,
+        payload,
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      setPersonalFormData(mapApiToProfileData(refetch.data));
       setIsEditingPersonal(false);
-      showNotificationMessage('Personal information updated successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to update personal information. Please try again.', 'error');
+      const msg = res.data?.message || 'Personal information updated.';
+      showNotificationMessage(msg, 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update personal information.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -186,18 +215,35 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleBankSave = async () => {
+    if (!personalFormData || !bankFormData) return;
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Here you would typically make an API call to save the data
-      console.log('Saving bank data:', bankFormData);
-      
+      const token = localStorage.getItem('access');
+      const payload = {
+        bank_name: bankFormData.bankName,
+        account_number: bankFormData.accountNumber,
+        routing_number: bankFormData.routingNumber,
+        account_type: bankFormData.accountType,
+        branch: bankFormData.branch,
+      };
+      const res = await apiClient.patch(
+        `/api/v1/employee/employees/${personalFormData.id}/`,
+        payload,
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      setPersonalFormData(mapApiToProfileData(refetch.data));
       setIsEditingBank(false);
-      showNotificationMessage('Bank information updated successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to update bank information. Please try again.', 'error');
+      const msg = res.data?.message || 'Bank information updated.';
+      showNotificationMessage(msg, 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update bank information.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -210,17 +256,34 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleWorkSave = async () => {
+    if (!personalFormData) return;
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Saving work data:', personalFormData);
-      
+      const token = localStorage.getItem('access');
+      const payload = {
+        department: personalFormData.department,
+        job_position: personalFormData.position,
+        reporting_manager: personalFormData.manager,
+        employee_type: personalFormData.employmentType,
+      };
+      const res = await apiClient.patch(
+        `/api/v1/employee/employees/${personalFormData.id}/`,
+        payload,
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      setPersonalFormData(mapApiToProfileData(refetch.data));
       setIsEditingWork(false);
-      showNotificationMessage('Work information updated successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to update work information. Please try again.', 'error');
+      const msg = res.data?.message || 'Work information updated.';
+      showNotificationMessage(msg, 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update work information.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -233,17 +296,34 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleContractSave = async () => {
+    if (!personalFormData) return;
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('Saving contract data:', personalFormData);
-      
+      const token = localStorage.getItem('access');
+      const payload = {
+        salary: personalFormData.salary,
+        contract_start_date: personalFormData.contractStartDate,
+        contract_end_date: personalFormData.contractEndDate,
+        probation_period: personalFormData.probationPeriod,
+      };
+      const res = await apiClient.patch(
+        `/api/v1/employee/employees/${personalFormData.id}/`,
+        payload,
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      setPersonalFormData(mapApiToProfileData(refetch.data));
       setIsEditingContract(false);
-      showNotificationMessage('Contract details updated successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to update contract details. Please try again.', 'error');
+      const msg = res.data?.message || 'Contract details updated.';
+      showNotificationMessage(msg, 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update contract details.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -256,26 +336,65 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleSaveAllChanges = async () => {
+    if (!personalFormData) return;
     setIsLoading(true);
     try {
-      // Simulate API calls for all sections
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Save all data
-      console.log('Saving all data:', {
-        personal: personalFormData,
-        bank: bankFormData
-      });
-      
-      // Reset all edit states
+      const token = localStorage.getItem('access');
+      const payload: any = {
+        employee_first_name: personalFormData.firstName,
+        employee_last_name: personalFormData.lastName,
+        email: personalFormData.email,
+        phone: personalFormData.phone,
+        address: personalFormData.address,
+        country: personalFormData.country,
+        state: personalFormData.state,
+        city: personalFormData.city,
+        dob: personalFormData.dateOfBirth,
+        gender: personalFormData.gender,
+        qualification: personalFormData.qualification,
+  experience: personalFormData.experience ? parseInt(personalFormData.experience, 10) : 0,
+        marital_status: personalFormData.maritalStatus,
+  children: personalFormData.children ? parseInt(personalFormData.children, 10) : 0,
+        emergency_contact: personalFormData.emergencyContact,
+        emergency_contact_name: personalFormData.emergencyContactName,
+        emergency_contact_relation: personalFormData.emergencyContactRelation,
+        department: personalFormData.department,
+        job_position: personalFormData.position,
+        reporting_manager: personalFormData.manager,
+        employee_type: personalFormData.employmentType,
+        salary: personalFormData.salary,
+        contract_start_date: personalFormData.contractStartDate,
+        contract_end_date: personalFormData.contractEndDate,
+        probation_period: personalFormData.probationPeriod,
+      };
+      if (bankFormData) {
+        payload.bank_name = bankFormData.bankName;
+        payload.account_number = bankFormData.accountNumber;
+        payload.routing_number = bankFormData.routingNumber;
+        payload.account_type = bankFormData.accountType;
+        payload.branch = bankFormData.branch;
+      }
+      const res = await apiClient.put(
+        `/api/v1/employee/employees/${personalFormData.id}/`,
+        payload,
+        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+      );
+      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+      setPersonalFormData(mapApiToProfileData(refetch.data));
       setIsEditingPersonal(false);
       setIsEditingWork(false);
       setIsEditingBank(false);
       setIsEditingContract(false);
-      
-      showNotificationMessage('All changes saved successfully!');
-    } catch (error) {
-      showNotificationMessage('Failed to save some changes. Please try again.', 'error');
+      const msg = res.data?.message || 'Profile updated successfully!';
+      showNotificationMessage(msg, 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update profile.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -493,18 +612,13 @@ const EmployeeProfile: React.FC = () => {
                       {!isEditingPersonal ? (
                         <span>{personalFormData.children}</span>
                       ) : (
-                        <select
+                        <input
+                          type="number"
+                          min={0}
                           value={personalFormData.children}
-                          onChange={(e) => setPersonalFormData({...personalFormData, children: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="0">0</option>
-                          <option value="1">1</option>
-                          <option value="2">2</option>
-                          <option value="3">3</option>
-                          <option value="4">4</option>
-                          <option value="5+">5+</option>
-                        </select>
+                          onChange={(e) => setPersonalFormData({ ...personalFormData, children: e.target.value.replace(/[^\d]/g, '') })}
+                          className="oh-profile-input"
+                        />
                       )}
                     </div>
                     
@@ -600,27 +714,17 @@ const EmployeeProfile: React.FC = () => {
                       )}
                     </div>
                     <div className="oh-profile-field">
-                      <label>Experience</label>
+                      <label>Experience (years)</label>
                       {!isEditingPersonal ? (
                         <span>{personalFormData.experience}</span>
                       ) : (
-                        <select
+                        <input
+                          type="number"
+                          min={0}
                           value={personalFormData.experience}
-                          onChange={(e) => setPersonalFormData({...personalFormData, experience: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="">Select Experience</option>
-                          <option value="Fresh Graduate">Fresh Graduate</option>
-                          <option value="1 year">1 year</option>
-                          <option value="2 years">2 years</option>
-                          <option value="3 years">3 years</option>
-                          <option value="4 years">4 years</option>
-                          <option value="5 years">5 years</option>
-                          <option value="6-10 years">6-10 years</option>
-                          <option value="11-15 years">11-15 years</option>
-                          <option value="16-20 years">16-20 years</option>
-                          <option value="20+ years">20+ years</option>
-                        </select>
+                          onChange={(e) => setPersonalFormData({ ...personalFormData, experience: e.target.value.replace(/[^\d]/g, '') })}
+                          className="oh-profile-input"
+                        />
                       )}
                     </div>
                     

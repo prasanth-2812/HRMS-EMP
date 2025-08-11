@@ -101,6 +101,9 @@ CORS_ALLOW_HEADERS = [
     "user-agent",
     "x-csrftoken",
     "x-requested-with",
+    # Ensure these are present for frontend PATCH/PUT/DELETE
+    "Authorization",
+    "Content-Type",
 ]
 CORS_ALLOW_METHODS = [
     "GET",

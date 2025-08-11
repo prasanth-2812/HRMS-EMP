@@ -144,10 +144,29 @@ class EmployeeAPIView(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
     @method_decorator(permission_required("employee.put_employee"))
     def put(self, request, pk):
         user = request.user
         employee = Employee.objects.get(pk=pk)
+        if (
+            employee
+            in [user.employee_get, request.user.employee_get.get_reporting_manager()]
+        ) or user.has_perm("employee.change_employee"):
+            serializer = EmployeeSerializer(employee, data=request.data, partial=True)
+            if serializer.is_valid():
+                serializer.save()
+                return Response(serializer.data)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({"error": "You don't have permission"}, status=400)
+
+    @method_decorator(permission_required("employee.put_employee"))
+    def patch(self, request, pk):
+        user = request.user
+        try:
+            employee = Employee.objects.get(pk=pk)
+        except Employee.DoesNotExist:
+            return Response({"error": "Employee does not exist"}, status=status.HTTP_404_NOT_FOUND)
         if (
             employee
             in [user.employee_get, request.user.employee_get.get_reporting_manager()]
