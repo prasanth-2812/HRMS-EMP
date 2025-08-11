@@ -1,0 +1,195 @@
+/* Attendance Requests Page Styles */
+
+.attendance-requests-page {
+  display: flex;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.areq-main-content {
+  flex: 1;
+  margin-left: 280px; /* was 250px; match .oh-sidebar width */
+  transition: margin-left 0.3s ease;
+}
+
+.areq-main-content.areq-main-content--collapsed {
+  margin-left: 80px;
+}
+
+.areq-navbar {
+  position: fixed;
+  top: 0;
+  left: 280px; /* was 250px; match .oh-sidebar width */
+  right: 0;
+  z-index: 1000;
+  transition: left 0.3s ease;
+}
+
+.areq-navbar--collapsed {
+  left: 80px;
+}
+
+.areq-content {
+  padding: 100px 24px 24px 24px;
+  min-height: calc(100vh - 80px);
+  background-color: #f5f7fa;
+}
+
+.areq-content-container {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.areq-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.areq-header__left {
+  flex: 1;
+}
+
+.areq-header__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.areq-header__actions {
+  display: flex;
+  gap: 12px;
+}
+
+.areq-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.areq-btn--primary {
+  background-color: #ef4444;
+  color: white;
+}
+
+.areq-btn--primary:hover {
+  background-color: #dc2626;
+}
+
+.areq-btn--secondary {
+  background-color: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.areq-btn--secondary:hover {
+  background-color: #f9fafb;
+}
+
+/* Card Styles */
+.areq-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  min-height: 400px;
+}
+
+.areq-card__content {
+  padding: 48px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+/* Empty State */
+.areq-empty-state {
+  text-align: center;
+  max-width: 400px;
+  margin: 0 auto;
+  color: #9ca3af;
+}
+
+.areq-empty-state__icon {
+  margin: 0 auto 24px;
+  display: flex;
+  justify-content: center;
+  opacity: 0.5;
+}
+
+.areq-empty-state__title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 12px 0;
+}
+
+.areq-empty-state__message {
+  color: #9ca3af;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.875rem;
+}
+
+.areq-empty-state__icon svg {
+  width: 64px;
+  height: 64px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .areq-main-content {
+    margin-left: 0;
+  }
+  
+  .areq-main-content.areq-main-content--collapsed {
+    margin-left: 0;
+  }
+  
+  .areq-navbar {
+    left: 0;
+  }
+  
+  .areq-navbar--collapsed {
+    left: 0;
+  }
+  
+  .areq-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .areq-header__actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .areq-content {
+    padding: 90px 16px 16px 16px;
+  }
+  
+  .areq-btn {
+    padding: 8px 16px;
+    font-size: 0.8rem;
+  }
+  
+  .areq-card__content {
+    padding: 32px 16px;
+    min-height: 300px;
+  }
+}

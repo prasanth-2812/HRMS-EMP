@@ -1,3 +1,44 @@
+/* Modal Overlay and Modal Styles */
+.ar-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ar-modal {
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+  padding: 0;
+  position: relative;
+  min-width: 540px;
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow-y: auto;
+}
+
+.ar-modal-close-btn {
+  position: absolute;
+  top: 12px;
+  right: 18px;
+  background: none;
+  border: none;
+  font-size: 2rem;
+  color: #888;
+  cursor: pointer;
+  z-index: 10;
+  transition: color 0.2s;
+}
+.ar-modal-close-btn:hover {
+  color: #ef4444;
+}
 /* Attendance Records Page Styles */
 
 .attendance-records-page {
@@ -8,7 +49,7 @@
 
 .ar-main-content {
   flex: 1;
-  margin-left: 250px;
+  margin-left: 280px;
   transition: margin-left 0.3s ease;
 }
 
@@ -19,7 +60,7 @@
 .ar-navbar {
   position: fixed;
   top: 0;
-  left: 250px;
+  left: 280px;
   right: 0;
   z-index: 1000;
   transition: left 0.3s ease;
@@ -30,13 +71,13 @@
 }
 
 .ar-content {
-  padding-top: 80px;
-  padding: 24px;
+  padding: 100px 24px 24px 24px;
   min-height: calc(100vh - 80px);
+  background-color: #f5f7fa;
 }
 
 .ar-content-container {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
 }
 
@@ -45,7 +86,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .ar-header__left {
@@ -53,14 +94,9 @@
 }
 
 .ar-header__title {
-  font-size: 2rem;
-  font-weight: 700;
+  font-size: 1.5rem;
+  font-weight: 600;
   color: #1f2937;
-  margin: 0 0 8px 0;
-}
-
-.ar-header__subtitle {
-  color: #6b7280;
   margin: 0;
 }
 
@@ -70,9 +106,10 @@
 }
 
 .ar-btn {
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 10px 20px;
+  border-radius: 6px;
   font-weight: 500;
+  font-size: 0.875rem;
   text-decoration: none;
   transition: all 0.2s ease;
   cursor: pointer;
@@ -83,12 +120,12 @@
 }
 
 .ar-btn--primary {
-  background-color: #3b82f6;
+  background-color: #ef4444;
   color: white;
 }
 
 .ar-btn--primary:hover {
-  background-color: #2563eb;
+  background-color: #dc2626;
 }
 
 .ar-btn--secondary {
@@ -202,10 +239,15 @@
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
+  min-height: 400px;
 }
 
 .ar-card__content {
   padding: 48px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
 }
 
 /* Empty State */
@@ -213,26 +255,28 @@
   text-align: center;
   max-width: 400px;
   margin: 0 auto;
+  color: #9ca3af;
 }
 
 .ar-empty-state__icon {
   margin: 0 auto 24px;
-  color: #9ca3af;
   display: flex;
   justify-content: center;
+  opacity: 0.5;
 }
 
 .ar-empty-state__title {
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 600;
   color: #374151;
   margin: 0 0 12px 0;
 }
 
 .ar-empty-state__message {
-  color: #6b7280;
+  color: #9ca3af;
   margin: 0;
   line-height: 1.5;
+  font-size: 0.875rem;
 }
 
 .ar-empty-state__icon svg {

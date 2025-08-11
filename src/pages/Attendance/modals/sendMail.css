@@ -1,0 +1,174 @@
+.sendmail-modal-overlay {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sendmail-modal {
+  background: #ffffff;
+  border-radius: 12px;
+  max-width: 500px;
+  width: 90%;
+  padding: 24px 20px;
+  position: relative;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
+  max-height: 95vh;
+  overflow-y: auto;
+  animation: fadeIn 0.25s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.sendmail-close {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  font-size: 22px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #888;
+  transition: color 0.2s;
+}
+
+.sendmail-close:hover {
+  color: #000;
+}
+
+.sendmail-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: #333;
+}
+
+.sendmail-employee-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sendmail-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #ddd;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 600;
+  margin-right: 12px;
+  color: #555;
+}
+
+.sendmail-employee-name {
+  font-weight: 600;
+  font-size: 17px;
+  color: #222;
+}
+
+.sendmail-employee-meta {
+  font-size: 13px;
+  color: #aaa;
+}
+
+.sendmail-label {
+  font-weight: 500;
+  margin-top: 12px;
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  color: #444;
+}
+
+.sendmail-input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  transition: border 0.2s;
+}
+
+.sendmail-input:focus {
+  border-color: #f15a29;
+  outline: none;
+}
+
+.sendmail-tabs {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.sendmail-tabs button {
+  flex: 1;
+  background: #f0f0f0;
+  border: none;
+  padding: 8px 0;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+  border-radius: 6px 6px 0 0;
+}
+
+.sendmail-tabs button.active {
+  background: #fff;
+  font-weight: 600;
+  border-bottom: 2px solid #f15a29;
+  color: #f15a29;
+}
+
+.sendmail-bodyarea,
+.sendmail-preview {
+  width: 100%;
+  min-height: 120px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  padding: 10px;
+  font-size: 14px;
+  margin-bottom: 10px;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.sendmail-preview {
+  background: #f9f9f9;
+}
+
+.sendmail-preview-placeholder {
+  color: #aaa;
+  font-style: italic;
+}
+
+.sendmail-hint {
+  color: #aaa;
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.sendmail-submit {
+  background: #f15a29;
+  color: #fff;
+  padding: 10px 22px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+  transition: background 0.2s;
+  float: right;
+}
+
+.sendmail-submit:hover {
+  background: #e04e21;
+}

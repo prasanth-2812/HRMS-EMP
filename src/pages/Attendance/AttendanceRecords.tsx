@@ -1,85 +1,71 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
 import Navbar from '../../components/Layout/Navbar';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
+import AddAttendances from './modals/AddAttendances';
+import ImportAttendances from './modals/ImportAttendances';
 import './AttendanceRecords.css';
 
 const AttendanceRecords: React.FC = () => {
   const { isCollapsed } = useSidebar();
+  const [showModal, setShowModal] = useState(false);
+  const [showActions, setShowActions] = useState(false);
+  const [showImportModal, setShowImportModal] = useState(false);
+
+  // Optional: handle form completion/close from AddAttendances
+  const handleCloseModal = () => setShowModal(false);
 
   return (
     <div className="attendance-records-page">
       <Sidebar />
       <div className={`ar-main-content ${isCollapsed ? 'ar-main-content--collapsed' : ''}`}>
         <div className={`ar-navbar ${isCollapsed ? 'ar-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendance Records" />
+          <Navbar pageTitle="Attendances" />
         </div>
         <div className="ar-content">
           <div className="ar-content-container">
             {/* Page Header */}
             <div className="ar-header">
               <div className="ar-header__left">
-                <h1 className="ar-header__title">Attendance Records</h1>
-                <p className="ar-header__subtitle">
-                  Track and manage employee attendance records
-                </p>
+                <h1 className="ar-header__title">Attendances</h1>
               </div>
-              <div className="ar-header__actions">
-                <button className="ar-btn ar-btn--secondary">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7,10 12,15 17,10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  Export Records
+              <div className="ar-header__actions" style={{ position: 'relative' }}>
+                <button
+                  className="ar-btn ar-btn--secondary"
+                  onClick={() => setShowActions((prev) => !prev)}
+                  type="button"
+                >
+                  Actions
                 </button>
-                <button className="ar-btn ar-btn--primary">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  View Calendar
+                {showActions && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '110%',
+                    left: 0,
+                    background: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 6,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    zIndex: 10,
+                    minWidth: 120,
+                  }}>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                      onClick={() => { setShowActions(false); setShowImportModal(true); }}
+                      type="button"
+                    >
+                      Import
+                    </button>
+                  </div>
+                )}
+                <button
+                  className="ar-btn ar-btn--primary"
+                  onClick={() => setShowModal(true)}
+                >
+                  + Create
                 </button>
-              </div>
-            </div>
-
-            {/* Controls */}
-            <div className="ar-controls">
-              <div className="ar-search-field">
-                <svg className="ar-search-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8"></circle>
-                  <path d="m21 21-4.35-4.35"></path>
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search by employee name, ID, or department..."
-                  className="ar-search-field__input"
-                />
-              </div>
-              <div className="ar-filters">
-                <select className="ar-select">
-                  <option>All Departments</option>
-                  <option>Engineering</option>
-                  <option>HR</option>
-                  <option>Sales</option>
-                  <option>Marketing</option>
-                </select>
-                <select className="ar-select">
-                  <option>All Status</option>
-                  <option>Present</option>
-                  <option>Absent</option>
-                  <option>Late</option>
-                  <option>Early Leave</option>
-                </select>
-                <select className="ar-select">
-                  <option>This Month</option>
-                  <option>Last Month</option>
-                  <option>This Quarter</option>
-                  <option>Custom Range</option>
-                </select>
               </div>
             </div>
 
@@ -88,21 +74,38 @@ const AttendanceRecords: React.FC = () => {
               <div className="ar-card__content">
                 <div className="ar-empty-state">
                   <div className="ar-empty-state__icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12,6 12,12 16,14"></polyline>
-                    </svg>
+                    {/* ... your SVG ... */}
                   </div>
-                  <h2 className="ar-empty-state__title">No Attendance Records</h2>
+                  <h2 className="ar-empty-state__title">No Records found.</h2>
                   <p className="ar-empty-state__message">
-                    Start tracking attendance records to see them here
+                    There are no attendance records to display.
                   </p>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
         <QuickAccess />
+
+        {/* AddAttendances Modal */}
+        {showModal && (
+          <div className="ar-modal-overlay">
+            <div className="ar-modal">
+              <button className="ar-modal-close-btn" onClick={handleCloseModal}>&times;</button>
+              <AddAttendances onClose={handleCloseModal} />
+            </div>
+          </div>
+        )}
+        {/* ImportAttendances Modal */}
+        {showImportModal && (
+          <div className="ar-modal-overlay">
+            <div className="ar-modal">
+              <button className="ar-modal-close-btn" onClick={() => setShowImportModal(false)}>&times;</button>
+              <ImportAttendances />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

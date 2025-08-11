@@ -18,6 +18,13 @@ import RecruitmentDashboard from '../pages/Recruitment/RecruitmentDashboard';
 import Candidates from '../pages/Recruitment/Candidates';
 import JobPostings from '../pages/Recruitment/JobPostings';
 import AttendanceRecords from '../pages/Attendance/AttendanceRecords';
+import AttendanceDashboard from '../pages/Attendance/AttendanceDashboard';
+import AttendanceActivities from '../pages/Attendance/AttendanceActivities';
+import AttendanceRequests from '../pages/Attendance/AttendanceRequests';
+import HourAccount from '../pages/Attendance/HourAccount';
+import LatecomeEarlyout from '../pages/Attendance/LatecomeEarlyout';
+import Myattendances from '../pages/Attendance/Myattendances';
+import WorkRecords from '../pages/Attendance/WorkRecords';
 import OnboardingPlans from '../pages/Onboarding/OnboardingPlans';
 
 import EmployeeProfile from '../pages/Employee/Profile/EmployeeProfile';
@@ -68,7 +75,15 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
       case '/recruitment/candidates': return 'Candidates';
       case '/recruitments/job-postings': return 'Job Postings';
       case '/recruitments/candidates': return 'Candidates';
+      case '/attendance/dashboard': return 'Attendance Dashboard';
       case '/attendance/records': return 'Attendance Records';
+      case '/attendance/attendances': return 'Attendance Records';
+      case '/attendance/attendance-requests': return 'Attendance Requests';
+      case '/attendance/hour-account': return 'Hour Account';
+      case '/attendance/attendance-activities': return 'Attendance Activities';
+      case '/attendance/late-come-early-out': return 'Late Come Early Out';
+      case '/attendance/my-attendances': return 'My Attendances';
+      case '/attendance/work-records': return 'Work Records';
       case '/attendances/records': return 'Attendance Records';
       case '/onboarding/plans': return 'Onboarding Plans';
       case '/employees/profile': return 'Employee Profile';
@@ -201,9 +216,49 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
       } />
 
       {/* Attendance Module Routes */}
+      <Route path="/attendance/dashboard" element={
+        <ProtectedRoute>
+          <AttendanceDashboard />
+        </ProtectedRoute>
+      } />
       <Route path="/attendance/records" element={
         <ProtectedRoute>
           <AttendanceRecords />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/attendances" element={
+        <ProtectedRoute>
+          <AttendanceRecords />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/attendance-requests" element={
+        <ProtectedRoute>
+          <AttendanceRequests />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/hour-account" element={
+        <ProtectedRoute>
+          <HourAccount />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/attendance-activities" element={
+        <ProtectedRoute>
+          <AttendanceActivities />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/late-come-early-out" element={
+        <ProtectedRoute>
+          <LatecomeEarlyout />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/my-attendances" element={
+        <ProtectedRoute>
+          <Myattendances />
+        </ProtectedRoute>
+      } />
+      <Route path="/attendance/work-records" element={
+        <ProtectedRoute>
+          <WorkRecords />
         </ProtectedRoute>
       } />
 

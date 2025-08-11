@@ -1,0 +1,73 @@
+.attendance-activities-page {
+  display: flex;
+  height: 100vh;
+  background: #f7f7f7;
+}
+
+.ha-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: #f7f7f7;
+  /* Ensure content has space from the fixed sidebar */
+  margin-left: 280px; /* matches .oh-sidebar width */
+  padding: 16px;     /* general inner padding */
+  transition: margin-left 0.3s ease;
+}
+
+.ha-main-content--collapsed {
+  margin-left: 80px; /* matches collapsed sidebar */
+}
+
+.ha-navbar {
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  z-index: 2;
+}
+
+.ha-content {
+  flex: 1;
+  padding: 32px 32px 0 32px;
+  background: #f7f7f7;
+  margin-top: 16px; /* Add space between navbar and content */
+}
+
+.ha-breadcrumb {
+  font-size: 14px;
+  color: #888;
+  margin-bottom: 18px;
+}
+.ha-breadcrumb__item--active {
+  color: #222;
+  font-weight: 500;
+}
+.ha-breadcrumb__sep {
+  margin: 0 6px;
+}
+
+.ha-header__title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin: 0 0 32px 0;
+}
+
+.ha-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 48px;
+}
+.ha-empty-state__icon {
+  margin-bottom: 18px;
+}
+.ha-empty-state__title {
+  font-size: 1.4rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #222;
+}
+.ha-empty-state__message {
+  color: #888;
+  font-size: 1rem;
+}
