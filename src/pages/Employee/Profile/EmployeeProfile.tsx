@@ -40,11 +40,66 @@ interface EmployeeProfileData {
 }
 
 interface BankInfo {
+  id?: number;
   bankName: string;
   accountNumber: string;
   routingNumber: string;
   accountType: string;
   branch: string;
+  anyOtherCode1: string;
+  anyOtherCode2: string;
+  country: string;
+  state: string;
+  city: string;
+  address: string;
+  additionalInfo: string;
+}
+
+// Interface for Employee Work Information API
+interface EmployeeWorkInfo {
+  id?: number;
+  tags: string[];
+  location: string | null;
+  email: string | null;
+  mobile: string | null;
+  date_joining: string | null;
+  contract_end_date: string | null;
+  basic_salary: number;
+  salary_hour: number;
+  additional_info: string | null;
+  experience: number;
+  employee_id: number | null;
+  department_id: number | null;
+  job_position_id: number | null;
+  job_role_id: number | null;
+  reporting_manager_id: number | null;
+  shift_id: number | null;
+  work_type_id: number | null;
+  employee_type_id: number | null;
+  company_id: number | null;
+}
+
+// Interface for Employee Contract API
+interface EmployeeContract {
+  id?: number | undefined;
+  contract: string | null;
+  employee_id: number | null;
+  contract_start_date: string | null;
+  contract_end_date: string | null;
+  wage_type: string | null;
+  pay_frequency: string | null;
+  basic_salary: number;
+  filing_status: string | null;
+  department_id: number | null;
+  job_position_id: number | null;
+  job_role_id: number | null;
+  shift_id: number | null;
+  work_type_id: number | null;
+  notice_period: number;
+  contract_document: string | null;
+  deduct_from_basic_pay: boolean;
+  calculate_daily_leave_amount_pay: boolean;
+  note: string | null;
 }
 
 const EmployeeProfile: React.FC = () => {
@@ -55,6 +110,8 @@ const EmployeeProfile: React.FC = () => {
   const [isEditingContract, setIsEditingContract] = useState(false);
   const [personalFormData, setPersonalFormData] = useState<EmployeeProfileData | null>(null);
   const [bankFormData, setBankFormData] = useState<BankInfo | null>(null);
+  const [workFormData, setWorkFormData] = useState<EmployeeWorkInfo | null>(null);
+  const [contractFormData, setContractFormData] = useState<EmployeeContract | null>(null);
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [notificationType, setNotificationType] = useState<'success' | 'error' | 'info'>('success');
@@ -99,14 +156,219 @@ const EmployeeProfile: React.FC = () => {
     };
   }
 
+  // Function to fetch work information
+  const fetchWorkInformation = async (employeeId: number) => {
+    try {
+      const token = localStorage.getItem('access');
+      const response = await apiClient.get(`/api/v1/employee/employee-work-information/${employeeId}/`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data) {
+        const workData: EmployeeWorkInfo = {
+          id: response.data.id,
+          tags: response.data.tags || [],
+          location: response.data.location,
+          email: response.data.email,
+          mobile: response.data.mobile,
+          date_joining: response.data.date_joining,
+          contract_end_date: response.data.contract_end_date,
+          basic_salary: response.data.basic_salary || 0,
+          salary_hour: response.data.salary_hour || 0,
+          additional_info: response.data.additional_info,
+          experience: response.data.experience || 0,
+          employee_id: response.data.employee_id,
+          department_id: response.data.department_id,
+          job_position_id: response.data.job_position_id,
+          job_role_id: response.data.job_role_id,
+          reporting_manager_id: response.data.reporting_manager_id,
+          shift_id: response.data.shift_id,
+          work_type_id: response.data.work_type_id,
+          employee_type_id: response.data.employee_type_id,
+          company_id: response.data.company_id
+        };
+        setWorkFormData(workData);
+      } else {
+        setWorkFormData(null);
+      }
+    } catch (error: any) {
+      console.error('Error fetching work information:', error);
+      if (error.response?.status === 404) {
+        // No work information exists, set empty form
+        setWorkFormData({
+          tags: [],
+          location: null,
+          email: null,
+          mobile: null,
+          date_joining: null,
+          contract_end_date: null,
+          basic_salary: 0,
+          salary_hour: 0,
+          additional_info: null,
+          experience: 0,
+          employee_id: employeeId,
+          department_id: null,
+          job_position_id: null,
+          job_role_id: null,
+          reporting_manager_id: null,
+          shift_id: null,
+          work_type_id: null,
+          employee_type_id: null,
+          company_id: null
+        });
+      } else {
+        setWorkFormData(null);
+      }
+    }
+  };
+
+  // Function to fetch bank details
+  const fetchBankDetails = async (employeeId?: number) => {
+    try {
+      const token = localStorage.getItem('access');
+      console.log('Fetching bank details with token:', token ? 'Token exists' : 'No token');
+      console.log('Employee ID for bank details:', employeeId);
+      
+      const response = await apiClient.get('/api/v1/employee/employee-bank-details/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      console.log('Bank details API response:', response);
+      console.log('Bank details data:', response.data);
+      
+      // The API returns an array of all bank details, we need to find the one for current user
+      if (response.data && Array.isArray(response.data)) {
+        console.log('Response is array, filtering by employee ID:', employeeId);
+        const userBankDetails = response.data.find((bankDetail: any) => 
+          bankDetail.employee_id === employeeId
+        );
+        
+        if (userBankDetails) {
+          const bankData: BankInfo = {
+            id: userBankDetails.id,
+            bankName: userBankDetails.bank_name || '',
+            accountNumber: userBankDetails.account_number || '',
+            routingNumber: '', // Keep existing field for compatibility
+            accountType: '', // Keep existing field for compatibility
+            branch: userBankDetails.branch || '',
+            anyOtherCode1: userBankDetails.any_other_code1 || '',
+            anyOtherCode2: userBankDetails.any_other_code2 || '',
+            country: userBankDetails.country || '',
+            state: userBankDetails.state || '',
+            city: userBankDetails.city || '',
+            address: userBankDetails.address || '',
+            additionalInfo: userBankDetails.additional_info || ''
+          };
+          console.log('Found user bank data:', bankData);
+          setBankFormData(bankData);
+        } else {
+          console.log('No bank details found for current user, setting to null');
+          setBankFormData(null);
+        }
+      } else if (response.data && !Array.isArray(response.data)) {
+        // Single object response
+        const bankData: BankInfo = {
+          id: response.data.id,
+          bankName: response.data.bank_name || '',
+          accountNumber: response.data.account_number || '',
+          routingNumber: '', // Keep existing field for compatibility
+          accountType: '', // Keep existing field for compatibility
+          branch: response.data.branch || '',
+          anyOtherCode1: response.data.any_other_code1 || '',
+          anyOtherCode2: response.data.any_other_code2 || '',
+          country: response.data.country || '',
+          state: response.data.state || '',
+          city: response.data.city || '',
+          address: response.data.address || '',
+          additionalInfo: response.data.additional_info || ''
+        };
+        console.log('Single object bank data:', bankData);
+        setBankFormData(bankData);
+      } else {
+        console.log('No bank data in response, setting to null');
+        setBankFormData(null);
+      }
+    } catch (error: any) {
+      console.error('Error fetching bank details:', error);
+      console.log('Error response:', error.response);
+      console.log('Error status:', error.response?.status);
+      
+      // If no bank details exist (404), set empty form
+      if (error.response?.status === 404) {
+        console.log('404 error - no bank details exist, setting to null');
+        setBankFormData(null);
+      } else {
+        console.error('Unexpected error fetching bank details:', error);
+        setBankFormData(null);
+      }
+    }
+  };
+
+  // Function to fetch contract details
+  const fetchContractDetails = async (employeeId: number) => {
+    try {
+      const token = localStorage.getItem('access');
+      const response = await apiClient.get('/api/v1/employee/employee-contract/', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      if (response.data && Array.isArray(response.data)) {
+        // Find contract for current employee
+        const userContract = response.data.find((contract: any) => 
+          contract.employee_id === employeeId
+        );
+        
+        if (userContract) {
+          const contractData: EmployeeContract = {
+            id: userContract.id,
+            contract: userContract.contract || '',
+            employee_id: userContract.employee_id,
+            contract_start_date: userContract.contract_start_date || '',
+            contract_end_date: userContract.contract_end_date || '',
+            wage_type: userContract.wage_type || '',
+            pay_frequency: userContract.pay_frequency || '',
+            basic_salary: userContract.basic_salary || 0,
+            filing_status: userContract.filing_status || '',
+            department_id: userContract.department_id,
+            job_position_id: userContract.job_position_id,
+            job_role_id: userContract.job_role_id,
+            shift_id: userContract.shift_id,
+            work_type_id: userContract.work_type_id || null,
+            notice_period: userContract.notice_period || 0,
+            contract_document: userContract.contract_document || null,
+            deduct_from_basic_pay: userContract.deduct_from_basic_pay || false,
+            calculate_daily_leave_amount_pay: userContract.calculate_daily_leave_amount_pay || false,
+            note: userContract.note || ''
+          };
+          setContractFormData(contractData);
+        } else {
+          setContractFormData(null);
+        }
+      } else {
+        setContractFormData(null);
+      }
+    } catch (error: any) {
+      console.error('Error fetching contract details:', error);
+      setContractFormData(null);
+    }
+  };
+
   useEffect(() => {
     setIsLoading(true);
+    // First fetch profile
     apiClient.get('/api/v1/auth/profile/')
-      .then((res) => {
-        const data = res.data;
-        setPersonalFormData(mapApiToProfileData(data));
-        setBankFormData(null); // No bank info in API
+      .then((profileRes) => {
+        const data = profileRes.data;
+        const profileData = mapApiToProfileData(data);
+        setPersonalFormData(profileData);
         setFetchError(null);
+        
+        // Then fetch bank details, work information, and contract details with employee ID
+        if (profileData?.id) {
+          fetchBankDetails(profileData.id);
+          fetchWorkInformation(profileData.id);
+          fetchContractDetails(profileData.id);
+        }
       })
       .catch((err) => {
         setFetchError(err.message || 'Failed to fetch profile');
@@ -137,6 +399,8 @@ const EmployeeProfile: React.FC = () => {
     // Reset form data
     setPersonalFormData(null);
     setBankFormData(null);
+    setWorkFormData(null);
+    setContractFormData(null);
     
     // Switch to pending tab
     setActiveTab(pendingTab);
@@ -221,61 +485,162 @@ const EmployeeProfile: React.FC = () => {
     showNotificationMessage('Changes discarded', 'info');
   };
 
-  const handleBankSave = async () => {
-    if (!personalFormData || !bankFormData) return;
-    setIsLoading(true);
+  // Separate function to save bank details via PUT request
+  const saveBankDetails = async (showSuccessMessage: boolean = true) => {
+    if (!bankFormData || !personalFormData?.id) return true; // Return true if no bank data to save or no employee ID
+    
     try {
-      // Example: PATCH bank info fields (adjust field names as per backend)
+      const token = localStorage.getItem('access');
       const payload = {
         bank_name: bankFormData.bankName,
         account_number: bankFormData.accountNumber,
-        routing_number: bankFormData.routingNumber,
-        account_type: bankFormData.accountType,
         branch: bankFormData.branch,
+        any_other_code1: bankFormData.anyOtherCode1,
+        any_other_code2: bankFormData.anyOtherCode2,
+        country: bankFormData.country,
+        state: bankFormData.state,
+        city: bankFormData.city,
+        address: bankFormData.address,
+        additional_info: bankFormData.additionalInfo,
+        employee_id: personalFormData.id, // Add required employee_id field
+        is_active: true, // Add required is_active field
       };
-      await apiClient.patch(
-        `/api/v1/employee/employees/${personalFormData.id}/`,
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
-      );
-      setIsEditingBank(false);
-      showNotificationMessage('Bank information updated.', 'success');
-    } catch (error) {
-      showNotificationMessage('Failed to update bank information. Please try again.', 'error');
+
+      let response;
+      if (bankFormData.id) {
+        // Update existing bank details using PUT with ID in URL
+        response = await apiClient.put(
+          `/api/v1/employee/employee-bank-details/${bankFormData.id}/`,
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+        if (showSuccessMessage) {
+          showNotificationMessage('Bank information updated successfully.', 'success');
+        }
+      } else {
+        // Create new bank details using POST
+        response = await apiClient.post(
+          '/api/v1/employee/employee-bank-details/',
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+        if (showSuccessMessage) {
+          showNotificationMessage('Bank information created successfully.', 'success');
+        }
+      }
+
+      // Update the form data with the response (including ID for new records)
+      if (response.data) {
+        const updatedBankData: BankInfo = {
+          id: response.data.id,
+          bankName: response.data.bank_name || '',
+          accountNumber: response.data.account_number || '',
+          routingNumber: bankFormData.routingNumber, // Keep existing value
+          accountType: bankFormData.accountType, // Keep existing value
+          branch: response.data.branch || '',
+          anyOtherCode1: response.data.any_other_code1 || '',
+          anyOtherCode2: response.data.any_other_code2 || '',
+          country: response.data.country || '',
+          state: response.data.state || '',
+          city: response.data.city || '',
+          address: response.data.address || '',
+          additionalInfo: response.data.additional_info || ''
+        };
+        setBankFormData(updatedBankData);
+      }
+
+      return true; // Success
+    } catch (error: any) {
+      let errorMessage = 'Failed to save bank information. Please try again.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+          errorMessage = error.response.data;
+        } else if (error.response.data.message) {
+          errorMessage = error.response.data.message;
+        } else if (typeof error.response.data === 'object') {
+          errorMessage = Object.entries(error.response.data)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join(', ');
+        }
+      }
+      showNotificationMessage(errorMessage, 'error');
+      return false; // Failure
+    }
+  };
+
+  const handleBankSave = async () => {
+    if (!bankFormData) return;
+    setIsLoading(true);
+    try {
+      const success = await saveBankDetails(true);
+      if (success) {
+        setIsEditingBank(false);
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleBankCancel = () => {
-    setBankFormData(null);
+    // Refresh bank data from server to discard changes
+    if (personalFormData?.id) {
+      fetchBankDetails(personalFormData.id);
+    }
     setIsEditingBank(false);
     showNotificationMessage('Changes discarded', 'info');
   };
 
   const handleWorkSave = async () => {
-    if (!personalFormData) return;
+    if (!workFormData || !personalFormData) return;
     setIsLoading(true);
     try {
       const token = localStorage.getItem('access');
       const payload = {
-        department: personalFormData.department,
-        job_position: personalFormData.position,
-        reporting_manager: personalFormData.manager,
-        employee_type: personalFormData.employmentType,
+        tags: workFormData.tags,
+        location: workFormData.location,
+        email: workFormData.email,
+        mobile: workFormData.mobile,
+        date_joining: workFormData.date_joining,
+        contract_end_date: workFormData.contract_end_date,
+        basic_salary: workFormData.basic_salary,
+        salary_hour: workFormData.salary_hour,
+        additional_info: workFormData.additional_info,
+        experience: workFormData.experience,
+        employee_id: personalFormData.id,
+        department_id: workFormData.department_id,
+        job_position_id: workFormData.job_position_id,
+        job_role_id: workFormData.job_role_id,
+        reporting_manager_id: workFormData.reporting_manager_id,
+        shift_id: workFormData.shift_id,
+        work_type_id: workFormData.work_type_id,
+        employee_type_id: workFormData.employee_type_id,
+        company_id: workFormData.company_id
       };
-      const res = await apiClient.put(
-        `/api/v1/employee/employees/${personalFormData.id}/`,
-        payload,
-        { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
-      );
-      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
-      setPersonalFormData(mapApiToProfileData(refetch.data));
+
+      let response;
+      if (workFormData.id) {
+        // Update existing work information
+        response = await apiClient.put(
+          `/api/v1/employee/employee-work-information/${workFormData.id}/`,
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // Create new work information
+        response = await apiClient.post(
+          '/api/v1/employee/employee-work-information/',
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      // Refetch work information to get updated data
+      await fetchWorkInformation(personalFormData.id);
       setIsEditingWork(false);
-      const msg = res.data?.message || 'Work information updated.';
+      const msg = response.data?.message || 'Work information saved successfully.';
       showNotificationMessage(msg, 'success');
     } catch (error: any) {
-      let msg = 'Failed to update work information.';
+      let msg = 'Failed to save work information.';
       if (error.response?.data) {
         if (typeof error.response.data === 'string') msg = error.response.data;
         else if (error.response.data.message) msg = error.response.data.message;
@@ -288,38 +653,126 @@ const EmployeeProfile: React.FC = () => {
   };
 
   const handleWorkCancel = () => {
-    setPersonalFormData(null);
+    // Refetch work information to discard changes
+    if (personalFormData?.id) {
+      fetchWorkInformation(personalFormData.id);
+    }
     setIsEditingWork(false);
     showNotificationMessage('Changes discarded', 'info');
   };
 
-  const handleContractSave = async () => {
-    if (!personalFormData) return;
+  const handleWorkDelete = async () => {
+    if (!workFormData?.id || !personalFormData) return;
     setIsLoading(true);
     try {
-      // Only send contract info fields (adjust field names as per backend)
-      const payload = {
-        salary: personalFormData.salary,
-        contract_start_date: personalFormData.contractStartDate,
-        contract_end_date: personalFormData.contractEndDate,
-        probation_period: personalFormData.probationPeriod,
-      };
-      await apiClient.patch(
-        `/api/v1/employee/employees/${personalFormData.id}/`,
-        payload,
-        { headers: { 'Content-Type': 'application/json' } }
+      const token = localStorage.getItem('access');
+      await apiClient.delete(
+        `/api/v1/employee/employee-work-information/${workFormData.id}/`,
+        { headers: { Authorization: `Bearer ${token}` } }
       );
+      
+      // Reset work form data to empty state
+      setWorkFormData({
+        tags: [],
+        location: null,
+        email: null,
+        mobile: null,
+        date_joining: null,
+        contract_end_date: null,
+        basic_salary: 0,
+        salary_hour: 0,
+        additional_info: null,
+        experience: 0,
+        employee_id: personalFormData.id,
+        department_id: null,
+        job_position_id: null,
+        job_role_id: null,
+        reporting_manager_id: null,
+        shift_id: null,
+        work_type_id: null,
+        employee_type_id: null,
+        company_id: null
+      });
+      setIsEditingWork(false);
+      showNotificationMessage('Work information deleted successfully.', 'success');
+    } catch (error: any) {
+      let msg = 'Failed to delete work information.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContractSave = async () => {
+    if (!contractFormData || !personalFormData?.id) return;
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('access');
+      const payload = {
+        contract: contractFormData.contract,
+        employee_id: contractFormData.employee_id,
+        contract_start_date: contractFormData.contract_start_date,
+        contract_end_date: contractFormData.contract_end_date,
+        wage_type: contractFormData.wage_type,
+        pay_frequency: contractFormData.pay_frequency,
+        basic_salary: contractFormData.basic_salary,
+        filing_status: contractFormData.filing_status,
+        department_id: contractFormData.department_id,
+        job_position_id: contractFormData.job_position_id,
+        job_role_id: contractFormData.job_role_id,
+        shift_id: contractFormData.shift_id,
+        work_type_id: contractFormData.work_type_id,
+        notice_period: contractFormData.notice_period,
+        deduct_from_basic_pay: contractFormData.deduct_from_basic_pay,
+        calculate_daily_leave_amount_pay: contractFormData.calculate_daily_leave_amount_pay,
+        note: contractFormData.note
+      };
+
+      if (contractFormData.id) {
+        // Update existing contract
+        await apiClient.put(
+          `/api/v1/employee/employee-contract/${contractFormData.id}/`,
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        // Create new contract
+        await apiClient.post(
+          '/api/v1/employee/employee-contract/',
+          payload,
+          { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
+        );
+      }
+
+      // Refetch contract details
+      await fetchContractDetails(personalFormData.id);
       setIsEditingContract(false);
-      showNotificationMessage('Contract details updated.', 'success');
-    } catch (error) {
-      showNotificationMessage('Failed to update contract details. Please try again.', 'error');
+      showNotificationMessage('Contract details updated successfully.', 'success');
+    } catch (error: any) {
+      let msg = 'Failed to update contract details.';
+      if (error.response?.data) {
+        if (typeof error.response.data === 'string') msg = error.response.data;
+        else if (error.response.data.message) msg = error.response.data.message;
+        else if (typeof error.response.data === 'object') msg = Object.entries(error.response.data).map(([k,v]) => `${k}: ${v}`).join(' ');
+      }
+      showNotificationMessage(msg, 'error');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleContractCancel = () => {
-    setPersonalFormData(null);
+    if (personalFormData?.id) {
+      // Refetch original contract data
+      fetchContractDetails(personalFormData.id);
+    } else {
+      setContractFormData(null);
+    }
     setIsEditingContract(false);
     showNotificationMessage('Changes discarded', 'info');
   };
@@ -327,8 +780,14 @@ const EmployeeProfile: React.FC = () => {
   const handleSaveAllChanges = async () => {
     if (!personalFormData) return;
     setIsLoading(true);
+    
+    let profileSuccess = false;
+    let bankSuccess = false;
+    
     try {
       const token = localStorage.getItem('access');
+      
+      // Save employee profile data (without bank information)
       const payload: any = {
         employee_first_name: personalFormData.firstName,
         employee_last_name: personalFormData.lastName,
@@ -356,26 +815,39 @@ const EmployeeProfile: React.FC = () => {
         contract_end_date: personalFormData.contractEndDate,
         probation_period: personalFormData.probationPeriod,
       };
-      if (bankFormData) {
-        payload.bank_name = bankFormData.bankName;
-        payload.account_number = bankFormData.accountNumber;
-        payload.routing_number = bankFormData.routingNumber;
-        payload.account_type = bankFormData.accountType;
-        payload.branch = bankFormData.branch;
-      }
+      
+      // Save employee profile
       const res = await apiClient.put(
         `/api/v1/employee/employees/${personalFormData.id}/`,
         payload,
         { headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` } }
       );
-      const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
-      setPersonalFormData(mapApiToProfileData(refetch.data));
-      setIsEditingPersonal(false);
-      setIsEditingWork(false);
-      setIsEditingBank(false);
-      setIsEditingContract(false);
-      const msg = res.data?.message || 'Profile updated successfully!';
-      showNotificationMessage(msg, 'success');
+      profileSuccess = true;
+      
+      // Save bank details separately if bank data exists
+      if (bankFormData) {
+        bankSuccess = await saveBankDetails(false); // Don't show individual success message
+      } else {
+        bankSuccess = true; // No bank data to save, consider it successful
+      }
+      
+      // If both operations succeeded, update UI and show success message
+      if (profileSuccess && bankSuccess) {
+        const refetch = await apiClient.get(`/api/v1/employee/employees/${personalFormData.id}/`, { headers: { Authorization: `Bearer ${token}` } });
+        setPersonalFormData(mapApiToProfileData(refetch.data));
+        setIsEditingPersonal(false);
+        setIsEditingWork(false);
+        setIsEditingBank(false);
+        setIsEditingContract(false);
+        const msg = res.data?.message || 'Profile updated successfully!';
+        showNotificationMessage(msg, 'success');
+      } else {
+        // If bank save failed but profile succeeded, show partial success message
+        if (profileSuccess && !bankSuccess) {
+          showNotificationMessage('Profile updated, but bank information failed to save.', 'error');
+        }
+      }
+      
     } catch (error: any) {
       let msg = 'Failed to update profile.';
       if (error.response?.data) {
@@ -776,10 +1248,49 @@ const EmployeeProfile: React.FC = () => {
                 <div className="oh-profile-card-header">
                   <h3>Work Information</h3>
                   <div className="oh-profile-card-actions">
+                    {workFormData && workFormData.id && (
+                      <button 
+                        className="oh-profile-delete-btn"
+                        onClick={handleWorkDelete}
+                        disabled={isLoading}
+                        style={{ marginRight: '8px' }}
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <polyline points="3,6 5,6 21,6"></polyline>
+                          <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+                        </svg>
+                        Delete
+                      </button>
+                    )}
                     {!isEditingWork ? (
                       <button 
                         className="oh-profile-edit-btn-small"
-                        onClick={() => setIsEditingWork(true)}
+                        onClick={() => {
+                          if (!workFormData) {
+                            setWorkFormData({
+                              tags: [],
+                              location: null,
+                              email: null,
+                              mobile: null,
+                              date_joining: null,
+                              contract_end_date: null,
+                              basic_salary: 0,
+                              salary_hour: 0,
+                              additional_info: null,
+                              experience: 0,
+                              employee_id: personalFormData?.id || null,
+                              department_id: null,
+                              job_position_id: null,
+                              job_role_id: null,
+                              reporting_manager_id: null,
+                              shift_id: null,
+                              work_type_id: null,
+                              employee_type_id: null,
+                              company_id: null
+                            });
+                          }
+                          setIsEditingWork(true);
+                        }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -819,99 +1330,256 @@ const EmployeeProfile: React.FC = () => {
                   </div>
                 </div>
                 <div className="oh-profile-card-body">
-                  <div className="oh-profile-field-group">
-                    <div className="oh-profile-field">
-                      <label>Department</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.department}</span>
-                      ) : (
-                        <select
-                          value={personalFormData.department}
-                          onChange={(e) => setPersonalFormData({...personalFormData, department: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="Engineering">Engineering</option>
-                          <option value="Human Resources">Human Resources</option>
-                          <option value="Finance">Finance</option>
-                          <option value="Marketing">Marketing</option>
-                          <option value="Sales">Sales</option>
-                        </select>
-                      )}
+                  {workFormData ? (
+                    <div className="oh-profile-field-group">
+                      <div className="oh-profile-field">
+                        <label>Location</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.location || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={workFormData.location || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, location: e.target.value || null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Email</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.email || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="email"
+                            value={workFormData.email || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, email: e.target.value || null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Mobile</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.mobile || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="tel"
+                            value={workFormData.mobile || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, mobile: e.target.value || null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Date of Joining</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.date_joining || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="date"
+                            value={workFormData.date_joining || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, date_joining: e.target.value || null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Contract End Date</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.contract_end_date || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="date"
+                            value={workFormData.contract_end_date || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, contract_end_date: e.target.value || null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Basic Salary</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.basic_salary}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={workFormData.basic_salary}
+                            onChange={(e) => setWorkFormData({...workFormData, basic_salary: parseFloat(e.target.value) || 0})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Salary per Hour</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.salary_hour}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={workFormData.salary_hour}
+                            onChange={(e) => setWorkFormData({...workFormData, salary_hour: parseFloat(e.target.value) || 0})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Experience (Years)</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.experience}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            step="0.1"
+                            value={workFormData.experience}
+                            onChange={(e) => setWorkFormData({...workFormData, experience: parseFloat(e.target.value) || 0})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Department ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.department_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.department_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, department_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Job Position ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.job_position_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.job_position_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, job_position_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Job Role ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.job_role_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.job_role_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, job_role_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Reporting Manager ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.reporting_manager_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.reporting_manager_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, reporting_manager_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Shift ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.shift_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.shift_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, shift_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                            placeholder="Enter shift ID"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Work Type ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.work_type_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.work_type_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, work_type_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                            placeholder="Enter work type ID"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Employee Type ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.employee_type_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.employee_type_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, employee_type_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                            placeholder="Enter employee type ID"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Company ID</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.company_id || 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={workFormData.company_id || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, company_id: e.target.value ? parseInt(e.target.value) : null})}
+                            className="oh-profile-input"
+                            placeholder="Enter company ID"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Tags</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.tags && workFormData.tags.length > 0 ? workFormData.tags.join(', ') : 'Not specified'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={workFormData.tags ? workFormData.tags.join(', ') : ''}
+                            onChange={(e) => setWorkFormData({...workFormData, tags: e.target.value ? e.target.value.split(',').map(tag => tag.trim()) : []})}
+                            className="oh-profile-input"
+                            placeholder="Enter tags separated by commas"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Additional Information</label>
+                        {!isEditingWork ? (
+                          <span>{workFormData.additional_info || 'Not specified'}</span>
+                        ) : (
+                          <textarea
+                            value={workFormData.additional_info || ''}
+                            onChange={(e) => setWorkFormData({...workFormData, additional_info: e.target.value || null})}
+                            className="oh-profile-input"
+                            rows={3}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="oh-profile-field">
-                      <label>Position</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.position}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={personalFormData.position}
-                          onChange={(e) => setPersonalFormData({...personalFormData, position: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
+                  ) : (
+                    <div className="oh-profile-no-data">
+                      <p>No work information available. Click Edit to add work information.</p>
                     </div>
-                    <div className="oh-profile-field">
-                      <label>Manager</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.manager}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={personalFormData.manager}
-                          onChange={(e) => setPersonalFormData({...personalFormData, manager: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Date of Joining</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.dateOfJoining}</span>
-                      ) : (
-                        <input
-                          type="date"
-                          value={personalFormData.dateOfJoining}
-                          onChange={(e) => setPersonalFormData({...personalFormData, dateOfJoining: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Employment Type</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.employmentType}</span>
-                      ) : (
-                        <select
-                          value={personalFormData.employmentType}
-                          onChange={(e) => setPersonalFormData({...personalFormData, employmentType: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="Full-time">Full-time</option>
-                          <option value="Part-time">Part-time</option>
-                          <option value="Contract">Contract</option>
-                          <option value="Temporary">Temporary</option>
-                        </select>
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Work Location</label>
-                      {!isEditingWork ? (
-                        <span>{personalFormData.workLocation}</span>
-                      ) : (
-                        <select
-                          value={personalFormData.workLocation}
-                          onChange={(e) => setPersonalFormData({...personalFormData, workLocation: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="Head Office">Head Office</option>
-                          <option value="Branch Office">Branch Office</option>
-                          <option value="Remote">Remote</option>
-                          <option value="Hybrid">Hybrid</option>
-                        </select>
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -923,7 +1591,26 @@ const EmployeeProfile: React.FC = () => {
                     {!isEditingBank ? (
                       <button 
                         className="oh-profile-edit-btn-small"
-                        onClick={() => setIsEditingBank(true)}
+                        onClick={() => {
+                          if (!bankFormData) {
+                            setBankFormData({
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            });
+                          }
+                          setIsEditingBank(true);
+                        }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -963,105 +1650,314 @@ const EmployeeProfile: React.FC = () => {
                   </div>
                 </div>
                 <div className="oh-profile-card-body">
-                  <div className="oh-profile-field-group">
-                    <div className="oh-profile-field">
-                      <label>Bank Name</label>
-                      {!isEditingBank ? (
-                        <span>{bankFormData?.bankName}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={bankFormData?.bankName}
-                          onChange={(e) => bankFormData && setBankFormData({
-                            bankName: e.target.value,
-                            accountNumber: bankFormData.accountNumber ?? '',
-                            routingNumber: bankFormData.routingNumber ?? '',
-                            accountType: bankFormData.accountType ?? '',
-                            branch: bankFormData.branch ?? ''
-                          })}
-                          className="oh-profile-input"
-                        />
-                      )}
+                  {!bankFormData && !isEditingBank ? (
+                    <div className="oh-profile-empty-state">
+                      <p>No bank information available. Click Edit to add bank details.</p>
                     </div>
-                    <div className="oh-profile-field">
-                      <label>Account Number</label>
-                      {!isEditingBank ? (
-                        <span>{bankFormData?.accountNumber}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={bankFormData?.accountNumber}
-                          onChange={(e) => bankFormData && setBankFormData({
-                            bankName: bankFormData.bankName ?? '',
-                            accountNumber: e.target.value,
-                            routingNumber: bankFormData.routingNumber ?? '',
-                            accountType: bankFormData.accountType ?? '',
-                            branch: bankFormData.branch ?? ''
-                          })}
-                          className="oh-profile-input"
-                        />
-                      )}
+                  ) : (
+                    <div className="oh-profile-field-group">
+                      <div className="oh-profile-field">
+                        <label>Bank Name</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.bankName || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.bankName || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              bankName: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: e.target.value,
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Account Number</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.accountNumber || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.accountNumber || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              accountNumber: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: e.target.value,
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Branch</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.branch || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.branch || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              branch: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: e.target.value,
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank Code #1</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.anyOtherCode1 || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.anyOtherCode1 || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              anyOtherCode1: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: e.target.value,
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank Code #2</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.anyOtherCode2 || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.anyOtherCode2 || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              anyOtherCode2: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: e.target.value,
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank Country</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.country || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.country || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              country: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: e.target.value,
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank State</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.state || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.state || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              state: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: e.target.value,
+                              city: '',
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank City</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.city || '-'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={bankFormData?.city || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              city: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: e.target.value,
+                              address: '',
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Bank Address</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.address || '-'}</span>
+                        ) : (
+                          <textarea
+                            value={bankFormData?.address || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              address: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: e.target.value,
+                              additionalInfo: ''
+                            })}
+                            className="oh-profile-input"
+                            rows={2}
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Additional Info</label>
+                        {!isEditingBank ? (
+                          <span>{bankFormData?.additionalInfo || '-'}</span>
+                        ) : (
+                          <textarea
+                            value={bankFormData?.additionalInfo || ''}
+                            onChange={(e) => setBankFormData(prev => prev ? {
+                              ...prev,
+                              additionalInfo: e.target.value
+                            } : {
+                              id: undefined,
+                              bankName: '',
+                              accountNumber: '',
+                              routingNumber: '',
+                              accountType: '',
+                              branch: '',
+                              anyOtherCode1: '',
+                              anyOtherCode2: '',
+                              country: '',
+                              state: '',
+                              city: '',
+                              address: '',
+                              additionalInfo: e.target.value
+                            })}
+                            className="oh-profile-input"
+                            rows={2}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="oh-profile-field">
-                      <label>Routing Number</label>
-                      {!isEditingBank ? (
-                        <span>{bankFormData?.routingNumber}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={bankFormData?.routingNumber}
-                          onChange={(e) => bankFormData && setBankFormData({
-                            bankName: bankFormData.bankName ?? '',
-                            accountNumber: bankFormData.accountNumber ?? '',
-                            routingNumber: e.target.value,
-                            accountType: bankFormData.accountType ?? '',
-                            branch: bankFormData.branch ?? ''
-                          })}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Account Type</label>
-                      {!isEditingBank ? (
-                        <span>{bankFormData?.accountType}</span>
-                      ) : (
-                        <select
-                          value={bankFormData?.accountType}
-                          onChange={(e) => bankFormData && setBankFormData({
-                            bankName: bankFormData.bankName ?? '',
-                            accountNumber: bankFormData.accountNumber ?? '',
-                            routingNumber: bankFormData.routingNumber ?? '',
-                            accountType: e.target.value,
-                            branch: bankFormData.branch ?? ''
-                          })}
-                          className="oh-profile-select"
-                        >
-                          <option value="Checking">Checking</option>
-                          <option value="Savings">Savings</option>
-                        </select>
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Branch</label>
-                      {!isEditingBank ? (
-                        <span>{bankFormData?.branch}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={bankFormData?.branch}
-                          onChange={(e) => bankFormData && setBankFormData({
-                            bankName: bankFormData.bankName ?? '',
-                            accountNumber: bankFormData.accountNumber ?? '',
-                            routingNumber: bankFormData.routingNumber ?? '',
-                            accountType: bankFormData.accountType ?? '',
-                            branch: e.target.value
-                          })}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
 
@@ -1073,7 +1969,33 @@ const EmployeeProfile: React.FC = () => {
                     {!isEditingContract ? (
                       <button 
                         className="oh-profile-edit-btn-small"
-                        onClick={() => setIsEditingContract(true)}
+                        onClick={() => {
+                          setIsEditingContract(true);
+                          // Initialize contractFormData with default values if no contract exists
+                          if (!contractFormData && personalFormData?.id) {
+                            setContractFormData({
+                              id: undefined,
+                              contract: '',
+                              employee_id: personalFormData.id,
+                              contract_start_date: '',
+                              contract_end_date: '',
+                              wage_type: '',
+                              pay_frequency: '',
+                              basic_salary: 0,
+                              filing_status: '',
+                              department_id: null,
+                              job_position_id: null,
+                              job_role_id: null,
+                              shift_id: null,
+                              work_type_id: null,
+                              notice_period: 0,
+                              contract_document: null,
+                              deduct_from_basic_pay: false,
+                              calculate_daily_leave_amount_pay: false,
+                              note: ''
+                            });
+                          }
+                        }}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -1113,63 +2035,171 @@ const EmployeeProfile: React.FC = () => {
                   </div>
                 </div>
                 <div className="oh-profile-card-body">
-                  <div className="oh-profile-field-group">
-                    <div className="oh-profile-field">
-                      <label>Salary</label>
-                      {!isEditingContract ? (
-                        <span>{personalFormData.salary}</span>
-                      ) : (
-                        <input
-                          type="text"
-                          value={personalFormData.salary}
-                          onChange={(e) => setPersonalFormData({...personalFormData, salary: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
+                  {contractFormData || isEditingContract ? (
+                    <div className="oh-profile-field-group">
+                      <div className="oh-profile-field">
+                        <label>Contract</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.contract || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={contractFormData?.contract || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, contract: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Contract Start Date</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.contract_start_date || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="date"
+                            value={contractFormData?.contract_start_date || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, contract_start_date: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Contract End Date</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.contract_end_date || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="date"
+                            value={contractFormData?.contract_end_date || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, contract_end_date: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Wage Type</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.wage_type || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={contractFormData?.wage_type || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, wage_type: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Pay Frequency</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.pay_frequency || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={contractFormData?.pay_frequency || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, pay_frequency: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Basic Salary</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.basic_salary || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={contractFormData?.basic_salary || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, basic_salary: e.target.value ? parseFloat(e.target.value) : 0} : null)}
+                            className="oh-profile-input"
+                            placeholder="Enter basic salary"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Filing Status</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.filing_status || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="text"
+                            value={contractFormData?.filing_status || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, filing_status: e.target.value} : null)}
+                            className="oh-profile-input"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Work Type ID</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.work_type_id || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={contractFormData?.work_type_id || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, work_type_id: e.target.value ? parseInt(e.target.value) : null} : null)}
+                            className="oh-profile-input"
+                            placeholder="Enter work type ID"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Notice Period</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.notice_period || 'N/A'}</span>
+                        ) : (
+                          <input
+                            type="number"
+                            value={contractFormData?.notice_period || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, notice_period: e.target.value ? parseInt(e.target.value) : 0} : null)}
+                            className="oh-profile-input"
+                            placeholder="Enter notice period (days)"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Deduct From Basic Pay</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.deduct_from_basic_pay ? 'Yes' : 'No'}</span>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={contractFormData?.deduct_from_basic_pay || false}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, deduct_from_basic_pay: e.target.checked} : null)}
+                            className="oh-profile-checkbox"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Calculate Daily Leave Amount Pay</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.calculate_daily_leave_amount_pay ? 'Yes' : 'No'}</span>
+                        ) : (
+                          <input
+                            type="checkbox"
+                            checked={contractFormData?.calculate_daily_leave_amount_pay || false}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, calculate_daily_leave_amount_pay: e.target.checked} : null)}
+                            className="oh-profile-checkbox"
+                          />
+                        )}
+                      </div>
+                      <div className="oh-profile-field">
+                        <label>Note</label>
+                        {!isEditingContract ? (
+                          <span>{contractFormData?.note || 'N/A'}</span>
+                        ) : (
+                          <textarea
+                            value={contractFormData?.note || ''}
+                            onChange={(e) => setContractFormData(prev => prev ? {...prev, note: e.target.value} : null)}
+                            className="oh-profile-input"
+                            rows={3}
+                          />
+                        )}
+                      </div>
                     </div>
-                    <div className="oh-profile-field">
-                      <label>Contract Start Date</label>
-                      {!isEditingContract ? (
-                        <span>{personalFormData.contractStartDate}</span>
-                      ) : (
-                        <input
-                          type="date"
-                          value={personalFormData.contractStartDate}
-                          onChange={(e) => setPersonalFormData({...personalFormData, contractStartDate: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Contract End Date</label>
-                      {!isEditingContract ? (
-                        <span>{personalFormData.contractEndDate}</span>
-                      ) : (
-                        <input
-                          type="date"
-                          value={personalFormData.contractEndDate}
-                          onChange={(e) => setPersonalFormData({...personalFormData, contractEndDate: e.target.value})}
-                          className="oh-profile-input"
-                        />
-                      )}
-                    </div>
-                    <div className="oh-profile-field">
-                      <label>Probation Period</label>
-                      {!isEditingContract ? (
-                        <span>{personalFormData.probationPeriod}</span>
-                      ) : (
-                        <select
-                          value={personalFormData.probationPeriod}
-                          onChange={(e) => setPersonalFormData({...personalFormData, probationPeriod: e.target.value})}
-                          className="oh-profile-select"
-                        >
-                          <option value="3 months">3 months</option>
-                          <option value="6 months">6 months</option>
-                          <option value="12 months">12 months</option>
-                        </select>
-                      )}
-                    </div>
-                  </div>
+                  ) : (
+                    <p>No contract details available</p>
+                  )}
                 </div>
               </div>
             </div>
