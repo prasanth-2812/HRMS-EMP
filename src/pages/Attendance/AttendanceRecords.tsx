@@ -1,19 +1,19 @@
 import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './AttendanceRecords.css';
 
 const AttendanceRecords: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <div className="attendance-records-page">
       <Sidebar />
       <div className={`ar-main-content ${isCollapsed ? 'ar-main-content--collapsed' : ''}`}>
         <div className={`ar-navbar ${isCollapsed ? 'ar-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendance Records" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ar-content">
           <div className="ar-content-container">

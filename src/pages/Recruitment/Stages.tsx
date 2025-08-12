@@ -1,18 +1,18 @@
 import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './RecruitmentShared.css';
 
 const Stages: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <div className="stages-page">
       <Sidebar />
       <div className={`main-content ${isCollapsed ? 'main-content--collapsed' : ''}`}>
-        <Navbar pageTitle="Stages" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="content">
           <div className="content-container">
             {/* Header */}

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './JobPostings.css';
 
 const JobPostings: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -14,7 +14,7 @@ const JobPostings: React.FC = () => {
       <Sidebar />
       <div className={`jp-main-content ${isCollapsed ? 'jp-main-content--collapsed' : ''}`}>
         <div className={`jp-navbar ${isCollapsed ? 'jp-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Job Postings" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="jp-content">
           <div className="jp-content-container">

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './RecruitmentSurvey.css';
 
 const RecruitmentSurvey: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -14,7 +14,7 @@ const RecruitmentSurvey: React.FC = () => {
       <Sidebar />
       <div className={`rs-main-content ${isCollapsed ? 'rs-main-content--collapsed' : ''}`}>
         <div className={`rs-navbar ${isCollapsed ? 'rs-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Recruitment Survey" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="rs-content">
           <div className="rs-content-container">

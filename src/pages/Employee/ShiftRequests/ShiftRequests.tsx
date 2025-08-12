@@ -1,8 +1,9 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './ShiftRequests.css';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
+import { useSidebar } from '../../../contexts/SidebarContext';
 
 interface ShiftRequest {
   id: number;
@@ -163,6 +164,7 @@ const mockShiftRequests: ShiftRequest[] = [
 ];
 
 const ShiftRequests: React.FC = () => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
@@ -360,7 +362,7 @@ const ShiftRequests: React.FC = () => {
     <div className="oh-wrapper">
       <Sidebar />
       <div className="oh-main">
-        <Navbar pageTitle="Shift Requests" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-main-content">
           <div className="oh-shift-requests">
             {/* Header */}

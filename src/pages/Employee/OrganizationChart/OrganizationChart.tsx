@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './OrganizationChart.css';
@@ -18,7 +18,7 @@ interface Employee {
 }
 
 const OrganizationChart: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
 
@@ -179,7 +179,7 @@ const OrganizationChart: React.FC = () => {
     <div className="oh-dashboard">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Organization Chart" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-content">
           <div className="oh-container">
             {/* Header Section */}

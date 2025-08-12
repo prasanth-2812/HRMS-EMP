@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import './DocumentRequests.css';
@@ -42,7 +42,7 @@ interface CreateDocumentRequestForm {
 }
 
 const DocumentRequests: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [documentRequests, setDocumentRequests] = useState<DocumentRequest[]>([]);
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -393,7 +393,7 @@ const DocumentRequests: React.FC = () => {
     <div className="oh-app-layout">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Document Requests" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-document-requests-container">
           {/* Header */}
           <div className="oh-document-requests-header">

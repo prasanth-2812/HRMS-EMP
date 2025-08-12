@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './RotatingWorkTypeAssign.css';
@@ -58,7 +58,7 @@ const RotatingWorkTypeAssign: React.FC = () => {
     endDate: '',
     notes: ''
   });
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   // Mock data for work types
   const mockWorkTypes: WorkType[] = [
@@ -277,7 +277,7 @@ const RotatingWorkTypeAssign: React.FC = () => {
     <div className="oh-dashboard">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Rotating Work Type Assign" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-content">
           <div className="oh-container">
             {/* Header Section */}

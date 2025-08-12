@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './WorkTypeRequests.css';
@@ -69,7 +69,7 @@ const WorkTypeRequests: React.FC = () => {
     requestType: 'temporary'
   });
   
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   // Mock data for work type requests
   const mockRequests: WorkTypeRequest[] = [
@@ -350,7 +350,7 @@ const WorkTypeRequests: React.FC = () => {
     <div className="oh-dashboard">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Work Type Requests" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-content">
           <div className="oh-container">
             {/* Header Section */}

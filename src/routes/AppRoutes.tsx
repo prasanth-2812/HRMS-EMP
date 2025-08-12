@@ -30,9 +30,11 @@ import AssetManagement from '../pages/Assets/AssetManagement';
 import HelpDeskTickets from '../pages/HelpDesk/HelpDeskTickets';
 import ProjectManagement from '../pages/Project/ProjectManagement';
 import OffboardingProcess from '../pages/Offboarding/OffboardingProcess';
-import SystemSettings from '../pages/Configuration/SystemSettings';
+import Settings from '../pages/Settings/Settings';
+
 import ProtectedRoute from './ProtectedRoute';
 import { useAuthContext } from '../contexts/AuthContext';
+import ModalContainer from '../components/Modals/ModalContainer';
 
 import { CompanyInfo, UserPermissions, MenuItem } from '../utils/mockSidebarData';
 
@@ -87,6 +89,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
       case '/configuration/company-leaves': return 'Company Leaves';
       case '/configuration/restrict-leaves': return 'Restrict Leaves';
       case '/configuration/system-settings': return 'System Settings';
+      case '/settings': return 'Settings';
       default: return 'Horilla'; // Default title
     }
   };
@@ -94,7 +97,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
   const currentPageTitle = getPageTitle(location.pathname);
 
   return (
-    <Routes>
+    <>
+      <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
@@ -281,16 +285,18 @@ const AppRoutes: React.FC<AppRoutesProps> = ({ companyInfo, userPermissions, men
         </ProtectedRoute>
       } />
 
-      {/* Configuration Module Routes */}
-      <Route path="/configuration/system-settings" element={
+      {/* Settings Module Routes */}
+      <Route path="/settings" element={
         <ProtectedRoute>
-          <SystemSettings />
+          <Settings />
         </ProtectedRoute>
       } />
 
       {/* Catch-all for 404 Not Found pages (optional) */}
       <Route path="*" element={<div>404 Not Found</div>} />
     </Routes>
+    <ModalContainer />
+    </>
   );
 };
 
