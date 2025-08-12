@@ -1,11 +1,20 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useApi, usePost, usePut } from "../../../hooks/useApi";
+import { endpoints } from "../../../utils/api";
+import { HourAccount, HourAccountFormData, EmployeeResponse } from "../../../types/hourAccount";
 import "./HourAccountForm.css";
 
-// Sample Employee List
-const employees = [
-  { label: "tarun sai", value: "tarun sai" },
-  // Add more employees as needed
-];
+interface HourAccountFormProps {
+  editingRecord?: HourAccount | null;
+  onSuccess: () => void;
+  onCancel: () => void;
+}
+
+// Employee interface for dropdown
+interface EmployeeOption {
+  label: string;
+  value: number;
+}
 
 const months = [
   "January", "February", "March", "April", "May", "June",
@@ -13,26 +22,74 @@ const months = [
 ];
 
 const defaultForm = {
-  employee: "",
+  employee_id: 0,
   month: months[0],
   year: new Date().getFullYear().toString(),
-  workedHours: "00:00",
-  pendingHours: "00:00",
+  worked_hours: "00:00",
+  pending_hours: "00:00",
   overtime: "00:00",
 };
 
 const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
 const yearRegex = /^\d{4}$/;
 
-const HourAccount: React.FC = () => {
-  const [fields, setFields] = useState({ ...defaultForm, employee: employees[0].value });
+const HourAccountForm: React.FC<HourAccountFormProps> = ({ editingRecord, onSuccess, onCancel }) => {
+  const [fields, setFields] = useState<HourAccountFormData>(defaultForm);
   const [errors, setErrors] = useState<{ [k: string]: string }>({});
   const [successMsg, setSuccessMsg] = useState<string>("");
+  const [employees, setEmployees] = useState<EmployeeOption[]>([]);
+  
+  // Fetch employees
+  const { data: employeeData, loading: employeeLoading } = useApi<EmployeeResponse>(
+    endpoints.employees.list
+  );
+  
+  // API hooks for create/update
+  const { post: createRecord, loading: createLoading } = usePost<HourAccount, HourAccountFormData>(
+    endpoints.attendance.hourAccount.create
+  );
+  
+  const { put: updateRecord, loading: updateLoading } = usePut<HourAccount, HourAccountFormData>(
+    editingRecord ? endpoints.attendance.hourAccount.update(editingRecord.id.toString()) : ''
+  );
+  
+  const isLoading = createLoading || updateLoading;
+  
+  // Convert employee data to dropdown options
+  useEffect(() => {
+    if (employeeData && employeeData.results) {
+      const options = employeeData.results.map(emp => ({
+        label: `${emp.employee_first_name} ${emp.employee_last_name}`,
+        value: emp.id
+      }));
+      setEmployees(options);
+      
+      // Set default employee if not editing
+      if (!editingRecord && options.length > 0) {
+        setFields(prev => ({ ...prev, employee_id: options[0].value }));
+      }
+    }
+  }, [employeeData, editingRecord]);
+  
+  // Populate form when editing
+  useEffect(() => {
+    if (editingRecord) {
+      setFields({
+        employee_id: editingRecord.employee_id,
+        month: editingRecord.month,
+        year: editingRecord.year,
+        worked_hours: editingRecord.worked_hours,
+        pending_hours: editingRecord.pending_hours,
+        overtime: editingRecord.overtime,
+      });
+    }
+  }, [editingRecord]);
 
   // Handle changes for form fields
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    setFields({ ...fields, [e.target.name]: e.target.value });
-    setErrors({ ...errors, [e.target.name]: "" });
+    const { name, value } = e.target;
+    setFields({ ...fields, [name]: name === 'employee_id' ? parseInt(value) : value });
+    setErrors({ ...errors, [name]: "" });
     setSuccessMsg("");
   };
 
@@ -62,42 +119,63 @@ const HourAccount: React.FC = () => {
   };
 
   // On Save
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     let curErrors: { [k: string]: string } = {};
-    if (!fields.employee) curErrors.employee = "Required";
+    
+    if (!fields.employee_id) curErrors.employee_id = "Required";
     if (!fields.month) curErrors.month = "Required";
     if (!yearRegex.test(fields.year)) curErrors.year = "Year should be 4 digits";
-    if (!timeRegex.test(fields.workedHours)) curErrors.workedHours = "Invalid time (HH:MM)";
-    if (!timeRegex.test(fields.pendingHours)) curErrors.pendingHours = "Invalid time (HH:MM)";
+    if (!timeRegex.test(fields.worked_hours)) curErrors.worked_hours = "Invalid time (HH:MM)";
+    if (!timeRegex.test(fields.pending_hours)) curErrors.pending_hours = "Invalid time (HH:MM)";
     if (!timeRegex.test(fields.overtime)) curErrors.overtime = "Invalid time (HH:MM)";
+    
     setErrors(curErrors);
+    
     if (Object.keys(curErrors).length === 0) {
-      setSuccessMsg("Hour Account Saved!");
-      // Place your API/upload logic here.
+      try {
+        let result;
+        if (editingRecord) {
+          result = await updateRecord(fields);
+        } else {
+          result = await createRecord(fields);
+        }
+        
+        if (result) {
+          setSuccessMsg(editingRecord ? "Hour Account Updated!" : "Hour Account Created!");
+          setTimeout(() => {
+            onSuccess();
+          }, 1000);
+        }
+      } catch (error) {
+        setErrors({ submit: "Failed to save hour account. Please try again." });
+      }
     }
   };
 
   return (
     <div className="ha-modal">
       <form className="ha-form" onSubmit={handleSubmit}>
-        <h2 className="ha-title">Hour Account</h2>
+        <h2 className="ha-title">{editingRecord ? 'Edit Hour Account' : 'Create Hour Account'}</h2>
 
         {/* Form grid */}
         <div className="ha-form-row">
           <div className="ha-form-field">
             <label>Employee <span className="ha-required">*</span></label>
             <select
-              name="employee"
-              value={fields.employee}
+              name="employee_id"
+              value={fields.employee_id}
               onChange={handleChange}
               required
+              disabled={employeeLoading}
             >
+              <option value="">Select Employee</option>
               {employees.map(emp =>
                 <option key={emp.value} value={emp.value}>{emp.label}</option>
               )}
             </select>
-            {errors.employee && <span className="ha-error">{errors.employee}</span>}
+            {employeeLoading && <span className="ha-info">Loading employees...</span>}
+            {errors.employee_id && <span className="ha-error">{errors.employee_id}</span>}
           </div>
           <div className="ha-form-field">
             <label>Month <span className="ha-required">*</span></label>
@@ -132,14 +210,14 @@ const HourAccount: React.FC = () => {
             <label>Worked Hours <span className="ha-required">*</span></label>
             <input
               type="text"
-              name="workedHours"
-              value={fields.workedHours}
+              name="worked_hours"
+              value={fields.worked_hours}
               onChange={handleChange}
               onBlur={handleTimeBlur}
               placeholder="00:00"
               required
             />
-            {errors.workedHours && <span className="ha-error">{errors.workedHours}</span>}
+            {errors.worked_hours && <span className="ha-error">{errors.worked_hours}</span>}
           </div>
         </div>
 
@@ -148,14 +226,14 @@ const HourAccount: React.FC = () => {
             <label>Pending Hours <span className="ha-required">*</span></label>
             <input
               type="text"
-              name="pendingHours"
-              value={fields.pendingHours}
+              name="pending_hours"
+              value={fields.pending_hours}
               onChange={handleChange}
               onBlur={handleTimeBlur}
               placeholder="00:00"
               required
             />
-            {errors.pendingHours && <span className="ha-error">{errors.pendingHours}</span>}
+            {errors.pending_hours && <span className="ha-error">{errors.pending_hours}</span>}
           </div>
           <div className="ha-form-field">
             <label>Overtime <span className="ha-required">*</span></label>
@@ -173,10 +251,23 @@ const HourAccount: React.FC = () => {
         </div>
 
         {successMsg && <div className="ha-success-msg">{successMsg}</div>}
+        {errors.submit && <div className="ha-error">{errors.submit}</div>}
 
         <div className="ha-form-actions">
-          <button type="submit" className="ha-save-btn">
-            Save
+          <button 
+            type="button" 
+            className="ha-btn ha-btn--secondary"
+            onClick={onCancel}
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            className="ha-save-btn"
+            disabled={isLoading || employeeLoading}
+          >
+            {isLoading ? 'Saving...' : (editingRecord ? 'Update' : 'Save')}
           </button>
         </div>
       </form>
@@ -184,4 +275,4 @@ const HourAccount: React.FC = () => {
   );
 };
 
-export default HourAccount;
+export default HourAccountForm;

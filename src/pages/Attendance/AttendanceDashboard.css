@@ -48,6 +48,92 @@
   margin-bottom: 32px;
 }
 
+/* Records List Styles */
+.ad-records-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.ad-record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+}
+
+.ad-record-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+.ad-record-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ad-record-name {
+  font-weight: 500;
+  color: #1e293b;
+  font-size: 14px;
+}
+
+.ad-record-date {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.ad-record-time {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.ad-record-status {
+  display: flex;
+  align-items: center;
+}
+
+.ad-status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.ad-status-badge--pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fbbf24;
+}
+
+.ad-record-more {
+  text-align: center;
+  padding: 8px;
+  color: #64748b;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.ad-employee-more {
+  text-align: center;
+  padding: 12px;
+  color: #64748b;
+  font-size: 12px;
+  font-style: italic;
+  border-top: 1px solid #e2e8f0;
+  margin-top: 8px;
+}
+
 .ad-stat-card {
   background: white;
   border-radius: 12px;
@@ -459,4 +545,58 @@
     padding: 24px 16px;
     min-height: 250px;
   }
+}
+
+/* Button Styles */
+.ad-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+
+.ad-btn--validate {
+  background-color: #10b981;
+  color: white;
+}
+
+.ad-btn--validate:hover {
+  background-color: #059669;
+  transform: translateY(-1px);
+}
+
+.ad-btn--validate:active {
+  transform: translateY(0);
+}
+
+.ad-icon-btn {
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background-color: #f3f4f6;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ad-icon-btn:hover {
+  background-color: #e5e7eb;
+  color: #374151;
+}
+
+/* Record Actions */
+.ad-record-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
 }

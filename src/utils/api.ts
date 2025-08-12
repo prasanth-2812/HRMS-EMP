@@ -79,11 +79,11 @@ export const endpoints = {
     me: '/auth/me',
   },
   employees: {
-    list: '/employees',
-    create: '/employees',
-    get: (id: string) => `/employees/${id}`,
-    update: (id: string) => `/employees/${id}`,
-    delete: (id: string) => `/employees/${id}`,
+    list: '/api/v1/employee/employees/',
+    create: '/api/v1/employee/employees/',
+    get: (id: string) => `/api/v1/employee/employees/${id}/`,
+    update: (id: string) => `/api/v1/employee/employees/${id}/`,
+    delete: (id: string) => `/api/v1/employee/employees/${id}/`,
   },
   departments: {
     list: '/departments',
@@ -92,5 +92,23 @@ export const endpoints = {
     update: (id: string) => `/departments/${id}`,
     delete: (id: string) => `/departments/${id}`,
   },
+  attendance: {
+      list: '/api/v1/attendance/attendance/',
+      todayAttendance: '/api/v1/attendance/today-attendance/',
+      offlineEmployees: {
+        count: '/api/v1/attendance/offline-employees/count/',
+        list: '/api/v1/attendance/offline-employees/list/',
+      },
+      hourAccount: {
+        list: '/api/v1/attendance/attendance-hour-account/',
+        create: '/api/v1/attendance/attendance-hour-account/',
+        get: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
+        update: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
+        delete: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
+      },
+      activity: {
+        list: '/api/v1/attendance/attendance-activity/',
+      },
+    },
   // Add more endpoints as needed
 };

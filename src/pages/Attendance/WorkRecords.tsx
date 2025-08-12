@@ -7,25 +7,112 @@ import Sidebar from '../../components/Layout/Sidebar';
 import Navbar from '../../components/Layout/Navbar';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { useApi } from '../../hooks/useApi';
+import { endpoints } from '../../utils/api';
+import { EmployeeResponse } from '../../types/hourAccount';
 import './WorkRecords.css';
 
-const daysInMonth = 31;
-const employeeName = 'tarun sai';
+interface AttendanceRecord {
+  id: number;
+  employee_id: number;
+  attendance_date: string;
+  attendance_validated: boolean;
+  attendance_clock_in?: string;
+  attendance_clock_out?: string;
+  employee_first_name?: string;
+  employee_last_name?: string;
+}
+
+interface AttendanceResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AttendanceRecord[];
+}
 
 const today = new Date();
 const formattedDate = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 const WorkRecords: React.FC = () => {
-
   const { isCollapsed } = useSidebar();
   const [showFilter, setShowFilter] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('employee');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  
   // Month/year state for input type month
   const [monthYear, setMonthYear] = useState(() => {
     const y = today.getFullYear();
     const m = (today.getMonth() + 1).toString().padStart(2, '0');
     return `${y}-${m}`;
   });
+
+  // Fetch employees
+  const { data: employeeData, loading: employeeLoading } = useApi<EmployeeResponse>(
+    endpoints.employees.list
+  );
+
+  // Fetch attendance records
+  const { data: attendanceData, loading: attendanceLoading } = useApi<AttendanceResponse>(
+    endpoints.attendance.list
+  );
+
+  const employees = employeeData?.results || [];
+  const attendanceRecords = attendanceData?.results || [];
+
+  // Generate calendar days for selected month
+  const getDaysInMonth = (month: number, year: number) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    return Array.from({ length: daysInMonth }, (_, i) => i + 1);
+  };
+
+  const days = getDaysInMonth(selectedMonth, selectedYear);
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+
+  // Get attendance status for specific employee and date
+  const getAttendanceStatus = (employeeId: number, day: number) => {
+    const dateStr = `${selectedYear}-${String(selectedMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const attendance = attendanceRecords.find(
+      record => record.employee_id === employeeId && record.attendance_date === dateStr
+    );
+    
+    if (!attendance) return null;
+    return {
+      validated: attendance.attendance_validated,
+      hasClockIn: !!attendance.attendance_clock_in,
+      hasClockOut: !!attendance.attendance_clock_out
+    };
+  };
+
+  // Get status color and symbol
+  const getStatusDisplay = (status: any) => {
+    if (!status) return { color: '', symbol: '', title: 'No Record' };
+    
+    if (status.validated) {
+      return { 
+        color: 'present', 
+        symbol: 'P', 
+        title: 'Present - Validated' 
+      };
+    } else {
+      return { 
+        color: 'pending', 
+        symbol: '!', 
+        title: 'Attendance needs validation' 
+      };
+    }
+  };
+
+  // Update month/year when monthYear input changes
+  const handleMonthYearChange = (value: string) => {
+    setMonthYear(value);
+    const [year, month] = value.split('-').map(Number);
+    setSelectedYear(year);
+    setSelectedMonth(month - 1); // month is 0-indexed
+  };
 
   // Handle Filter Button in modal (here just closes modal after click, adjust as needed)
   const handleApplyFilter = () => {
@@ -34,14 +121,21 @@ const WorkRecords: React.FC = () => {
 
   // Export table data as Excel file
   const handleExport = () => {
-    // Example: Export only the visible table (employeeName and empty cells)
-    const headers = ['Employee', ...Array.from({ length: daysInMonth }, (_, i) => (i + 1).toString())];
-    const row = [employeeName, ...Array.from({ length: daysInMonth }, () => '')];
-    const wsData = [headers, row];
+    const headers = ['Employee', ...days.map(day => day.toString())];
+    const rows = employees.map(employee => {
+      const employeeName = `${employee.employee_first_name} ${employee.employee_last_name}`;
+      const attendanceRow = days.map(day => {
+        const status = getAttendanceStatus(employee.id, day);
+        const display = getStatusDisplay(status);
+        return display.symbol || '';
+      });
+      return [employeeName, ...attendanceRow];
+    });
+    const wsData = [headers, ...rows];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'WorkRecords');
-    XLSX.writeFile(wb, 'work-records.xlsx');
+    XLSX.writeFile(wb, `work-records-${monthNames[selectedMonth]}-${selectedYear}.xlsx`);
   };
 
   return (
@@ -73,7 +167,7 @@ const WorkRecords: React.FC = () => {
                   type="month"
                   className="wr-header-month-input"
                   value={monthYear}
-                  onChange={e => setMonthYear(e.target.value)}
+                  onChange={e => handleMonthYearChange(e.target.value)}
                   style={{ minWidth: 120 }}
                 />
                 <span className="wr-header-month-icon">📅</span>
@@ -93,27 +187,61 @@ const WorkRecords: React.FC = () => {
             </div>
           </div>
 
+          {/* Loading State */}
+          {(employeeLoading || attendanceLoading) && (
+            <div className="wr-loading-state">
+              <div className="wr-spinner"></div>
+              <p>Loading work records...</p>
+            </div>
+          )}
+
           {/* Table Section */}
-          <div className="wr-table-container">
-            <table className="wr-table">
-              <thead>
-                <tr>
-                  <th>Employee</th>
-                  {Array.from({ length: daysInMonth }, (_, i) => (
-                    <th key={i + 1}>{i + 1}</th>
+          {!employeeLoading && !attendanceLoading && (
+            <div className="wr-table-container">
+              <table className="wr-table">
+                <thead>
+                  <tr>
+                    <th>Employee</th>
+                    {days.map(day => (
+                      <th key={day}>{day}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map(employee => (
+                    <tr key={employee.id}>
+                      <td className="wr-employee-cell">
+                        <div className="wr-employee-info">
+                          <span className="wr-employee-name">
+                            {employee.employee_first_name} {employee.employee_last_name}
+                          </span>
+                          {employee.badge_id && (
+                            <span className="wr-employee-badge">({employee.badge_id})</span>
+                          )}
+                        </div>
+                      </td>
+                      {days.map(day => {
+                        const status = getAttendanceStatus(employee.id, day);
+                        const display = getStatusDisplay(status);
+                        return (
+                          <td key={day} className="wr-day-cell">
+                            {status && (
+                              <span 
+                                className={`wr-status wr-status--${display.color}`}
+                                title={display.title}
+                              >
+                                {display.symbol}
+                              </span>
+                            )}
+                          </td>
+                        );
+                      })}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>{employeeName}</td>
-                  {Array.from({ length: daysInMonth }, (_, i) => (
-                    <td key={i + 1}></td>
-                  ))}
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Pagination */}
           <div className="wr-pagination">
