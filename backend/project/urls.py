@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 
 from project.cbv import dashboard, project_stage, projects, tasks, timesheet
 from project.models import Project
@@ -281,4 +281,5 @@ urlpatterns = [
         views.time_sheet_bulk_delete,
         name="time-sheet-bulk-delete",
     ),
+    path('api/v1/employee/', include('employee.api_urls')),
 ]

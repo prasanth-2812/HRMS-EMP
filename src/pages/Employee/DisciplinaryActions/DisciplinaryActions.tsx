@@ -1,8 +1,17 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
+import { 
+  getAllDisciplinaryActions, 
+  getDisciplinaryActionById, 
+  createDisciplinaryAction, 
+  updateDisciplinaryAction, 
+  deleteDisciplinaryAction,
+  getAllEmployees,
+  getAllDisciplinaryActionTypes
+} from '../../../services/employeeService';
 import './DisciplinaryActions.css';
 
 interface Employee {
@@ -14,6 +23,24 @@ interface Employee {
   position: string;
 }
 
+// Backend API response interface
+interface DisciplinaryActionAPI {
+  id: number;
+  created_at: string;
+  is_active: boolean;
+  description: string;
+  unit_in: 'days' | 'hours';
+  days: number;
+  hours: string;
+  start_date: string;
+  attachment: string | null;
+  created_by: number;
+  modified_by: number;
+  action: number;
+  employee_id: number[];
+}
+
+// Frontend interface for display
 interface DisciplinaryAction {
   id: string;
   employee: Employee;
@@ -32,6 +59,14 @@ interface DisciplinaryAction {
   followUpRequired: boolean;
   followUpDate?: string;
   documents: string[];
+  // Backend fields
+  unit_in: 'days' | 'hours';
+  days: number;
+  hours: string;
+  start_date: string;
+  attachment: string | null;
+  action: number;
+  employee_id: number[];
 }
 
 const DisciplinaryActions: React.FC = () => {
@@ -42,11 +77,26 @@ const DisciplinaryActions: React.FC = () => {
   const [departmentFilter, setDepartmentFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDataLoading, setIsDataLoading] = useState(true);
+  const [disciplinaryActions, setDisciplinaryActions] = useState<DisciplinaryAction[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [actionTypes, setActionTypes] = useState<any[]>([]);
+  const [editingAction, setEditingAction] = useState<DisciplinaryAction | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [createForm, setCreateForm] = useState({
+    employee_id: [] as number[],
+    action: 0,
+    description: '',
+    unit_in: 'days' as 'days' | 'hours',
+    days: 1,
+    hours: '00:00',
+    start_date: '',
+    attachment: null as File | null,
+    // Legacy fields for UI compatibility
     employee: '',
     actionType: '',
     reason: '',
-    description: '',
     severity: '',
     actionDate: '',
     effectiveDate: '',
@@ -57,108 +107,126 @@ const DisciplinaryActions: React.FC = () => {
   });
   const { isCollapsed } = useSidebar();
 
-  // Mock data for disciplinary actions
-  const mockActions: DisciplinaryAction[] = [
-    {
-      id: 'DA-001',
-      employee: {
-        id: 'EMP-001',
-        name: 'John Smith',
-        avatar: '/avatars/john-smith.jpg',
-        badgeId: 'HOH-001',
-        department: 'Sales',
-        position: 'Sales Executive'
-      },
-      actionType: 'written_warning',
-      reason: 'Tardiness',
-      description: 'Employee has been consistently late for work over the past month without valid reasons. This is the second occurrence after a verbal warning.',
-      severity: 'moderate',
-      actionDate: '2024-01-15',
-      effectiveDate: '2024-01-15',
-      expiryDate: '2024-07-15',
-      issuedBy: 'Manager Name',
-      witnessedBy: 'HR Representative',
-      status: 'active',
-      followUpRequired: true,
-      followUpDate: '2024-02-15',
-      documents: ['warning_letter.pdf', 'attendance_record.pdf']
-    },
-    {
-      id: 'DA-002',
-      employee: {
-        id: 'EMP-002',
-        name: 'Sarah Johnson',
-        avatar: '/avatars/sarah-johnson.jpg',
-        badgeId: 'HOH-002',
-        department: 'Engineering',
-        position: 'Software Developer'
-      },
-      actionType: 'performance_improvement',
-      reason: 'Performance Issues',
-      description: 'Employee performance has been below expectations for the last quarter. A performance improvement plan has been initiated.',
-      severity: 'moderate',
-      actionDate: '2024-01-10',
-      effectiveDate: '2024-01-15',
-      expiryDate: '2024-04-15',
-      issuedBy: 'Team Lead',
-      status: 'active',
-      followUpRequired: true,
-      followUpDate: '2024-02-01',
-      documents: ['pip_document.pdf', 'performance_review.pdf']
-    },
-    {
-      id: 'DA-003',
-      employee: {
-        id: 'EMP-003',
-        name: 'Mike Chen',
-        avatar: '/avatars/mike-chen.jpg',
-        badgeId: 'HOH-003',
-        department: 'Finance',
-        position: 'Financial Analyst'
-      },
-      actionType: 'suspension',
-      reason: 'Policy Violation',
-      description: 'Employee violated company confidentiality policy by sharing sensitive financial information with external parties.',
-      severity: 'severe',
-      actionDate: '2024-01-08',
-      effectiveDate: '2024-01-10',
-      expiryDate: '2024-01-17',
-      issuedBy: 'Department Head',
-      witnessedBy: 'HR Director',
-      status: 'completed',
+  // Data transformation functions
+  const transformEmployeeData = (employee: any): Employee => ({
+    id: employee.id?.toString() || '',
+    name: `${employee.firstName || employee.employee_first_name || ''} ${employee.lastName || employee.employee_last_name || ''}`.trim(),
+    avatar: employee.avatar || employee.employee_profile || '',
+    badgeId: employee.employeeId || employee.badge_id || '',
+    department: employee.department || employee.department_name || '',
+    position: employee.position || employee.job_position_name || ''
+  });
+
+  const transformDisciplinaryActionFromAPI = (apiAction: DisciplinaryActionAPI, employeesList: Employee[]): DisciplinaryAction => {
+    const employee = employeesList.find(emp => apiAction.employee_id.includes(parseInt(emp.id))) || {
+      id: apiAction.employee_id[0]?.toString() || '',
+      name: 'Unknown Employee',
+      avatar: '',
+      badgeId: '',
+      department: '',
+      position: ''
+    };
+
+    return {
+      id: apiAction.id.toString(),
+      employee,
+      actionType: 'written_warning', // Default mapping - should be enhanced with action type lookup
+      reason: 'Policy Violation', // Default - could be derived from action type
+      description: apiAction.description,
+      severity: 'moderate', // Default - could be derived from action type
+      actionDate: apiAction.start_date,
+      effectiveDate: apiAction.start_date,
+      expiryDate: undefined,
+      issuedBy: 'System',
+      witnessedBy: undefined,
+      status: apiAction.is_active ? 'active' : 'completed',
+      appealDate: undefined,
+      appealReason: undefined,
       followUpRequired: false,
-      documents: ['suspension_letter.pdf', 'investigation_report.pdf']
-    },
-    {
-      id: 'DA-004',
-      employee: {
-        id: 'EMP-004',
-        name: 'Emily Davis',
-        avatar: '/avatars/emily-davis.jpg',
-        badgeId: 'HOH-004',
-        department: 'Marketing',
-        position: 'Marketing Coordinator'
-      },
-      actionType: 'verbal_warning',
-      reason: 'Inappropriate Behavior',
-      description: 'Employee engaged in unprofessional conduct during a team meeting.',
-      severity: 'minor',
-      actionDate: '2024-01-12',
-      effectiveDate: '2024-01-12',
-      expiryDate: '2024-04-12',
-      issuedBy: 'HR Manager',
-      status: 'appealed',
-      appealDate: '2024-01-14',
-      appealReason: 'Employee disputes the characterization of the incident',
-      followUpRequired: true,
-      followUpDate: '2024-01-25',
-      documents: ['verbal_warning_record.pdf']
+      followUpDate: undefined,
+      documents: apiAction.attachment ? [apiAction.attachment] : [],
+      // Backend fields
+      unit_in: apiAction.unit_in,
+      days: apiAction.days,
+      hours: apiAction.hours,
+      start_date: apiAction.start_date,
+      attachment: apiAction.attachment,
+      action: apiAction.action,
+      employee_id: apiAction.employee_id
+    };
+  };
+
+  const transformDisciplinaryActionToAPI = (formData: any) => ({
+    description: formData.description,
+    unit_in: formData.unit_in,
+    days: formData.days,
+    hours: formData.hours,
+    start_date: formData.start_date,
+    attachment: formData.attachment,
+    action: formData.action,
+    employee_id: formData.employee_id
+  });
+
+  // API functions
+  const fetchDisciplinaryActions = async () => {
+    try {
+      setIsDataLoading(true);
+      setError(null);
+      const response = await getAllDisciplinaryActions() as any;
+      const employeesResponse = await getAllEmployees() as any;
+      
+      const transformedEmployees = (employeesResponse?.results || employeesResponse || []).map(transformEmployeeData);
+      setEmployees(transformedEmployees);
+
+      if (response?.results) {
+        const transformedActions = response.results.map((action: DisciplinaryActionAPI) =>
+          transformDisciplinaryActionFromAPI(action, transformedEmployees)
+        );
+        setDisciplinaryActions(transformedActions);
+      }
+    } catch (error) {
+      console.error('Error fetching disciplinary actions:', error);
+      setError('Failed to load disciplinary actions. Please try again.');
+    } finally {
+      setIsDataLoading(false);
     }
-  ];
+  };
+
+  const fetchActionTypes = async () => {
+    try {
+      const response = await getAllDisciplinaryActionTypes() as any;
+      if (response?.results) {
+        setActionTypes(response.results);
+      }
+    } catch (error) {
+      console.error('Error fetching action types:', error);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchDisciplinaryActions();
+    fetchActionTypes();
+  }, []);
+
+  // Auto-hide messages after 5 seconds
+  useEffect(() => {
+    if (successMessage) {
+      const timer = setTimeout(() => setSuccessMessage(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [successMessage]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Filter and search logic
   const filteredActions = useMemo(() => {
-    return mockActions.filter(action => {
+    return disciplinaryActions.filter(action => {
       const matchesSearch = action.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           action.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           action.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -171,43 +239,128 @@ const DisciplinaryActions: React.FC = () => {
       
       return matchesSearch && matchesStatus && matchesSeverity && matchesActionType && matchesDepartment;
     });
-  }, [mockActions, searchTerm, statusFilter, severityFilter, actionTypeFilter, departmentFilter]);
+  }, [disciplinaryActions, searchTerm, statusFilter, severityFilter, actionTypeFilter, departmentFilter]);
 
   // Form handling functions
-  const handleFormChange = (field: string, value: string | boolean) => {
+  const handleFormChange = (field: string, value: string | boolean | number | number[] | File | null) => {
     setCreateForm(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
+  const resetForm = () => {
+    setCreateForm({
+      employee_id: [],
+      action: 0,
+      description: '',
+      unit_in: 'days',
+      days: 1,
+      hours: '00:00',
+      start_date: '',
+      attachment: null,
+      // Legacy fields for UI compatibility
+      employee: '',
+      actionType: '',
+      reason: '',
+      severity: '',
+      actionDate: '',
+      effectiveDate: '',
+      expiryDate: '',
+      witnessedBy: '',
+      followUpRequired: false,
+      followUpDate: ''
+    });
+    setEditingAction(null);
+  };
+
   const handleCreateAction = async () => {
-    if (!createForm.employee || !createForm.actionType || !createForm.reason || !createForm.actionDate) {
+    if (!createForm.description || !createForm.start_date || createForm.employee_id.length === 0) {
+      setError('Please fill in all required fields');
       return;
     }
 
     setIsLoading(true);
+    setError(null);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const payload = transformDisciplinaryActionToAPI(createForm);
+      
+      if (editingAction) {
+        // Update existing action
+        await updateDisciplinaryAction(editingAction.id, payload);
+        setSuccessMessage('Disciplinary action updated successfully');
+      } else {
+        // Create new action
+        await createDisciplinaryAction(payload);
+        setSuccessMessage('Disciplinary action created successfully');
+      }
+      
+      // Refresh data
+      await fetchDisciplinaryActions();
       
       // Reset form and close modal
-      setCreateForm({
-        employee: '',
-        actionType: '',
-        reason: '',
-        description: '',
-        severity: '',
-        actionDate: '',
-        effectiveDate: '',
-        expiryDate: '',
-        witnessedBy: '',
-        followUpRequired: false,
-        followUpDate: ''
-      });
+      resetForm();
       setShowCreateModal(false);
     } catch (error) {
-      console.error('Error creating disciplinary action:', error);
+      console.error('Error saving disciplinary action:', error);
+      setError('Failed to save disciplinary action. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleEditAction = async (actionId: string) => {
+    try {
+      setIsLoading(true);
+      const response = await getDisciplinaryActionById(actionId);
+      const transformedAction = transformDisciplinaryActionFromAPI(response as DisciplinaryActionAPI, employees);
+      
+      setEditingAction(transformedAction);
+      setCreateForm({
+        employee_id: transformedAction.employee_id,
+        action: transformedAction.action,
+        description: transformedAction.description,
+        unit_in: transformedAction.unit_in,
+        days: transformedAction.days,
+        hours: transformedAction.hours,
+        start_date: transformedAction.start_date,
+        attachment: null, // File inputs can't be pre-filled
+        // Legacy fields for UI compatibility
+        employee: transformedAction.employee.id,
+        actionType: transformedAction.actionType,
+        reason: transformedAction.reason,
+        severity: transformedAction.severity,
+        actionDate: transformedAction.actionDate,
+        effectiveDate: transformedAction.effectiveDate,
+        expiryDate: transformedAction.expiryDate || '',
+        witnessedBy: transformedAction.witnessedBy || '',
+        followUpRequired: transformedAction.followUpRequired,
+        followUpDate: transformedAction.followUpDate || ''
+      });
+      setShowCreateModal(true);
+    } catch (error) {
+      console.error('Error fetching disciplinary action:', error);
+      setError('Failed to load disciplinary action details');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAction = async (actionId: string) => {
+    if (!window.confirm('Are you sure you want to delete this disciplinary action?')) {
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await deleteDisciplinaryAction(actionId);
+      setSuccessMessage('Disciplinary action deleted successfully');
+      
+      // Refresh data
+      await fetchDisciplinaryActions();
+    } catch (error) {
+      console.error('Error deleting disciplinary action:', error);
+      setError('Failed to delete disciplinary action. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -215,14 +368,14 @@ const DisciplinaryActions: React.FC = () => {
 
   // Statistics
   const stats = useMemo(() => {
-    const total = mockActions.length;
-    const active = mockActions.filter(a => a.status === 'active').length;
-    const pending = mockActions.filter(a => a.status === 'pending').length;
-    const appealed = mockActions.filter(a => a.status === 'appealed').length;
-    const followUpRequired = mockActions.filter(a => a.followUpRequired && a.status === 'active').length;
+    const total = disciplinaryActions.length;
+    const active = disciplinaryActions.filter(a => a.status === 'active').length;
+    const pending = disciplinaryActions.filter(a => a.status === 'pending').length;
+    const appealed = disciplinaryActions.filter(a => a.status === 'appealed').length;
+    const followUpRequired = disciplinaryActions.filter(a => a.followUpRequired && a.status === 'active').length;
     
     return { total, active, pending, appealed, followUpRequired };
-  }, [mockActions]);
+  }, [disciplinaryActions]);
 
   const getStatusBadge = (status: string) => {
     const statusClasses = {
@@ -240,44 +393,7 @@ const DisciplinaryActions: React.FC = () => {
     );
   };
 
-  const getSeverityBadge = (severity: string) => {
-    const severityClasses = {
-      minor: 'oh-severity-badge oh-severity-badge--minor',
-      moderate: 'oh-severity-badge oh-severity-badge--moderate',
-      severe: 'oh-severity-badge oh-severity-badge--severe',
-      critical: 'oh-severity-badge oh-severity-badge--critical'
-    };
-    
-    return (
-      <span className={severityClasses[severity as keyof typeof severityClasses]}>
-        {severity.charAt(0).toUpperCase() + severity.slice(1)}
-      </span>
-    );
-  };
 
-  const getActionTypeBadge = (actionType: string) => {
-    const actionTypeLabels = {
-      verbal_warning: 'Verbal Warning',
-      written_warning: 'Written Warning',
-      suspension: 'Suspension',
-      termination: 'Termination',
-      performance_improvement: 'Performance Improvement Plan'
-    };
-    
-    const actionTypeClasses = {
-      verbal_warning: 'oh-action-type-badge oh-action-type-badge--verbal',
-      written_warning: 'oh-action-type-badge oh-action-type-badge--written',
-      suspension: 'oh-action-type-badge oh-action-type-badge--suspension',
-      termination: 'oh-action-type-badge oh-action-type-badge--termination',
-      performance_improvement: 'oh-action-type-badge oh-action-type-badge--pip'
-    };
-    
-    return (
-      <span className={actionTypeClasses[actionType as keyof typeof actionTypeClasses]}>
-        {actionTypeLabels[actionType as keyof typeof actionTypeLabels]}
-      </span>
-    );
-  };
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -294,6 +410,46 @@ const DisciplinaryActions: React.FC = () => {
         <Navbar pageTitle="Disciplinary Actions" />
         <div className="da-content">
           <div className="oh-container">
+            {/* Success Message */}
+            {successMessage && (
+              <div className="oh-alert oh-alert--success">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="20,6 9,17 4,12"></polyline>
+                </svg>
+                {successMessage}
+                <button 
+                  className="oh-alert__close"
+                  onClick={() => setSuccessMessage(null)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+              <div className="oh-alert oh-alert--error">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+                {error}
+                <button 
+                  className="oh-alert__close"
+                  onClick={() => setError(null)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+            )}
+
             {/* Header Section */}
             <div className="oh-page-header">
               <div className="oh-page-header__content">
@@ -303,7 +459,11 @@ const DisciplinaryActions: React.FC = () => {
               <div className="oh-page-header__actions">
                 <button 
                   className="oh-btn oh-btn--primary"
-                  onClick={() => setShowCreateModal(true)}
+                  onClick={() => {
+                    resetForm();
+                    setShowCreateModal(true);
+                  }}
+                  disabled={isLoading}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -461,91 +621,97 @@ const DisciplinaryActions: React.FC = () => {
 
             {/* Content Area */}
             <div className="oh-content-area">
-              <div className="oh-table-container">
-                <table className="oh-table">
-                  <thead>
-                    <tr>
-                      <th>Action ID</th>
-                      <th>Employee</th>
-                      <th>Action Type</th>
-                      <th>Reason</th>
-                      <th>Severity</th>
-                      <th>Action Date</th>
-                      <th>Status</th>
-                      <th>Follow-up</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredActions.map((action) => (
-                      <tr key={action.id}>
-                        <td>
-                          <span className="oh-action-id">{action.id}</span>
-                        </td>
-                        <td>
-                          <div className="oh-employee-info">
-                            <div className="oh-employee-avatar">
-                              {action.employee.name.charAt(0)}
-                            </div>
-                            <div className="oh-employee-details">
-                              <div className="oh-employee-name">{action.employee.name}</div>
-                              <div className="oh-employee-badge">{action.employee.badgeId}</div>
-                              <div className="oh-employee-dept">{action.employee.department}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>{getActionTypeBadge(action.actionType)}</td>
-                        <td>
-                          <div className="oh-reason-info">
-                            <div className="oh-reason-title">{action.reason}</div>
-                            <div className="oh-reason-desc">{action.description.substring(0, 80)}...</div>
-                          </div>
-                        </td>
-                        <td>{getSeverityBadge(action.severity)}</td>
-                        <td>{formatDate(action.actionDate)}</td>
-                        <td>{getStatusBadge(action.status)}</td>
-                        <td>
-                          {action.followUpRequired ? (
-                            <div className="oh-followup-info">
-                              <span className="oh-followup-required">Required</span>
-                              {action.followUpDate && (
-                                <div className="oh-followup-date">{formatDate(action.followUpDate)}</div>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="oh-followup-not-required">Not Required</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="oh-actions">
-                            <button className="oh-btn oh-btn--sm oh-btn--ghost">View</button>
-                            {action.status === 'active' && action.followUpRequired && (
-                              <button className="oh-btn oh-btn--sm oh-btn--secondary">Follow Up</button>
-                            )}
-                            {action.status === 'appealed' && (
-                              <button className="oh-btn oh-btn--sm oh-btn--warning">Review Appeal</button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-
-              {filteredActions.length === 0 && (
-                <div className="oh-empty-state">
-                  <div className="oh-empty-state__icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                  </div>
-                  <h3 className="oh-empty-state__title">No disciplinary actions found</h3>
-                  <p className="oh-empty-state__message">
-                    There are currently no disciplinary actions to consider.
-                  </p>
+              {isDataLoading ? (
+                <div className="oh-loading-state">
+                  <div className="oh-spinner"></div>
+                  <p>Loading disciplinary actions...</p>
                 </div>
+              ) : (
+                <>
+                  <div className="oh-table-container">
+                    <table className="oh-table">
+                      <thead>
+                        <tr>
+                          <th>Action ID</th>
+                          <th>Employee</th>
+                          <th>Description</th>
+                          <th>Unit</th>
+                          <th>Duration</th>
+                          <th>Start Date</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredActions.map((action) => (
+                          <tr key={action.id}>
+                            <td>
+                              <span className="oh-action-id">DA-{action.id}</span>
+                            </td>
+                            <td>
+                              <div className="oh-employee-info">
+                                <div className="oh-employee-avatar">
+                                  {action.employee.name.charAt(0)}
+                                </div>
+                                <div className="oh-employee-details">
+                                  <div className="oh-employee-name">{action.employee.name}</div>
+                                  <div className="oh-employee-badge">{action.employee.badgeId}</div>
+                                  <div className="oh-employee-dept">{action.employee.department}</div>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              <div className="oh-reason-info">
+                                <div className="oh-reason-desc">{action.description.substring(0, 80)}...</div>
+                              </div>
+                            </td>
+                            <td>
+                              <span className="oh-unit-badge">{action.unit_in}</span>
+                            </td>
+                            <td>
+                              {action.unit_in === 'days' ? `${action.days} days` : action.hours}
+                            </td>
+                            <td>{formatDate(action.start_date)}</td>
+                            <td>{getStatusBadge(action.status)}</td>
+                            <td>
+                              <div className="oh-actions">
+                                <button 
+                                  className="oh-btn oh-btn--sm oh-btn--ghost"
+                                  onClick={() => handleEditAction(action.id)}
+                                  disabled={isLoading}
+                                >
+                                  Edit
+                                </button>
+                                <button 
+                                  className="oh-btn oh-btn--sm oh-btn--danger"
+                                  onClick={() => handleDeleteAction(action.id)}
+                                  disabled={isLoading}
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {filteredActions.length === 0 && !isDataLoading && (
+                    <div className="oh-empty-state">
+                      <div className="oh-empty-state__icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                          <circle cx="11" cy="11" r="8"></circle>
+                          <path d="m21 21-4.35-4.35"></path>
+                        </svg>
+                      </div>
+                      <h3 className="oh-empty-state__title">No disciplinary actions found</h3>
+                      <p className="oh-empty-state__message">
+                        There are currently no disciplinary actions to consider.
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -575,13 +741,13 @@ const DisciplinaryActions: React.FC = () => {
                   <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
                   <select 
                     className="oh-form-input"
-                    value={createForm.employee}
-                    onChange={(e) => handleFormChange('employee', e.target.value)}
+                    value={createForm.employee_id.length > 0 ? createForm.employee_id[0] : ''}
+                    onChange={(e) => handleFormChange('employee_id', e.target.value ? [parseInt(e.target.value)] : [])}
                   >
                     <option value="">Select employee</option>
-                    {mockActions.map(action => (
-                      <option key={action.employee.id} value={action.employee.id}>
-                        {action.employee.name} - {action.employee.department}
+                    {employees.map(emp => (
+                      <option key={emp.id} value={emp.id}>
+                        {emp.name} - {emp.badgeId} - {emp.department}
                       </option>
                     ))}
                   </select>
@@ -591,20 +757,87 @@ const DisciplinaryActions: React.FC = () => {
                   <label className="oh-form-label">Action Type <span className="oh-required">*</span></label>
                   <select 
                     className="oh-form-input"
-                    value={createForm.actionType}
-                    onChange={(e) => handleFormChange('actionType', e.target.value)}
+                    value={createForm.action}
+                    onChange={(e) => handleFormChange('action', parseInt(e.target.value))}
                   >
                     <option value="">Select action type</option>
-                    <option value="verbal_warning">Verbal Warning</option>
-                    <option value="written_warning">Written Warning</option>
-                    <option value="suspension">Suspension</option>
-                    <option value="performance_improvement">Performance Improvement</option>
-                    <option value="termination">Termination</option>
+                    {actionTypes.map(type => (
+                      <option key={type.id} value={type.id}>
+                        {type.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 
                 <div className="oh-form-group">
-                  <label className="oh-form-label">Severity <span className="oh-required">*</span></label>
+                  <label className="oh-form-label">Unit <span className="oh-required">*</span></label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.unit_in}
+                    onChange={(e) => handleFormChange('unit_in', e.target.value)}
+                  >
+                    <option value="">Select unit</option>
+                    <option value="days">Days</option>
+                    <option value="hours">Hours</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Days</label>
+                  <input 
+                    type="number"
+                    className="oh-form-input"
+                    placeholder="Number of days"
+                    value={createForm.days}
+                    onChange={(e) => handleFormChange('days', parseInt(e.target.value) || 1)}
+                    min="0"
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Hours</label>
+                  <input 
+                    type="time"
+                    className="oh-form-input"
+                    value={createForm.hours}
+                    onChange={(e) => handleFormChange('hours', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Start Date <span className="oh-required">*</span></label>
+                  <input 
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.start_date}
+                    onChange={(e) => handleFormChange('start_date', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Description <span className="oh-required">*</span></label>
+                  <textarea 
+                    className="oh-form-textarea"
+                    rows={3}
+                    placeholder="Detailed description of the incident..."
+                    value={createForm.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
+                  />
+                </div>
+
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Attachment</label>
+                  <input 
+                    type="file"
+                    className="oh-form-input"
+                    onChange={(e) => handleFormChange('attachment', e.target.files?.[0] || null)}
+                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                  />
+                </div>
+
+                {/* Legacy fields for UI compatibility */}
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Severity</label>
                   <select 
                     className="oh-form-input"
                     value={createForm.severity}
@@ -618,66 +851,14 @@ const DisciplinaryActions: React.FC = () => {
                   </select>
                 </div>
 
-                <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-label">Reason <span className="oh-required">*</span></label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Reason</label>
                   <input 
                     type="text"
                     className="oh-form-input"
                     placeholder="Enter reason for disciplinary action"
                     value={createForm.reason}
                     onChange={(e) => handleFormChange('reason', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-label">Description</label>
-                  <textarea 
-                    className="oh-form-textarea"
-                    rows={3}
-                    placeholder="Detailed description of the incident..."
-                    value={createForm.description}
-                    onChange={(e) => handleFormChange('description', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Action Date <span className="oh-required">*</span></label>
-                  <input 
-                    type="date"
-                    className="oh-form-input"
-                    value={createForm.actionDate}
-                    onChange={(e) => handleFormChange('actionDate', e.target.value)}
-                  />
-                </div>
-                
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Effective Date</label>
-                  <input 
-                    type="date"
-                    className="oh-form-input"
-                    value={createForm.effectiveDate}
-                    onChange={(e) => handleFormChange('effectiveDate', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Expiry Date</label>
-                  <input 
-                    type="date"
-                    className="oh-form-input"
-                    value={createForm.expiryDate}
-                    onChange={(e) => handleFormChange('expiryDate', e.target.value)}
-                  />
-                </div>
-                
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Witnessed By</label>
-                  <input 
-                    type="text"
-                    className="oh-form-input"
-                    placeholder="Witness name"
-                    value={createForm.witnessedBy}
-                    onChange={(e) => handleFormChange('witnessedBy', e.target.value)}
                   />
                 </div>
 
@@ -717,7 +898,7 @@ const DisciplinaryActions: React.FC = () => {
               <button 
                 className="oh-btn oh-btn--primary"
                 onClick={handleCreateAction}
-                disabled={isLoading || !createForm.employee || !createForm.actionType || !createForm.reason || !createForm.actionDate}
+                disabled={isLoading || createForm.employee_id.length === 0 || !createForm.action || !createForm.description || !createForm.start_date}
               >
                 {isLoading ? (
                   <>

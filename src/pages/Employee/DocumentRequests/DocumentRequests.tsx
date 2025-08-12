@@ -1,112 +1,57 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Navbar from '../../../components/Layout/Navbar';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import './DocumentRequests.css';
+import { 
+  getAllDocumentRequests, 
+  createDocumentRequest, 
+  updateDocumentRequest, 
+  deleteDocumentRequest,
+  getEmployeeSelector
+} from '../../../services/employeeService';
 
 interface DocumentRequest {
-  id: string;
-  requestId: string;
-  employeeName: string;
-  employeeId: string;
-  documentType: string;
-  purpose: string;
-  requestDate: string;
-  status: 'pending' | 'approved' | 'rejected' | 'completed';
-  approvedBy?: string;
-  approvedDate?: string;
-  completedDate?: string;
-  remarks?: string;
-  urgency: 'low' | 'medium' | 'high';
+  id: number;
+  title: string;
+  employee_id: number[];
+  format: string;
+  max_size?: number;
+  description?: string;
+  created_at: string;
+  is_active: boolean;
+  created_by: number;
+  modified_by: number;
+}
+
+interface Employee {
+  id: number;
+  employee_first_name: string;
+  employee_last_name: string;
+  badge_id: string;
+  employee_profile?: string;
 }
 
 interface CreateDocumentRequestForm {
   title: string;
-  employee: string;
+  employee_id: number[];
   format: string;
-  maxSize: string;
+  max_size: string;
   description: string;
 }
 
-const mockDocumentRequests: DocumentRequest[] = [
-  {
-    id: '1',
-    requestId: 'DOC001',
-    employeeName: 'Prasanth Kathi',
-    employeeId: 'EMP001',
-    documentType: 'Experience Certificate',
-    purpose: 'Job Application',
-    requestDate: '2024-01-15',
-    status: 'approved',
-    approvedBy: 'HR Manager',
-    approvedDate: '2024-01-16',
-    urgency: 'medium',
-    remarks: 'Processing for external job application'
-  },
-  {
-    id: '2',
-    requestId: 'DOC002',
-    employeeName: 'Sarah Wilson',
-    employeeId: 'EMP002',
-    documentType: 'Salary Certificate',
-    purpose: 'Bank Loan',
-    requestDate: '2024-01-14',
-    status: 'completed',
-    approvedBy: 'HR Manager',
-    approvedDate: '2024-01-15',
-    completedDate: '2024-01-16',
-    urgency: 'high',
-    remarks: 'Urgent requirement for loan processing'
-  },
-  {
-    id: '3',
-    requestId: 'DOC003',
-    employeeName: 'Michael Brown',
-    employeeId: 'EMP003',
-    documentType: 'Employment Letter',
-    purpose: 'Visa Application',
-    requestDate: '2024-01-13',
-    status: 'pending',
-    urgency: 'high',
-    remarks: 'Required for visa processing - urgent'
-  },
-  {
-    id: '4',
-    requestId: 'DOC004',
-    employeeName: 'Emma Davis',
-    employeeId: 'EMP004',
-    documentType: 'Relieving Letter',
-    purpose: 'Personal Records',
-    requestDate: '2024-01-12',
-    status: 'rejected',
-    urgency: 'low',
-    remarks: 'Employee still active - cannot issue relieving letter'
-  },
-  {
-    id: '5',
-    requestId: 'DOC005',
-    employeeName: 'James Wilson',
-    employeeId: 'EMP005',
-    documentType: 'Payslip',
-    purpose: 'Income Proof',
-    requestDate: '2024-01-11',
-    status: 'approved',
-    approvedBy: 'Finance Manager',
-    approvedDate: '2024-01-12',
-    urgency: 'medium'
-  }
-];
-
 const DocumentRequests: React.FC = () => {
   const { isCollapsed } = useSidebar();
+  const [documentRequests, setDocumentRequests] = useState<DocumentRequest[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [urgencyFilter, setUrgencyFilter] = useState<string>('all');
+  const [formatFilter, setFormatFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('list');
-  const [requests, setRequests] = useState<DocumentRequest[]>(mockDocumentRequests);
+
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<DocumentRequest | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
@@ -115,24 +60,32 @@ const DocumentRequests: React.FC = () => {
   
   const [createForm, setCreateForm] = useState<CreateDocumentRequestForm>({
     title: '',
-    employee: '',
+    employee_id: [],
     format: '',
-    maxSize: '',
+    max_size: '',
     description: ''
   });
 
   // Filter requests based on search and filters
-  const filteredRequests = requests.filter(request => {
-    const matchesSearch = 
-      request.employeeName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requestId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.documentType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.purpose.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredRequests = documentRequests.filter(request => {
+    const employeeNames = request.employee_id.map(empId => {
+      const employee = employees.find(emp => emp.id === empId);
+      return employee ? `${employee.employee_first_name} ${employee.employee_last_name}` : '';
+    }).join(' ');
     
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesUrgency = urgencyFilter === 'all' || request.urgency === urgencyFilter;
+    const matchesSearch = searchTerm === '' ||
+      request.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employeeNames.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.format.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (request.description && request.description.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    return matchesSearch && matchesStatus && matchesUrgency;
+    const matchesStatus = statusFilter === 'all' || 
+      (statusFilter === 'active' && request.is_active) ||
+      (statusFilter === 'inactive' && !request.is_active);
+    
+    const matchesFormat = formatFilter === 'all' || request.format.toLowerCase() === formatFilter.toLowerCase();
+    
+    return matchesSearch && matchesStatus && matchesFormat;
   });
 
   // Show notification
@@ -141,20 +94,157 @@ const DocumentRequests: React.FC = () => {
     setTimeout(() => setNotification(null), 4000);
   };
 
-  // Generate next request ID
-  const generateNextRequestId = () => {
-    const existingIds = requests.map(req => req.requestId);
-    const numericIds = existingIds
-      .filter(id => id.match(/^DOC\d+$/))
-      .map(id => parseInt(id.replace('DOC', '')))
-      .sort((a, b) => b - a);
-    
-    const nextNumber = numericIds.length > 0 ? numericIds[0] + 1 : 1;
-    return `DOC${nextNumber.toString().padStart(3, '0')}`;
-  };
+  // Fetch document requests from API
+  const fetchDocumentRequests = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log('Fetching document requests...');
+      const response = await getAllDocumentRequests() as any;
+      console.log('Document requests response:', response);
+      
+      // Handle different response structures
+      if (response?.results) {
+        setDocumentRequests(response.results);
+        console.log('Set document requests from response.results:', response.results);
+      } else if (response?.data?.results) {
+        setDocumentRequests(response.data.results);
+        console.log('Set document requests from response.data.results:', response.data.results);
+      } else if (Array.isArray(response)) {
+        setDocumentRequests(response);
+        console.log('Set document requests from array response:', response);
+      } else if (Array.isArray(response?.data)) {
+        setDocumentRequests(response.data);
+        console.log('Set document requests from response.data array:', response.data);
+      } else {
+        console.log('No document requests found in response');
+        setDocumentRequests([]);
+      }
+    } catch (error: any) {
+      console.error('Error fetching document requests:', error);
+      let errorMessage = 'Failed to fetch document requests';
+      
+      if (error?.message?.includes('401') || error?.message?.includes('Authentication')) {
+        errorMessage = 'Authentication required. Please login first.';
+      } else if (error?.message?.includes('403')) {
+        errorMessage = 'Access denied. You do not have permission to view document requests.';
+      } else if (error?.message?.includes('404')) {
+        errorMessage = 'Document requests endpoint not found. Please check the API configuration.';
+      } else if (error?.message?.includes('500')) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      showNotification('error', errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
-  // Handle form input changes
-  const handleInputChange = (field: keyof CreateDocumentRequestForm, value: string) => {
+  // Fetch employees for dropdown
+  const fetchEmployees = useCallback(async () => {
+    try {
+      console.log('Fetching employees...');
+      const response = await getEmployeeSelector() as any;
+      console.log('Employees response:', response);
+      
+      // Handle different response structures
+      if (response?.results) {
+        setEmployees(response.results);
+        console.log('Set employees from response.results:', response.results);
+      } else if (response?.data?.results) {
+        setEmployees(response.data.results);
+        console.log('Set employees from response.data.results:', response.data.results);
+      } else if (Array.isArray(response)) {
+        setEmployees(response);
+        console.log('Set employees from array response:', response);
+      } else if (Array.isArray(response?.data)) {
+        setEmployees(response.data);
+        console.log('Set employees from response.data array:', response.data);
+      } else {
+        console.log('No employees found in response');
+        setEmployees([]);
+        showNotification('info', 'No employees found for selection');
+      }
+    } catch (error: any) {
+      console.error('Error fetching employees:', error);
+      let errorMessage = 'Failed to fetch employees';
+      
+      if (error?.message?.includes('401') || error?.message?.includes('Authentication')) {
+        errorMessage = 'Authentication required to fetch employees';
+      }
+      
+      showNotification('error', errorMessage);
+      setEmployees([]);
+    }
+  }, []);
+
+  // Check authentication and load data
+  const checkAuthAndLoadData = useCallback(async () => {
+    const token = localStorage.getItem('authToken');
+    if (!token) {
+      console.log('No auth token found, using mock data for testing');
+      showNotification('info', 'Using demo data - Please login for real data');
+      
+      // Mock data for testing
+      const mockEmployees = [
+        { id: 1, employee_first_name: 'John', employee_last_name: 'Doe', badge_id: 'EMP001' },
+        { id: 2, employee_first_name: 'Jane', employee_last_name: 'Smith', badge_id: 'EMP002' },
+        { id: 3, employee_first_name: 'Mike', employee_last_name: 'Johnson', badge_id: 'EMP003' }
+      ];
+      
+      const mockDocumentRequests = [
+        {
+          id: 1,
+          title: 'Employment Certificate',
+          employee_id: [1, 2],
+          format: 'pdf',
+          max_size: 5,
+          description: 'Employment certificate for visa application',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          created_by: 1,
+          modified_by: 1
+        },
+        {
+          id: 2,
+          title: 'Salary Certificate',
+          employee_id: [3],
+          format: 'docx',
+          max_size: 2,
+          description: 'Salary certificate for bank loan',
+          is_active: true,
+          created_at: new Date().toISOString(),
+          created_by: 1,
+          modified_by: 1
+        }
+      ];
+      
+      setEmployees(mockEmployees);
+      setDocumentRequests(mockDocumentRequests);
+      return;
+    }
+    
+    // If authenticated, fetch real data
+    await fetchDocumentRequests();
+    await fetchEmployees();
+  }, [fetchDocumentRequests, fetchEmployees]);
+
+  // Load data on component mount
+  useEffect(() => {
+    checkAuthAndLoadData();
+  }, [checkAuthAndLoadData]);
+
+  // Auto-hide notifications
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
+
+  // Handle input changes
+  const handleInputChange = (field: keyof CreateDocumentRequestForm, value: string | number[]) => {
     setCreateForm(prev => ({
       ...prev,
       [field]: value
@@ -165,23 +255,36 @@ const DocumentRequests: React.FC = () => {
   const resetForm = () => {
     setCreateForm({
       title: '',
-      employee: '',
+      employee_id: [],
       format: '',
-      maxSize: '',
+      max_size: '',
       description: ''
     });
+    setEditingRequest(null);
+  };
+
+  const handleEditClick = (request: DocumentRequest) => {
+    setEditingRequest(request);
+    setCreateForm({
+      title: request.title,
+      employee_id: request.employee_id,
+      format: request.format,
+      max_size: request.max_size?.toString() || '',
+      description: request.description || ''
+    });
+    setShowCreateModal(true);
   };
 
   // Handle create document request
   const handleCreateDocumentRequest = async () => {
     // Validation
-    if (!createForm.title || !createForm.employee || !createForm.format) {
+    if (!createForm.title || createForm.employee_id.length === 0 || !createForm.format) {
       showNotification('error', 'Please fill in all required fields');
       return;
     }
 
     // Validate max size format
-    if (createForm.maxSize && isNaN(Number(createForm.maxSize))) {
+    if (createForm.max_size && isNaN(Number(createForm.max_size))) {
       showNotification('error', 'Max size must be a valid number');
       return;
     }
@@ -189,59 +292,93 @@ const DocumentRequests: React.FC = () => {
     setIsLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const newRequest: DocumentRequest = {
-        id: Date.now().toString(),
-        requestId: generateNextRequestId(),
-        employeeName: createForm.employee,
-        employeeId: 'EMP001', // This would come from employee selection
-        documentType: createForm.title,
-        purpose: createForm.description || 'No description provided',
-        requestDate: new Date().toISOString().split('T')[0],
-        status: 'pending',
-        urgency: 'medium',
-        remarks: `Format: ${createForm.format}${createForm.maxSize ? `, Max size: ${createForm.maxSize}MB` : ''}`
+      const requestData = {
+        title: createForm.title,
+        employee_id: createForm.employee_id,
+        format: createForm.format.toLowerCase(),
+        max_size: createForm.max_size ? parseInt(createForm.max_size) : null,
+        description: createForm.description || ''
       };
 
-      setRequests(prev => [newRequest, ...prev]);
-      setShowCreateModal(false);
-      resetForm();
-      showNotification('success', `Document request "${createForm.title}" created successfully!`);
-    } catch (error) {
-      showNotification('error', 'Failed to create document request. Please try again.');
+      if (editingRequest) {
+         // Update existing request
+         const response = await updateDocumentRequest(editingRequest.id, requestData) as any;
+         
+         if (response?.data) {
+           await fetchDocumentRequests(); // Refresh the list
+           setShowCreateModal(false);
+           resetForm();
+           showNotification('success', 'Document request updated successfully!');
+         }
+       } else {
+         // Create new request
+         const response = await createDocumentRequest(requestData) as any;
+         
+         if (response?.data) {
+           await fetchDocumentRequests(); // Refresh the list
+           setShowCreateModal(false);
+           resetForm();
+           showNotification('success', `Document request "${createForm.title}" created successfully!`);
+         }
+       }
+    } catch (error: any) {
+      console.error('Error creating document request:', error);
+      showNotification('error', error.response?.data?.message || 'Failed to create document request. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
+
+
+  // Handle delete document request
+  const handleDeleteDocumentRequest = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this document request?')) {
+      return;
+    }
+
+    try {
+      await deleteDocumentRequest(id);
+      await fetchDocumentRequests(); // Refresh the list
+      showNotification('success', 'Document request deleted successfully');
+    } catch (error: any) {
+      console.error('Error deleting document request:', error);
+      showNotification('error', error.response?.data?.message || 'Failed to delete document request');
+    }
+  };
+
+
+
   // Status counts for stats
   const statusCounts = {
-    total: requests.length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-    completed: requests.filter(r => r.status === 'completed').length,
-    rejected: requests.filter(r => r.status === 'rejected').length
+    total: documentRequests.length,
+    active: documentRequests.filter(req => req.is_active).length,
+    inactive: documentRequests.filter(req => !req.is_active).length,
+    pdf: documentRequests.filter(req => req.format.toLowerCase() === 'pdf').length,
+    docx: documentRequests.filter(req => req.format.toLowerCase() === 'docx').length
   };
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'pending': return 'oh-status oh-status--pending';
-      case 'approved': return 'oh-status oh-status--approved';
-      case 'completed': return 'oh-status oh-status--completed';
-      case 'rejected': return 'oh-status oh-status--rejected';
-      default: return 'oh-status';
+  const getStatusClass = (isActive: boolean) => {
+    return isActive ? 'oh-status-badge oh-status-active' : 'oh-status-badge oh-status-inactive';
+  };
+
+  const getFormatClass = (format: string) => {
+    switch (format.toLowerCase()) {
+      case 'pdf': return 'oh-format-badge oh-format-pdf';
+      case 'docx': return 'oh-format-badge oh-format-docx';
+      case 'xlsx': return 'oh-format-badge oh-format-xlsx';
+      case 'jpg': return 'oh-format-badge oh-format-jpg';
+      case 'png': return 'oh-format-badge oh-format-png';
+      default: return 'oh-format-badge oh-format-default';
     }
   };
 
-  const getUrgencyClass = (urgency: string) => {
-    switch (urgency) {
-      case 'high': return 'oh-urgency oh-urgency--high';
-      case 'medium': return 'oh-urgency oh-urgency--medium';
-      case 'low': return 'oh-urgency oh-urgency--low';
-      default: return 'oh-urgency';
-    }
+  // Get employee names
+  const getEmployeeNames = (employeeIds: number[]) => {
+    return employeeIds.map(empId => {
+      const employee = employees.find(emp => emp.id === empId);
+      return employee ? `${employee.employee_first_name} ${employee.employee_last_name}` : 'Unknown';
+    }).join(', ');
   };
 
   const formatDate = (dateString: string) => {
@@ -267,25 +404,38 @@ const DocumentRequests: React.FC = () => {
                   <span className="oh-stat-label">Total:</span>
                   <span className="oh-stat-value">{statusCounts.total}</span>
                 </span>
-                <span className="oh-stat pending">
-                  <span className="oh-stat-dot pending"></span>
-                  Pending ({statusCounts.pending})
+                <span className="oh-stat active">
+                  <span className="oh-stat-dot active"></span>
+                  Active ({statusCounts.active})
                 </span>
-                <span className="oh-stat approved">
-                  <span className="oh-stat-dot approved"></span>
-                  Approved ({statusCounts.approved})
+                <span className="oh-stat inactive">
+                  <span className="oh-stat-dot inactive"></span>
+                  Inactive ({statusCounts.inactive})
                 </span>
-                <span className="oh-stat completed">
-                  <span className="oh-stat-dot completed"></span>
-                  Completed ({statusCounts.completed})
+                <span className="oh-stat pdf">
+                  <span className="oh-stat-dot pdf"></span>
+                  PDF ({statusCounts.pdf})
                 </span>
-                <span className="oh-stat rejected">
-                  <span className="oh-stat-dot rejected"></span>
-                  Rejected ({statusCounts.rejected})
+                <span className="oh-stat docx">
+                  <span className="oh-stat-dot docx"></span>
+                  DOCX ({statusCounts.docx})
                 </span>
               </div>
             </div>
             <div className="oh-document-requests-actions">
+              <button 
+                className="oh-btn oh-btn-secondary oh-btn--icon"
+                onClick={() => checkAuthAndLoadData()}
+                disabled={isLoading}
+                title="Refresh data"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <polyline points="1 20 1 14 7 14"></polyline>
+                  <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                </svg>
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
               <button 
                 className="oh-btn oh-btn--primary oh-btn--icon"
                 onClick={() => setShowCreateModal(true)}
@@ -322,21 +472,21 @@ const DocumentRequests: React.FC = () => {
                 onChange={(e) => setStatusFilter(e.target.value)}
               >
                 <option value="all">All Status</option>
-                <option value="pending">Pending</option>
-                <option value="approved">Approved</option>
-                <option value="completed">Completed</option>
-                <option value="rejected">Rejected</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
               </select>
 
               <select
                 className="oh-filter-select"
-                value={urgencyFilter}
-                onChange={(e) => setUrgencyFilter(e.target.value)}
+                value={formatFilter}
+                onChange={(e) => setFormatFilter(e.target.value)}
               >
-                <option value="all">All Urgency</option>
-                <option value="high">High</option>
-                <option value="medium">Medium</option>
-                <option value="low">Low</option>
+                <option value="all">All Formats</option>
+                <option value="pdf">PDF</option>
+                <option value="docx">DOCX</option>
+                <option value="xlsx">XLSX</option>
+                <option value="jpg">JPG</option>
+                <option value="png">PNG</option>
               </select>
 
               <div className="oh-view-toggle">
@@ -386,12 +536,12 @@ const DocumentRequests: React.FC = () => {
                 <table className="oh-document-requests-table">
                   <thead>
                     <tr>
-                      <th>Request ID</th>
-                      <th>Employee</th>
-                      <th>Document Type</th>
-                      <th>Purpose</th>
-                      <th>Request Date</th>
-                      <th>Urgency</th>
+                      <th>ID</th>
+                      <th>Title</th>
+                      <th>Employee(s)</th>
+                      <th>Format</th>
+                      <th>Max Size (MB)</th>
+                      <th>Created Date</th>
                       <th>Status</th>
                       <th>Actions</th>
                     </tr>
@@ -400,31 +550,30 @@ const DocumentRequests: React.FC = () => {
                     {filteredRequests.map((request) => (
                       <tr key={request.id}>
                         <td>
-                          <span className="oh-request-id">{request.requestId}</span>
+                          <span className="oh-request-id">{request.id}</span>
                         </td>
                         <td>
                           <div className="oh-employee-info">
-                            <div className="oh-employee-name">{request.employeeName}</div>
-                            <div className="oh-employee-id">{request.employeeId}</div>
+                            <div className="oh-employee-name">{request.title}</div>
                           </div>
                         </td>
                         <td>
-                          <span className="oh-document-type">{request.documentType}</span>
+                          <span className="oh-document-type">{getEmployeeNames(request.employee_id)}</span>
                         </td>
                         <td>
-                          <span className="oh-purpose">{request.purpose}</span>
-                        </td>
-                        <td>
-                          <span className="oh-date">{formatDate(request.requestDate)}</span>
-                        </td>
-                        <td>
-                          <span className={getUrgencyClass(request.urgency)}>
-                            {request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}
+                          <span className={getFormatClass(request.format)}>
+                            {request.format?.toUpperCase()}
                           </span>
                         </td>
                         <td>
-                          <span className={getStatusClass(request.status)}>
-                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          <span className="oh-date">{request.max_size || 'N/A'}</span>
+                        </td>
+                        <td>
+                          <span className="oh-date">{formatDate(request.created_at)}</span>
+                        </td>
+                        <td>
+                          <span className={getStatusClass(request.is_active)}>
+                            {request.is_active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
                         <td>
@@ -435,15 +584,23 @@ const DocumentRequests: React.FC = () => {
                                 <circle cx="12" cy="12" r="3"></circle>
                               </svg>
                             </button>
-                            {request.status === 'pending' && (
+                            {request.is_active && (
                               <>
-                                <button className="oh-action-btn oh-action-btn--edit" title="Edit Request">
+                                <button 
+                                  className="oh-action-btn oh-action-btn--edit" 
+                                  title="Edit Request"
+                                  onClick={() => handleEditClick(request)}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                                     <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                                   </svg>
                                 </button>
-                                <button className="oh-action-btn oh-action-btn--delete" title="Delete Request">
+                                <button 
+                                  className="oh-action-btn oh-action-btn--delete" 
+                                  title="Delete Request"
+                                  onClick={() => handleDeleteDocumentRequest(request.id)}
+                                >
                                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                     <polyline points="3,6 5,6 21,6"></polyline>
                                     <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -464,36 +621,36 @@ const DocumentRequests: React.FC = () => {
                   <div key={request.id} className="oh-document-request-card">
                     <div className="oh-card-header">
                       <div className="oh-card-title">
-                        <span className="oh-request-id">{request.requestId}</span>
-                        <span className={getUrgencyClass(request.urgency)}>
-                          {request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}
+                        <span className="oh-request-id">#{request.id}</span>
+                        <span className={`oh-format-badge ${getFormatClass(request.format)}`}>
+                          {request.format?.toUpperCase()}
                         </span>
                       </div>
-                      <span className={getStatusClass(request.status)}>
-                        {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                      <span className={`oh-status-badge ${getStatusClass(request.is_active)}`}>
+                        {request.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </div>
                     <div className="oh-card-content">
                       <div className="oh-card-field">
-                        <label>Employee:</label>
-                        <span>{request.employeeName} ({request.employeeId})</span>
+                        <label>Title:</label>
+                        <span>{request.title}</span>
                       </div>
                       <div className="oh-card-field">
-                        <label>Document Type:</label>
-                        <span>{request.documentType}</span>
+                        <label>Employee(s):</label>
+                        <span>{getEmployeeNames(request.employee_id)}</span>
                       </div>
                       <div className="oh-card-field">
-                        <label>Purpose:</label>
-                        <span>{request.purpose}</span>
+                        <label>Max Size:</label>
+                        <span>{request.max_size ? `${request.max_size} MB` : 'N/A'}</span>
                       </div>
                       <div className="oh-card-field">
-                        <label>Request Date:</label>
-                        <span>{formatDate(request.requestDate)}</span>
+                        <label>Created Date:</label>
+                        <span>{formatDate(request.created_at)}</span>
                       </div>
-                      {request.remarks && (
+                      {request.description && (
                         <div className="oh-card-field">
-                          <label>Remarks:</label>
-                          <span>{request.remarks}</span>
+                          <label>Description:</label>
+                          <span>{request.description}</span>
                         </div>
                       )}
                     </div>
@@ -504,15 +661,33 @@ const DocumentRequests: React.FC = () => {
                           <circle cx="12" cy="12" r="3"></circle>
                         </svg>
                       </button>
-                      {request.status === 'pending' && (
+                      {request.is_active && (
                         <>
-                          <button className="oh-action-btn oh-action-btn--edit" title="Edit Request">
+                          <button 
+                            className="oh-action-btn oh-action-btn--edit" 
+                            title="Edit Request"
+                            onClick={() => {
+                              setEditingRequest(request);
+                              setCreateForm({
+                                title: request.title,
+                                employee_id: request.employee_id,
+                                format: request.format,
+                                max_size: request.max_size?.toString() || '',
+                                description: request.description || ''
+                              });
+                              setShowCreateModal(true);
+                            }}
+                          >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
                               <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
                             </svg>
                           </button>
-                          <button className="oh-action-btn oh-action-btn--delete" title="Delete Request">
+                          <button 
+                            className="oh-action-btn oh-action-btn--delete" 
+                            title="Delete Request"
+                            onClick={() => handleDeleteDocumentRequest(request.id)}
+                          >
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <polyline points="3,6 5,6 21,6"></polyline>
                               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
@@ -575,7 +750,7 @@ const DocumentRequests: React.FC = () => {
         <div className="oh-modal-overlay">
           <div className="oh-create-document-modal">
             <div className="oh-modal-header">
-              <h2>Create Document Request</h2>
+              <h2>{editingRequest ? 'Edit Document Request' : 'Create Document Request'}</h2>
               <button 
                 className="oh-modal-close-btn"
                 onClick={() => {
@@ -616,21 +791,51 @@ const DocumentRequests: React.FC = () => {
                     />
                   </div>
                   <div className="oh-form-field">
-                    <label htmlFor="employee">Employee *</label>
-                    <select
-                      id="employee"
-                      value={createForm.employee}
-                      onChange={(e) => handleInputChange('employee', e.target.value)}
-                      className="oh-form-select"
-                      required
-                    >
-                      <option value="">Select employee</option>
-                      <option value="Prasanth Kathi">Prasanth Kathi (EMP001)</option>
-                      <option value="Sarah Wilson">Sarah Wilson (EMP002)</option>
-                      <option value="Michael Brown">Michael Brown (EMP003)</option>
-                      <option value="Emma Davis">Emma Davis (EMP004)</option>
-                      <option value="James Wilson">James Wilson (EMP005)</option>
-                    </select>
+                    <label htmlFor="employee_id">Employee(s) *</label>
+                    {employees.length === 0 ? (
+                      <div className="oh-form-select-placeholder">
+                        <div className="oh-loading-message">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"></path>
+                          </svg>
+                          Loading employees...
+                        </div>
+                        <button 
+                          type="button"
+                          onClick={() => checkAuthAndLoadData()}
+                          className="oh-btn oh-btn-sm oh-btn-secondary"
+                          style={{ marginTop: '8px' }}
+                        >
+                          Retry Loading
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        id="employee_id"
+                        multiple
+                        value={createForm.employee_id.map(id => id.toString())}
+                        onChange={(e) => {
+                          const selectedValues = Array.from(e.target.selectedOptions, option => parseInt(option.value));
+                          handleInputChange('employee_id', selectedValues);
+                        }}
+                        className="oh-form-select"
+                        required
+                        style={{ height: '120px', minHeight: '120px' }}
+                      >
+                        {employees.map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.employee_first_name} {employee.employee_last_name} ({employee.badge_id})
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <small className="oh-field-help">
+                      {employees.length > 0 
+                        ? `Hold Ctrl/Cmd to select multiple employees (${employees.length} available)`
+                        : 'No employees available - check your connection or login status'
+                      }
+                    </small>
                   </div>
                   <div className="oh-form-field">
                     <label htmlFor="format">Format *</label>
@@ -642,23 +847,23 @@ const DocumentRequests: React.FC = () => {
                       required
                     >
                       <option value="">Select format</option>
-                      <option value="PDF">PDF</option>
-                      <option value="DOC">DOC</option>
-                      <option value="DOCX">DOCX</option>
-                      <option value="JPG">JPG</option>
-                      <option value="PNG">PNG</option>
-                      <option value="Excel">Excel</option>
+                      <option value="pdf">PDF</option>
+                      <option value="txt">TXT</option>
+                      <option value="docx">DOCX</option>
+                      <option value="xlsx">XLSX</option>
+                      <option value="jpg">JPG</option>
+                      <option value="png">PNG</option>
                     </select>
                   </div>
                   <div className="oh-form-field">
-                    <label htmlFor="maxSize">Max Size (In MB)</label>
+                    <label htmlFor="max_size">Max Size (In MB)</label>
                     <input
-                      id="maxSize"
+                      id="max_size"
                       type="number"
                       min="0"
                       step="0.1"
-                      value={createForm.maxSize}
-                      onChange={(e) => handleInputChange('maxSize', e.target.value)}
+                      value={createForm.max_size}
+                      onChange={(e) => handleInputChange('max_size', e.target.value)}
                       placeholder="Enter max file size"
                       className="oh-form-input"
                     />
@@ -698,14 +903,14 @@ const DocumentRequests: React.FC = () => {
                 {isLoading ? (
                   <>
                     <div className="oh-loading-spinner"></div>
-                    Creating...
+                    {editingRequest ? 'Updating...' : 'Creating...'}
                   </>
                 ) : (
                   <>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M12 5v14m-7-7h14"></path>
                     </svg>
-                    Create Request
+                    {editingRequest ? 'Update Request' : 'Create Request'}
                   </>
                 )}
               </button>
