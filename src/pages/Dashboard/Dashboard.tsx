@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar'; // Import Navbar
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess'; // Import QuickAccess
 import { SidebarProvider, useSidebar } from '../../contexts/SidebarContext';
 import { CompanyInfo, UserPermissions, MenuItem } from '../../utils/mockSidebarData';
@@ -33,7 +33,7 @@ const AttendanceRequestModal: React.FC<{ isOpen: boolean; onClose: () => void }>
 // Internal component that can use the sidebar context
 const DashboardContent: React.FC<DashboardProps> = ({ companyInfo, userPermissions, menuItems, pageTitle }) => {
   const [isAttendanceModalOpen, setIsAttendanceModalOpen] = useState(false);
-  const { isCollapsed } = useSidebar(); // Get sidebar collapse state
+  const { isCollapsed, toggleSidebar } = useSidebar(); // Get sidebar collapse state and toggle function
 
   // Add any existing state and useEffect logic here...
   useEffect(() => {
@@ -49,7 +49,7 @@ const DashboardContent: React.FC<DashboardProps> = ({ companyInfo, userPermissio
       />
       <div className={`dashboard-main ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
         {/* Pass the pageTitle prop to Navbar */}
-        <Navbar pageTitle={pageTitle} />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="dashboard-content">
           <div className="oh-dashboard-wrapper">
             <div className="oh-dashboard row" id="dashboard">

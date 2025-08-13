@@ -5,7 +5,7 @@ import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee';
 import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo';
 import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
@@ -35,7 +35,7 @@ const today = new Date();
 const formattedDate = today.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
 const WorkRecords: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const [showFilter, setShowFilter] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('employee');
@@ -150,7 +150,7 @@ const WorkRecords: React.FC = () => {
       <Sidebar />
       <div className={`ha-main-content ${isCollapsed ? 'ha-main-content--collapsed' : ''}`}>
         <div className={`ha-navbar ${isCollapsed ? 'ha-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Work Records" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ha-content ha-content--centered">
           {/* Breadcrumb */}

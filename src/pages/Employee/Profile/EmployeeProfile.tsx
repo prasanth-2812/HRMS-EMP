@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import apiClient from '../../../services/authService';
@@ -118,7 +118,7 @@ const EmployeeProfile: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [pendingTab, setPendingTab] = useState<string>('');
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [fetchError, setFetchError] = useState<string | null>(null);
 
   // Map API response keys to UI fields
@@ -2751,7 +2751,7 @@ const EmployeeProfile: React.FC = () => {
     <div className="oh-app-layout">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Employee Profile" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-profile-container">
           <div className="oh-profile-header">
             <div className="oh-profile-header-info">

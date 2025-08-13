@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import './RecruitmentShared.css';
 import { useSidebar } from '../../contexts/SidebarContext';
 
 const Recruitment: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -14,7 +14,7 @@ const Recruitment: React.FC = () => {
       <Sidebar />
       <div className={`main-content ${isCollapsed ? 'main-content--collapsed' : ''}`}>
         <div className={`navbar ${isCollapsed ? 'navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Recruitment" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="content">
           <div className="content-container">

@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './RecruitmentPipeline.css';
 
 const RecruitmentPipeline: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -14,7 +14,7 @@ const RecruitmentPipeline: React.FC = () => {
       <Sidebar />
       <div className={`rp-main-content ${isCollapsed ? 'rp-main-content--collapsed' : ''}`}>
         <div className={`rp-navbar ${isCollapsed ? 'rp-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Recruitment Pipeline" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="rp-content">
           <div className="rp-content-container">

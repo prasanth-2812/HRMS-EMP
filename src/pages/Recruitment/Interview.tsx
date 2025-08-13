@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './Interview.css';
 
 const Interview: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
 
   return (
@@ -14,7 +14,7 @@ const Interview: React.FC = () => {
       <Sidebar />
       <div className={`iv-main-content ${isCollapsed ? 'iv-main-content--collapsed' : ''}`}>
         <div className={`iv-navbar ${isCollapsed ? 'iv-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Interview" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="iv-content">
           <div className="iv-content-container">

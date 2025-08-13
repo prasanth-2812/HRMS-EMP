@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Header.css';
 import useClickOutside from '../../hooks/useClickOutside';
 import { useSidebar } from '../../contexts/SidebarContext';
@@ -25,6 +26,18 @@ interface Notification {
   type: 'info' | 'warning' | 'success' | 'error';
 }
 
+interface CheckInResponse {
+  status: boolean;
+  duration: string;
+  clock_in_time: string;
+}
+
+interface CheckOutResponse {
+  status: boolean;
+  message?: string;
+  total_duration?: string;
+}
+
 interface Company {
   id: string;
   name: string;
@@ -39,6 +52,7 @@ interface Language {
 
 const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const { isCollapsed } = useSidebar();
+  const navigate = useNavigate();
   
   // State management
   const [openNotification, setOpenNotification] = useState(false);
@@ -46,6 +60,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const [languageDropdownOpen, setLanguageDropdownOpen] = useState(false);
   const [companyDropdownOpen, setCompanyDropdownOpen] = useState(false);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [currentLanguage, setCurrentLanguage] = useState<Language>({
     code: 'en',
     name: 'English',
@@ -56,6 +71,10 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   // Modals state
   const [showChangeUsernameModal, setShowChangeUsernameModal] = useState(false);
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [checkInTime, setCheckInTime] = useState<Date | null>(null);
+  const [workDuration, setWorkDuration] = useState('00:00');
+  const [timerStartTime, setTimerStartTime] = useState<Date | null>(null);
 
   // API calls
   const { data: userProfile, loading: userLoading, error: userError, refetch: refetchUser } = useApi<UserProfile>('/auth/me');
@@ -114,12 +133,60 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
     }
   ];
 
+  // Timer effect for current time and work duration
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const now = new Date();
+      setCurrentTime(now);
+      
+      if (isCheckedIn && timerStartTime) {
+        const diff = now.getTime() - timerStartTime.getTime();
+        const minutes = Math.floor(diff / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+        setWorkDuration(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isCheckedIn, timerStartTime]);
+
   // Effects
   useEffect(() => {
     if (attendanceStatus) {
       setIsCheckedIn(attendanceStatus.isCheckedIn);
     }
   }, [attendanceStatus]);
+
+  // Fetch current check-in status on component mount
+  useEffect(() => {
+    const fetchCheckInStatus = async () => {
+      try {
+        const response = await fetch('/api/v1/attendance/checking-in', {
+           method: 'GET',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+           }
+         });
+        
+        if (response.ok) {
+          const data: CheckInResponse = await response.json();
+          if (data.status) {
+            setIsCheckedIn(true);
+            // Parse duration and set timer start time accordingly
+            const [hours, minutes, seconds] = data.duration.split(':').map(Number);
+            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
+            const startTime = new Date(Date.now() - totalSeconds * 1000);
+            setTimerStartTime(startTime);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching check-in status:', error);
+      }
+    };
+
+    fetchCheckInStatus();
+  }, []);
 
   useEffect(() => {
     if (companies && companies.length > 0 && !currentCompany) {
@@ -133,22 +200,51 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
 
   // Handler functions
   const handleCheckInOut = async () => {
+    setAttendanceLoading(true);
     try {
-      // API call to check in/out
-      const response = await fetch('/api/attendance/toggle', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+      if (!isCheckedIn) {
+        // Checking in - call the check-in API
+        const response = await fetch('/api/v1/attendance/checking-in', {
+           method: 'GET',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+           }
+         });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setIsCheckedIn(true);
+          // Start timer immediately
+          setTimerStartTime(new Date());
+          setWorkDuration('00:00');
         }
-      });
-      
-      if (response.ok) {
-        setIsCheckedIn(!isCheckedIn);
-        // Optionally show success message
+      } else {
+        // Checking out - call check-out API
+        const response = await fetch('/api/v1/attendance/checking-out', {
+           method: 'GET',
+           headers: {
+             'Content-Type': 'application/json',
+             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+           }
+         });
+        
+        if (response.ok) {
+          const data: CheckOutResponse = await response.json();
+          setIsCheckedIn(false);
+          setTimerStartTime(null);
+          setWorkDuration('00:00');
+          
+          // Optionally show a success message with total duration
+          if (data.total_duration) {
+            console.log(`Successfully checked out. Total duration: ${data.total_duration}`);
+          }
+        }
       }
     } catch (error) {
       console.error('Error toggling check-in/out:', error);
+    } finally {
+      setAttendanceLoading(false);
     }
   };
 
@@ -171,7 +267,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       refetchNotifications();
@@ -185,7 +281,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       await fetch('/api/notifications/mark-all-read', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
       refetchNotifications();
@@ -202,11 +298,15 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
 
   const handleProfileNavigation = () => {
     setUserDropdownOpen(false);
-    window.location.href = '/profile';
+    navigate('/employee/profile');
   };
 
-  const handleSettingsNavigation = () => {
-    window.location.href = '/settings';
+  const handleSettingsNavigation = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    navigate('/settings');
   };
 
   // Get user display name
@@ -226,7 +326,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   };
 
   return (
-    <nav className="oh-navbar">
+    <nav className={`oh-navbar ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
       <div className="oh-navbar-wrapper">
         <div className="oh-navbar-toggle-section">
           <button 
@@ -239,92 +339,34 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
         </div>
 
         <div className="oh-navbar-system-tray">
-          {/* Clock In/Out Section */}
+          {/* Clock In/Out Section with Timer */}
           <div className="oh-navbar-clock-in-out">
             <button 
               className={`oh-clock-in-btn ${isCheckedIn ? 'checked-in' : ''}`}
               onClick={handleCheckInOut}
               title={isCheckedIn ? 'Click to Check Out' : 'Click to Check In'}
+              disabled={attendanceLoading}
             >
               <ion-icon name={isCheckedIn ? "log-out-outline" : "log-in-outline"}></ion-icon>
-              <span>{isCheckedIn ? 'Check Out' : 'Check In'}</span>
+              <div className="oh-clock-in-content">
+                <span className="oh-clock-in-text">{isCheckedIn ? 'Check Out' : 'Check In'}</span>
+                {isCheckedIn && (
+                  <span className="oh-work-timer">{workDuration}</span>
+                )}
+              </div>
             </button>
           </div>
 
-          {/* Companies Dropdown */}
-          {companies && companies.length > 1 && (
-            <div className="oh-navbar-companies" ref={companyDropdownRef}>
-              <button 
-                className="oh-companies-btn"
-                onClick={() => setCompanyDropdownOpen(!companyDropdownOpen)}
-                aria-label="Select company"
-              >
-                <ion-icon name="business-outline"></ion-icon>
-                <span className="oh-companies-text">{currentCompany?.name || 'Company'}</span>
-                <ion-icon name="chevron-down-outline" className="oh-dropdown-arrow"></ion-icon>
-              </button>
-
-              {companyDropdownOpen && (
-                <div className="oh-companies-dropdown">
-                  <div className="oh-dropdown-header">
-                    <h3>Select Company</h3>
-                  </div>
-                  <div className="oh-dropdown-list">
-                    {companies.map((company) => (
-                      <button
-                        key={company.id}
-                        className={`oh-dropdown-item ${currentCompany?.id === company.id ? 'active' : ''}`}
-                        onClick={() => handleCompanyChange(company)}
-                      >
-                        {company.logo && (
-                          <img src={company.logo} alt={company.name} className="oh-company-logo" />
-                        )}
-                        <span>{company.name}</span>
-                        {currentCompany?.id === company.id && (
-                          <ion-icon name="checkmark-outline" className="oh-check-icon"></ion-icon>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Language Dropdown */}
-          <div className="oh-navbar-language" ref={languageDropdownRef}>
+          {/* Settings */}
+          <div className="oh-navbar-settings">
             <button 
-              className="oh-language-btn"
-              onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
-              aria-label="Select language"
+              className="oh-settings-btn" 
+              onClick={handleSettingsNavigation}
+              aria-label="Settings"
+              type="button"
             >
-              <span className="oh-language-flag">{currentLanguage.flag}</span>
-              <span className="oh-language-text">{currentLanguage.code.toUpperCase()}</span>
-              <ion-icon name="chevron-down-outline" className="oh-dropdown-arrow"></ion-icon>
+              <ion-icon name="settings-outline"></ion-icon>
             </button>
-
-            {languageDropdownOpen && (
-              <div className="oh-language-dropdown">
-                <div className="oh-dropdown-header">
-                  <h3>Select Language</h3>
-                </div>
-                <div className="oh-dropdown-list">
-                  {languages.map((language) => (
-                    <button
-                      key={language.code}
-                      className={`oh-dropdown-item ${currentLanguage.code === language.code ? 'active' : ''}`}
-                      onClick={() => handleLanguageChange(language)}
-                    >
-                      <span className="oh-language-flag">{language.flag}</span>
-                      <span>{language.name}</span>
-                      {currentLanguage.code === language.code && (
-                        <ion-icon name="checkmark-outline" className="oh-check-icon"></ion-icon>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Notifications */}
@@ -385,16 +427,82 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
             )}
           </div>
 
-          {/* Settings */}
-          <div className="oh-navbar-settings">
+          {/* Language Dropdown */}
+          <div className="oh-navbar-language" ref={languageDropdownRef}>
             <button 
-              className="oh-settings-btn" 
-              onClick={handleSettingsNavigation}
-              aria-label="Settings"
+              className="oh-language-btn"
+              onClick={() => setLanguageDropdownOpen(!languageDropdownOpen)}
+              aria-label="Select language"
             >
-              <ion-icon name="settings-outline"></ion-icon>
+              <ion-icon name="globe-outline"></ion-icon>
+              <span className="oh-language-flag">{currentLanguage.flag}</span>
+              <span className="oh-language-text">{currentLanguage.code.toUpperCase()}</span>
+              <ion-icon name="chevron-down-outline" className="oh-dropdown-arrow"></ion-icon>
             </button>
+
+            {languageDropdownOpen && (
+              <div className="oh-language-dropdown">
+                <div className="oh-dropdown-header">
+                  <h3>Select Language</h3>
+                </div>
+                <div className="oh-dropdown-list">
+                  {languages.map((language) => (
+                    <button
+                      key={language.code}
+                      className={`oh-dropdown-item ${currentLanguage.code === language.code ? 'active' : ''}`}
+                      onClick={() => handleLanguageChange(language)}
+                    >
+                      <span className="oh-language-flag">{language.flag}</span>
+                      <span>{language.name}</span>
+                      {currentLanguage.code === language.code && (
+                        <ion-icon name="checkmark-outline" className="oh-check-icon"></ion-icon>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
+
+          {/* Companies Dropdown */}
+          {companies && companies.length > 1 && (
+            <div className="oh-navbar-companies" ref={companyDropdownRef}>
+              <button 
+                className="oh-companies-btn"
+                onClick={() => setCompanyDropdownOpen(!companyDropdownOpen)}
+                aria-label="Select company"
+              >
+                <ion-icon name="business-outline"></ion-icon>
+                <span className="oh-companies-text">{currentCompany?.name || 'Company'}</span>
+                <ion-icon name="chevron-down-outline" className="oh-dropdown-arrow"></ion-icon>
+              </button>
+
+              {companyDropdownOpen && (
+                <div className="oh-companies-dropdown">
+                  <div className="oh-dropdown-header">
+                    <h3>Select Company</h3>
+                  </div>
+                  <div className="oh-dropdown-list">
+                    {companies.map((company) => (
+                      <button
+                        key={company.id}
+                        className={`oh-dropdown-item ${currentCompany?.id === company.id ? 'active' : ''}`}
+                        onClick={() => handleCompanyChange(company)}
+                      >
+                        {company.logo && (
+                          <img src={company.logo} alt={company.name} className="oh-company-logo" />
+                        )}
+                        <span>{company.name}</span>
+                        {currentCompany?.id === company.id && (
+                          <ion-icon name="checkmark-outline" className="oh-check-icon"></ion-icon>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* User Dropdown */}
           <div className="oh-navbar-user" ref={userDropdownRef}>
@@ -431,7 +539,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
                 <div className="oh-user-dropdown-menu">
                   <button className="oh-user-dropdown-item" onClick={handleProfileNavigation}>
                     <ion-icon name="person-outline"></ion-icon>
-                    <span>My Profile</span>
+                    <span>Profile</span>
                   </button>
                   <button 
                     className="oh-user-dropdown-item"

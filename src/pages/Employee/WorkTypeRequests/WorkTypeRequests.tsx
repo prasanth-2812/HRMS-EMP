@@ -1,49 +1,47 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import './WorkTypeRequests.css';
+import {
+  getWorkTypeRequests,
+  createWorkTypeRequest,
+  updateWorkTypeRequest,
+  deleteWorkTypeRequest,
+  WorkTypeRequest as ApiWorkTypeRequest,
+  CreateWorkTypeRequestData
+} from '../../../services/workTypeRequestsApi';
 
 interface WorkTypeRequest {
-  id: string;
-  employee: {
-    id: string;
-    name: string;
-    avatar: string;
-    badgeId: string;
-    department: string;
-    position: string;
-  };
-  requestedWorkType: {
-    name: string;
-    description: string;
-    isRemote: boolean;
-  };
-  currentWorkType: {
-    name: string;
-    description: string;
-    isRemote: boolean;
-  };
-  requestDate: string;
-  effectiveDate: string;
-  endDate?: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  priority: 'low' | 'medium' | 'high';
-  requestType: 'temporary' | 'permanent';
-  approvedBy?: string;
-  approvedDate?: string;
-  comments?: string;
+  id: number;
+  employee_first_name: string;
+  employee_last_name: string;
+  work_type_name: string;
+  previous_work_type_name: string | null;
+  created_at: string;
+  is_active: boolean;
+  requested_date: string;
+  requested_till: string;
+  description: string;
+  is_permanent_work_type: boolean;
+  approved: boolean;
+  canceled: boolean;
+  work_type_changed: boolean;
+  created_by: number;
+  modified_by: number;
+  employee_id: number;
+  work_type_id: number;
+  previous_work_type_id: number | null;
 }
 
 interface CreateWorkTypeRequestForm {
-  employee: string;
-  requestedWorkType: string;
-  effectiveDate: string;
-  endDate: string;
-  reason: string;
-  requestType: 'temporary' | 'permanent';
+  employee_id: string;
+  work_type_id: string;
+  requested_date: string;
+  requested_till: string;
+  description: string;
+  is_permanent_work_type: boolean;
 }
 
 const WorkTypeRequests: React.FC = () => {
@@ -55,162 +53,136 @@ const WorkTypeRequests: React.FC = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [requests, setRequests] = useState<WorkTypeRequest[]>([]);
+  const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{
-    type: 'success' | 'error' | 'info';
+    type: 'success' | 'error';
     message: string;
   } | null>(null);
   
   const [createForm, setCreateForm] = useState<CreateWorkTypeRequestForm>({
-    employee: '',
-    requestedWorkType: '',
-    effectiveDate: '',
-    endDate: '',
-    reason: '',
-    requestType: 'temporary'
+    employee_id: '',
+    work_type_id: '',
+    requested_date: '',
+    requested_till: '',
+    description: '',
+    is_permanent_work_type: false
   });
   
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
-  // Mock data for work type requests
-  const mockRequests: WorkTypeRequest[] = [
-    {
-      id: 'WTR-001',
-      employee: {
-        id: 'EMP-001',
-        name: 'John Smith',
-        avatar: '/avatars/john-smith.jpg',
-        badgeId: 'HOH-001',
-        department: 'Engineering',
-        position: 'Senior Developer'
-      },
-      requestedWorkType: {
-        name: 'Remote Work',
-        description: 'Work from home arrangement',
-        isRemote: true
-      },
-      currentWorkType: {
-        name: 'Office Work',
-        description: 'Standard office arrangement',
-        isRemote: false
-      },
-      requestDate: '2024-01-15',
-      effectiveDate: '2024-01-22',
-      endDate: '2024-03-22',
-      reason: 'Need to care for sick family member temporarily',
-      status: 'pending',
-      priority: 'high',
-      requestType: 'temporary'
-    },
-    {
-      id: 'WTR-002',
-      employee: {
-        id: 'EMP-002',
-        name: 'Sarah Johnson',
-        avatar: '/avatars/sarah-johnson.jpg',
-        badgeId: 'HOH-002',
-        department: 'Marketing',
-        position: 'Marketing Manager'
-      },
-      requestedWorkType: {
-        name: 'Hybrid Work',
-        description: '3 days office, 2 days remote',
-        isRemote: false
-      },
-      currentWorkType: {
-        name: 'Office Work',
-        description: 'Standard office arrangement',
-        isRemote: false
-      },
-      requestDate: '2024-01-14',
-      effectiveDate: '2024-02-01',
-      reason: 'Better work-life balance and improved productivity',
-      status: 'approved',
-      priority: 'medium',
-      requestType: 'permanent',
-      approvedBy: 'Manager Name',
-      approvedDate: '2024-01-16'
-    },
-    {
-      id: 'WTR-003',
-      employee: {
-        id: 'EMP-003',
-        name: 'Mike Chen',
-        avatar: '/avatars/mike-chen.jpg',
-        badgeId: 'HOH-003',
-        department: 'Design',
-        position: 'UI/UX Designer'
-      },
-      requestedWorkType: {
-        name: 'Flexible Hours',
-        description: 'Flexible working hours arrangement',
-        isRemote: false
-      },
-      currentWorkType: {
-        name: 'Standard Hours',
-        description: '9 AM - 5 PM working hours',
-        isRemote: false
-      },
-      requestDate: '2024-01-12',
-      effectiveDate: '2024-01-20',
-      reason: 'Need to accommodate children school schedule',
-      status: 'rejected',
-      priority: 'low',
-      requestType: 'permanent',
-      comments: 'Request denied due to team collaboration requirements'
-    },
-    {
-      id: 'WTR-004',
-      employee: {
-        id: 'EMP-004',
-        name: 'Emily Davis',
-        avatar: '/avatars/emily-davis.jpg',
-        badgeId: 'HOH-004',
-        department: 'Sales',
-        position: 'Sales Executive'
-      },
-      requestedWorkType: {
-        name: 'Field Work',
-        description: 'Client-facing field work arrangement',
-        isRemote: false
-      },
-      currentWorkType: {
-        name: 'Office Work',
-        description: 'Standard office arrangement',
-        isRemote: false
-      },
-      requestDate: '2024-01-13',
-      effectiveDate: '2024-01-25',
-      reason: 'Expanding territory requires more client visits',
-      status: 'pending',
-      priority: 'medium',
-      requestType: 'permanent'
+  // API functions
+  const fetchWorkTypeRequests = async () => {
+    try {
+      setLoading(true);
+      const response = await getWorkTypeRequests();
+      setRequests(response.results);
+    } catch (error) {
+      console.error('Error fetching work type requests:', error);
+      showNotification('error', 'Failed to load work type requests');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleCreateWorkTypeRequest = async () => {
+    try {
+      setIsLoading(true);
+      const requestData: CreateWorkTypeRequestData = {
+        employee_id: parseInt(createForm.employee_id),
+        work_type_id: parseInt(createForm.work_type_id),
+        requested_date: createForm.requested_date,
+        requested_till: createForm.requested_till,
+        description: createForm.description,
+        is_permanent_work_type: createForm.is_permanent_work_type
+      };
+      
+      await createWorkTypeRequest(requestData);
+      await fetchWorkTypeRequests();
+      setShowCreateModal(false);
+      setCreateForm({
+        employee_id: '',
+        work_type_id: '',
+        requested_date: '',
+        requested_till: '',
+        description: '',
+        is_permanent_work_type: false
+      });
+      showNotification('success', 'Work type request created successfully');
+    } catch (error) {
+      console.error('Error creating work type request:', error);
+      showNotification('error', 'Failed to create work type request');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdateRequest = async (id: number, updateData: { approved?: boolean; canceled?: boolean }) => {
+    try {
+      await updateWorkTypeRequest(id, updateData);
+      await fetchWorkTypeRequests();
+      const action = updateData.approved ? 'approved' : 'rejected';
+      showNotification('success', `Work type request ${action} successfully`);
+    } catch (error) {
+      console.error('Error updating work type request:', error);
+      showNotification('error', 'Failed to update work type request');
+    }
+  };
+
+  const handleDeleteRequest = async (id: number) => {
+    try {
+      await deleteWorkTypeRequest(id);
+      await fetchWorkTypeRequests();
+      showNotification('success', 'Work type request deleted successfully');
+    } catch (error) {
+      console.error('Error deleting work type request:', error);
+      showNotification('error', 'Failed to delete work type request');
+    }
+  };
+
+  useEffect(() => {
+    fetchWorkTypeRequests();
+  }, []);
 
   // Filter and search logic
   const filteredRequests = useMemo(() => {
-    return mockRequests.filter(request => {
-      const matchesSearch = request.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          request.requestedWorkType.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return requests.filter(request => {
+      const matchesSearch = `${request.employee_first_name} ${request.employee_last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          request.id.toString().includes(searchTerm.toLowerCase()) ||
+                          request.work_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          request.description.toLowerCase().includes(searchTerm.toLowerCase());
       
-      const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
-      const matchesType = typeFilter === 'all' || request.requestType === typeFilter;
+      const status = getStatusText(request);
+      const matchesStatus = statusFilter === 'all' || status.toLowerCase() === statusFilter;
+      const matchesType = typeFilter === 'all' || 
+                         (typeFilter === 'permanent' && request.is_permanent_work_type) ||
+                         (typeFilter === 'temporary' && !request.is_permanent_work_type);
       
-      return matchesSearch && matchesStatus && matchesPriority && matchesType;
+      return matchesSearch && matchesStatus && matchesType;
     });
-  }, [mockRequests, searchTerm, statusFilter, priorityFilter, typeFilter]);
+  }, [requests, searchTerm, statusFilter, typeFilter]);
 
   // Statistics
   const stats = useMemo(() => {
-    const total = mockRequests.length;
-    const pending = mockRequests.filter(r => r.status === 'pending').length;
-    const approved = mockRequests.filter(r => r.status === 'approved').length;
-    const rejected = mockRequests.filter(r => r.status === 'rejected').length;
+    const total = requests.length;
+    const pending = requests.filter(r => !r.approved && !r.canceled).length;
+    const approved = requests.filter(r => r.approved).length;
+    const rejected = requests.filter(r => r.canceled).length;
     
     return { total, pending, approved, rejected };
-  }, [mockRequests]);
+  }, [requests]);
+
+  // Helper functions
+  const getStatusText = (request: WorkTypeRequest): string => {
+    if (request.approved) return 'approved';
+    if (request.canceled) return 'rejected';
+    return 'pending';
+  };
+
+  const getStatusClass = (request: WorkTypeRequest): string => {
+    if (request.approved) return 'oh-status--approved';
+    if (request.canceled) return 'oh-status--rejected';
+    return 'oh-status--pending';
+  };
 
   const getStatusBadge = (status: string) => {
     const statusClasses = {
@@ -248,93 +220,14 @@ const WorkTypeRequests: React.FC = () => {
     });
   };
 
-  // Initialize requests with mock data
-  React.useEffect(() => {
-    setRequests(mockRequests);
-  }, []);
-
-  // Generate next request ID
-  const generateNextRequestId = (): string => {
-    const maxId = requests.reduce((max, request) => {
-      const idNum = parseInt(request.id.replace('WTR-', ''));
-      return idNum > max ? idNum : max;
-    }, 0);
-    return `WTR-${(maxId + 1).toString().padStart(3, '0')}`;
-  };
-
-  // Handle form submission
-  const handleCreateWorkTypeRequest = async () => {
-    if (!createForm.employee || !createForm.requestedWorkType || !createForm.effectiveDate) {
-      setNotification({
-        type: 'error',
-        message: 'Please fill in all required fields'
-      });
-      return;
-    }
-
-    setIsLoading(true);
-    
-    try {
-      // Create new work type request
-      const newRequest: WorkTypeRequest = {
-        id: generateNextRequestId(),
-        employee: {
-          id: `EMP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-          name: createForm.employee,
-          avatar: 'https://via.placeholder.com/40',
-          badgeId: `B${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-          department: 'Operations',
-          position: 'Employee'
-        },
-        requestedWorkType: {
-          name: createForm.requestedWorkType,
-          description: `${createForm.requestedWorkType} work arrangement`,
-          isRemote: createForm.requestedWorkType.toLowerCase().includes('remote')
-        },
-        currentWorkType: {
-          name: 'On-site Full-time',
-          description: 'Traditional office-based work',
-          isRemote: false
-        },
-        requestDate: new Date().toISOString().split('T')[0],
-        effectiveDate: createForm.effectiveDate,
-        endDate: createForm.requestType === 'temporary' ? createForm.endDate : undefined,
-        reason: createForm.reason,
-        status: 'pending',
-        priority: 'medium',
-        requestType: createForm.requestType
-      };
-
-      // Add to requests
-      setRequests(prev => [newRequest, ...prev]);
-      
-      // Reset form
-      setCreateForm({
-        employee: '',
-        requestedWorkType: '',
-        effectiveDate: '',
-        endDate: '',
-        reason: '',
-        requestType: 'temporary'
-      });
-      
-      setShowCreateModal(false);
-      setNotification({
-        type: 'success',
-        message: 'Work type request created successfully!'
-      });
-    } catch (error) {
-      setNotification({
-        type: 'error',
-        message: 'Failed to create work type request. Please try again.'
-      });
-    } finally {
-      setIsLoading(false);
-    }
+  // Helper function for notifications
+  const showNotification = (type: 'success' | 'error', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 3000);
   };
 
   // Handle form input changes
-  const handleFormChange = (field: keyof CreateWorkTypeRequestForm, value: string) => {
+  const handleFormChange = (field: keyof CreateWorkTypeRequestForm, value: string | boolean) => {
     setCreateForm(prev => ({
       ...prev,
       [field]: value
@@ -350,7 +243,7 @@ const WorkTypeRequests: React.FC = () => {
     <div className="oh-dashboard">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Work Type Requests" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-content">
           <div className="oh-container">
             {/* Header Section */}
@@ -487,17 +380,6 @@ const WorkTypeRequests: React.FC = () => {
 
                 <select 
                   className="oh-select"
-                  value={priorityFilter}
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                >
-                  <option value="all">All Priority</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                </select>
-
-                <select 
-                  className="oh-select"
                   value={typeFilter}
                   onChange={(e) => setTypeFilter(e.target.value)}
                 >
@@ -535,43 +417,57 @@ const WorkTypeRequests: React.FC = () => {
                           <td>
                             <div className="oh-employee-info">
                               <div className="oh-employee-avatar">
-                                {request.employee.name.charAt(0)}
+                                {request.employee_first_name.charAt(0)}
                               </div>
                               <div className="oh-employee-details">
-                                <div className="oh-employee-name">{request.employee.name}</div>
-                                <div className="oh-employee-badge">{request.employee.badgeId}</div>
+                                <div className="oh-employee-name">{request.employee_first_name} {request.employee_last_name}</div>
+                                <div className="oh-employee-badge">ID: {request.employee_id}</div>
                               </div>
                             </div>
                           </td>
                           <td>
                             <div className="oh-work-type">
-                              <div className="oh-work-type__name">{request.currentWorkType.name}</div>
-                              <div className="oh-work-type__desc">{request.currentWorkType.description}</div>
+                              <div className="oh-work-type__name">{request.previous_work_type_name || 'N/A'}</div>
                             </div>
                           </td>
                           <td>
                             <div className="oh-work-type">
-                              <div className="oh-work-type__name">{request.requestedWorkType.name}</div>
-                              <div className="oh-work-type__desc">{request.requestedWorkType.description}</div>
+                              <div className="oh-work-type__name">{request.work_type_name}</div>
                             </div>
                           </td>
                           <td>
-                            <span className={`oh-type-badge oh-type-badge--${request.requestType}`}>
-                              {request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1)}
+                            <span className={`oh-type-badge oh-type-badge--${request.is_permanent_work_type ? 'permanent' : 'temporary'}`}>
+                              {request.is_permanent_work_type ? 'Permanent' : 'Temporary'}
                             </span>
                           </td>
-                          <td>{formatDate(request.effectiveDate)}</td>
-                          <td>{getPriorityBadge(request.priority)}</td>
-                          <td>{getStatusBadge(request.status)}</td>
+                          <td>{formatDate(request.requested_date)}</td>
+                          <td>{getPriorityBadge('medium')}</td>
+                          <td>{getStatusBadge(getStatusText(request))}</td>
                           <td>
                             <div className="oh-actions">
                               <button className="oh-btn oh-btn--sm oh-btn--ghost">View</button>
-                              {request.status === 'pending' && (
+                              {getStatusText(request) === 'pending' && (
                                 <>
-                                  <button className="oh-btn oh-btn--sm oh-btn--success">Approve</button>
-                                  <button className="oh-btn oh-btn--sm oh-btn--danger">Reject</button>
+                                  <button 
+                                    className="oh-btn oh-btn--sm oh-btn--success"
+                                    onClick={() => handleUpdateRequest(request.id, { approved: true })}
+                                  >
+                                    Approve
+                                  </button>
+                                  <button 
+                                    className="oh-btn oh-btn--sm oh-btn--danger"
+                                    onClick={() => handleUpdateRequest(request.id, { canceled: true })}
+                                  >
+                                    Reject
+                                  </button>
                                 </>
                               )}
+                              <button 
+                                className="oh-btn oh-btn--sm oh-btn--danger"
+                                onClick={() => handleDeleteRequest(request.id)}
+                              >
+                                Delete
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -586,18 +482,17 @@ const WorkTypeRequests: React.FC = () => {
                       <div className="oh-request-card__header">
                         <div className="oh-request-card__id">{request.id}</div>
                         <div className="oh-request-card__status">
-                          {getStatusBadge(request.status)}
+                          {getStatusBadge(getStatusText(request))}
                         </div>
                       </div>
                       
                       <div className="oh-request-card__employee">
                         <div className="oh-employee-avatar">
-                          {request.employee.name.charAt(0)}
+                          {request.employee_first_name.charAt(0)}
                         </div>
                         <div className="oh-employee-details">
-                          <div className="oh-employee-name">{request.employee.name}</div>
-                          <div className="oh-employee-badge">{request.employee.badgeId}</div>
-                          <div className="oh-employee-dept">{request.employee.department}</div>
+                          <div className="oh-employee-name">{request.employee_first_name} {request.employee_last_name}</div>
+                          <div className="oh-employee-badge">ID: {request.employee_id}</div>
                         </div>
                       </div>
 
@@ -605,12 +500,12 @@ const WorkTypeRequests: React.FC = () => {
                         <div className="oh-work-type-change">
                           <div className="oh-work-type-from">
                             <span className="oh-work-type-label">From:</span>
-                            <span className="oh-work-type-name">{request.currentWorkType.name}</span>
+                            <span className="oh-work-type-name">{request.previous_work_type_name || 'N/A'}</span>
                           </div>
                           <div className="oh-work-type-arrow">→</div>
                           <div className="oh-work-type-to">
                             <span className="oh-work-type-label">To:</span>
-                            <span className="oh-work-type-name">{request.requestedWorkType.name}</span>
+                            <span className="oh-work-type-name">{request.work_type_name}</span>
                           </div>
                         </div>
                       </div>
@@ -618,37 +513,53 @@ const WorkTypeRequests: React.FC = () => {
                       <div className="oh-request-card__meta">
                         <div className="oh-meta-item">
                           <span className="oh-meta-label">Type:</span>
-                          <span className={`oh-type-badge oh-type-badge--${request.requestType}`}>
-                            {request.requestType.charAt(0).toUpperCase() + request.requestType.slice(1)}
+                          <span className={`oh-type-badge oh-type-badge--${request.is_permanent_work_type ? 'permanent' : 'temporary'}`}>
+                            {request.is_permanent_work_type ? 'Permanent' : 'Temporary'}
                           </span>
                         </div>
                         <div className="oh-meta-item">
                           <span className="oh-meta-label">Priority:</span>
-                          {getPriorityBadge(request.priority)}
+                          {getPriorityBadge('medium')}
                         </div>
                         <div className="oh-meta-item">
                           <span className="oh-meta-label">Effective:</span>
-                          <span>{formatDate(request.effectiveDate)}</span>
+                          <span>{formatDate(request.requested_date)}</span>
                         </div>
                       </div>
 
                       <div className="oh-request-card__reason">
-                        <span className="oh-reason-label">Reason:</span>
-                        <p className="oh-reason-text">{request.reason}</p>
+                        <span className="oh-reason-label">Description:</span>
+                        <p className="oh-reason-text">{request.description}</p>
                       </div>
 
                       <div className="oh-request-card__footer">
                         <div className="oh-request-date">
-                          Requested: {formatDate(request.requestDate)}
+                          Created: {formatDate(request.created_at)}
                         </div>
                         <div className="oh-request-actions">
                           <button className="oh-btn oh-btn--sm oh-btn--ghost">View</button>
-                          {request.status === 'pending' && (
+                          {getStatusText(request) === 'pending' && (
                             <>
-                              <button className="oh-btn oh-btn--sm oh-btn--success">Approve</button>
-                              <button className="oh-btn oh-btn--sm oh-btn--danger">Reject</button>
+                              <button 
+                                className="oh-btn oh-btn--sm oh-btn--success"
+                                onClick={() => handleUpdateRequest(request.id, { approved: true })}
+                              >
+                                Approve
+                              </button>
+                              <button 
+                                className="oh-btn oh-btn--sm oh-btn--danger"
+                                onClick={() => handleUpdateRequest(request.id, { canceled: true })}
+                              >
+                                Reject
+                              </button>
                             </>
                           )}
+                          <button 
+                            className="oh-btn oh-btn--sm oh-btn--danger"
+                            onClick={() => handleDeleteRequest(request.id)}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -696,91 +607,80 @@ const WorkTypeRequests: React.FC = () => {
               <div className="oh-form-grid">
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Employee <span className="oh-required">*</span>
+                    Employee ID <span className="oh-required">*</span>
                   </label>
-                  <select
+                  <input
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.employee}
-                    onChange={(e) => handleFormChange('employee', e.target.value)}
-                  >
-                    <option value="">Select Employee</option>
-                    <option value="John Doe">John Doe</option>
-                    <option value="Jane Smith">Jane Smith</option>
-                    <option value="Mike Johnson">Mike Johnson</option>
-                    <option value="Sarah Wilson">Sarah Wilson</option>
-                    <option value="David Brown">David Brown</option>
-                  </select>
+                    value={createForm.employee_id}
+                    onChange={(e) => handleFormChange('employee_id', e.target.value)}
+                    placeholder="Enter employee ID"
+                  />
                 </div>
 
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Requested Work Type <span className="oh-required">*</span>
+                    Work Type ID <span className="oh-required">*</span>
                   </label>
-                  <select
+                  <input
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.requestedWorkType}
-                    onChange={(e) => handleFormChange('requestedWorkType', e.target.value)}
-                  >
-                    <option value="">Select Work Type</option>
-                    <option value="Remote Full-time">Remote Full-time</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="On-site Part-time">On-site Part-time</option>
-                    <option value="Remote Part-time">Remote Part-time</option>
-                    <option value="Flexible Hours">Flexible Hours</option>
-                    <option value="Compressed Schedule">Compressed Schedule</option>
-                  </select>
+                    value={createForm.work_type_id}
+                    onChange={(e) => handleFormChange('work_type_id', e.target.value)}
+                    placeholder="Enter work type ID"
+                  />
                 </div>
 
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Request Type <span className="oh-required">*</span>
-                  </label>
-                  <select
-                    className="oh-form-input"
-                    value={createForm.requestType}
-                    onChange={(e) => handleFormChange('requestType', e.target.value as 'temporary' | 'permanent')}
-                  >
-                    <option value="temporary">Temporary</option>
-                    <option value="permanent">Permanent</option>
-                  </select>
-                </div>
-
-                <div className="oh-form-group">
-                  <label className="oh-form-label">
-                    Effective Date <span className="oh-required">*</span>
+                    Requested Date <span className="oh-required">*</span>
                   </label>
                   <input
                     type="date"
                     className="oh-form-input"
-                    value={createForm.effectiveDate}
-                    onChange={(e) => handleFormChange('effectiveDate', e.target.value)}
+                    value={createForm.requested_date}
+                    onChange={(e) => handleFormChange('requested_date', e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
-                {createForm.requestType === 'temporary' && (
-                  <div className="oh-form-group">
-                    <label className="oh-form-label">End Date</label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Requested Till <span className="oh-required">*</span>
+                  </label>
+                  <input
+                    type="date"
+                    className="oh-form-input"
+                    value={createForm.requested_till}
+                    onChange={(e) => handleFormChange('requested_till', e.target.value)}
+                    min={createForm.requested_date || new Date().toISOString().split('T')[0]}
+                  />
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">
+                    Permanent Work Type
+                  </label>
+                  <label className="oh-checkbox">
                     <input
-                      type="date"
-                      className="oh-form-input"
-                      value={createForm.endDate}
-                      onChange={(e) => handleFormChange('endDate', e.target.value)}
-                      min={createForm.effectiveDate || new Date().toISOString().split('T')[0]}
+                      type="checkbox"
+                      checked={createForm.is_permanent_work_type}
+                      onChange={(e) => handleFormChange('is_permanent_work_type', e.target.checked)}
                     />
-                  </div>
-                )}
+                    <span className="oh-checkbox-label">This is a permanent work type change</span>
+                  </label>
+                </div>
 
                 <div className="oh-form-group oh-form-group--full-width">
                   <label className="oh-form-label">
-                    Reason <span className="oh-required">*</span>
+                    Description <span className="oh-required">*</span>
                   </label>
                   <textarea
                     className="oh-form-textarea"
                     rows={4}
-                    placeholder="Provide reason for work type change request..."
-                    value={createForm.reason}
-                    onChange={(e) => handleFormChange('reason', e.target.value)}
+                    placeholder="Provide description for work type change request..."
+                    value={createForm.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
                   />
                 </div>
               </div>
@@ -830,13 +730,7 @@ const WorkTypeRequests: React.FC = () => {
                   <line x1="9" y1="9" x2="15" y2="15"></line>
                 </svg>
               )}
-              {notification.type === 'info' && (
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10"></circle>
-                  <line x1="12" y1="16" x2="12" y2="12"></line>
-                  <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                </svg>
-              )}
+
             </div>
             <span className="oh-notification-message">{notification.message}</span>
             <button 

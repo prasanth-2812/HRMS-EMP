@@ -1,203 +1,111 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import './ShiftRequests.css';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
+import { useSidebar } from '../../../contexts/SidebarContext';
+import {
+  getShiftRequests,
+  createShiftRequest,
+  updateShiftRequest,
+  deleteShiftRequest,
+  ShiftRequest as ApiShiftRequest,
+  CreateShiftRequestData
+} from '../../../services/shiftRequestsApi';
 
+// Updated interface to match API response
 interface ShiftRequest {
   id: number;
-  employee: {
-    id: number;
-    name: string;
-    badge: string;
-    profile_image?: string;
-  };
-  fromShift: {
-    name: string;
-    startTime: string;
-    endTime: string;
-  };
-  toShift: {
-    name: string;
-    startTime: string;
-    endTime: string;
-  };
-  requestDate: string;
-  shiftDate: string;
-  reason: string;
-  status: 'pending' | 'approved' | 'rejected';
-  priority: 'low' | 'medium' | 'high' | 'urgent';
-  requestedBy: string;
-  approvedBy?: string;
-  rejectedBy?: string;
-  comments?: string;
-  createdAt: string;
-  updatedAt: string;
+  employee_first_name: string;
+  employee_last_name: string;
+  shift_name: string;
+  previous_shift_name: string | null;
+  created_at: string;
+  is_active: boolean;
+  requested_date: string;
+  reallocate_approved: boolean;
+  reallocate_canceled: boolean;
+  requested_till: string;
+  description: string;
+  is_permanent_shift: boolean;
+  approved: boolean;
+  canceled: boolean;
+  shift_changed: boolean;
+  created_by: number;
+  modified_by: number;
+  employee_id: number;
+  shift_id: number;
+  previous_shift_id: number | null;
+  reallocate_to: number | null;
 }
 
 interface CreateShiftRequestForm {
-  employee: string;
-  requestingShift: string;
-  requestedDate: string;
-  requestedTill: string;
+  employee_id: string;
+  shift_id: string;
+  requested_date: string;
+  requested_till: string;
   description: string;
-  permanentRequest: boolean;
+  is_permanent_shift: boolean;
 }
 
-// Mock data
-const mockShiftRequests: ShiftRequest[] = [
-  {
-    id: 1,
-    employee: {
-      id: 1,
-      name: 'John Doe',
-      badge: 'EMP001',
-      profile_image: 'https://via.placeholder.com/32'
-    },
-    fromShift: {
-      name: 'Morning Shift',
-      startTime: '09:00',
-      endTime: '17:00'
-    },
-    toShift: {
-      name: 'Evening Shift',
-      startTime: '14:00',
-      endTime: '22:00'
-    },
-    requestDate: '2024-01-15',
-    shiftDate: '2024-01-20',
-    reason: 'Personal appointment in the morning',
-    status: 'pending',
-    priority: 'medium',
-    requestedBy: 'john.doe@company.com',
-    comments: 'Need to attend a medical appointment',
-    createdAt: '2024-01-15T10:30:00Z',
-    updatedAt: '2024-01-15T10:30:00Z'
-  },
-  {
-    id: 2,
-    employee: {
-      id: 2,
-      name: 'Jane Smith',
-      badge: 'EMP002',
-      profile_image: 'https://via.placeholder.com/32'
-    },
-    fromShift: {
-      name: 'Night Shift',
-      startTime: '22:00',
-      endTime: '06:00'
-    },
-    toShift: {
-      name: 'Morning Shift',
-      startTime: '09:00',
-      endTime: '17:00'
-    },
-    requestDate: '2024-01-16',
-    shiftDate: '2024-01-25',
-    reason: 'Family event',
-    status: 'approved',
-    priority: 'low',
-    requestedBy: 'jane.smith@company.com',
-    approvedBy: 'manager@company.com',
-    comments: 'Approved for family emergency',
-    createdAt: '2024-01-16T14:20:00Z',
-    updatedAt: '2024-01-17T09:15:00Z'
-  },
-  {
-    id: 3,
-    employee: {
-      id: 3,
-      name: 'Mike Johnson',
-      badge: 'EMP003',
-      profile_image: 'https://via.placeholder.com/32'
-    },
-    fromShift: {
-      name: 'Evening Shift',
-      startTime: '14:00',
-      endTime: '22:00'
-    },
-    toShift: {
-      name: 'Night Shift',
-      startTime: '22:00',
-      endTime: '06:00'
-    },
-    requestDate: '2024-01-18',
-    shiftDate: '2024-01-22',
-    reason: 'Coverage needed for colleague',
-    status: 'rejected',
-    priority: 'high',
-    requestedBy: 'mike.johnson@company.com',
-    rejectedBy: 'hr@company.com',
-    comments: 'Insufficient coverage for original shift',
-    createdAt: '2024-01-18T16:45:00Z',
-    updatedAt: '2024-01-19T11:30:00Z'
-  },
-  {
-    id: 4,
-    employee: {
-      id: 4,
-      name: 'Sarah Wilson',
-      badge: 'EMP004',
-      profile_image: 'https://via.placeholder.com/32'
-    },
-    fromShift: {
-      name: 'Morning Shift',
-      startTime: '09:00',
-      endTime: '17:00'
-    },
-    toShift: {
-      name: 'Night Shift',
-      startTime: '22:00',
-      endTime: '06:00'
-    },
-    requestDate: '2024-01-20',
-    shiftDate: '2024-01-28',
-    reason: 'Temporary schedule change request',
-    status: 'pending',
-    priority: 'urgent',
-    requestedBy: 'sarah.wilson@company.com',
-    comments: 'Urgent personal matter requires schedule adjustment',
-    createdAt: '2024-01-20T08:15:00Z',
-    updatedAt: '2024-01-20T08:15:00Z'
-  }
-];
+// Remove mock data - will be fetched from API
 
 const ShiftRequests: React.FC = () => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [priorityFilter, setPriorityFilter] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
-  const [sortField, setSortField] = useState<keyof ShiftRequest>('createdAt');
+  const [sortField, setSortField] = useState<keyof ShiftRequest>('created_at');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [requests, setRequests] = useState<ShiftRequest[]>(mockShiftRequests);
+  const [requests, setRequests] = useState<ShiftRequest[]>([]);
   const [notification, setNotification] = useState<{
     type: 'success' | 'error' | 'info';
     message: string;
   } | null>(null);
   
   const [createForm, setCreateForm] = useState<CreateShiftRequestForm>({
-    employee: '',
-    requestingShift: '',
-    requestedDate: '',
-    requestedTill: '',
+    employee_id: '',
+    shift_id: '',
+    requested_date: '',
+    requested_till: '',
     description: '',
-    permanentRequest: false
+    is_permanent_shift: false
   });
 
+  // Fetch shift requests from API
+  const fetchShiftRequests = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getShiftRequests();
+      setRequests(response.results);
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to fetch shift requests'
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchShiftRequests();
+  }, []);
+
   const filteredRequests = requests.filter(request => {
+    const fullName = `${request.employee_first_name} ${request.employee_last_name}`;
     const matchesSearch = 
-      request.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.employee.badge.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.reason.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.fromShift.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.toShift.name.toLowerCase().includes(searchTerm.toLowerCase());
+      fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      request.shift_name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
+    const status = request.approved ? 'approved' : request.canceled ? 'rejected' : 'pending';
+    const matchesStatus = statusFilter === 'all' || status === statusFilter;
     
-    return matchesSearch && matchesStatus && matchesPriority;
+    return matchesSearch && matchesStatus;
   });
 
   const sortedRequests = filteredRequests.sort((a, b) => {
@@ -215,23 +123,16 @@ const ShiftRequests: React.FC = () => {
       : (bValue as any) - (aValue as any);
   });
 
-  const getStatusClass = (status: string) => {
-    switch (status) {
-      case 'approved': return 'oh-status--approved';
-      case 'rejected': return 'oh-status--rejected';
-      case 'pending': return 'oh-status--pending';
-      default: return '';
-    }
+  const getStatusClass = (request: ShiftRequest) => {
+    if (request.approved) return 'oh-status--approved';
+    if (request.canceled) return 'oh-status--rejected';
+    return 'oh-status--pending';
   };
 
-  const getPriorityClass = (priority: string) => {
-    switch (priority) {
-      case 'urgent': return 'oh-priority--urgent';
-      case 'high': return 'oh-priority--high';
-      case 'medium': return 'oh-priority--medium';
-      case 'low': return 'oh-priority--low';
-      default: return '';
-    }
+  const getStatusText = (request: ShiftRequest) => {
+    if (request.approved) return 'Approved';
+    if (request.canceled) return 'Rejected';
+    return 'Pending';
   };
 
   const formatDate = (dateString: string) => {
@@ -250,18 +151,9 @@ const ShiftRequests: React.FC = () => {
     });
   };
 
-  // Generate next request ID
-  const generateNextRequestId = (): string => {
-    const maxId = requests.reduce((max, request) => {
-      const idNum = parseInt(request.id.toString());
-      return idNum > max ? idNum : max;
-    }, 0);
-    return (maxId + 1).toString();
-  };
-
   // Handle form submission
   const handleCreateShiftRequest = async () => {
-    if (!createForm.employee || !createForm.requestingShift || !createForm.requestedDate) {
+    if (!createForm.employee_id || !createForm.shift_id || !createForm.requested_date) {
       setNotification({
         type: 'error',
         message: 'Please fill in all required fields'
@@ -272,50 +164,25 @@ const ShiftRequests: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Create new shift request
-      const newRequest: ShiftRequest = {
-        id: parseInt(generateNextRequestId()),
-        employee: {
-          id: Math.floor(Math.random() * 1000),
-          name: createForm.employee,
-          badge: `EMP${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`,
-        },
-        fromShift: {
-          name: 'Day Shift',
-          startTime: '09:00',
-          endTime: '17:00'
-        },
-        toShift: {
-          name: createForm.requestingShift,
-          startTime: createForm.requestingShift === 'Day Shift' ? '09:00' : 
-                     createForm.requestingShift === 'Evening Shift' ? '14:00' :
-                     createForm.requestingShift === 'Night Shift' ? '22:00' : '06:00',
-          endTime: createForm.requestingShift === 'Day Shift' ? '17:00' : 
-                   createForm.requestingShift === 'Evening Shift' ? '22:00' :
-                   createForm.requestingShift === 'Night Shift' ? '06:00' : '14:00'
-        },
-        requestDate: createForm.requestedDate,
-        shiftDate: createForm.requestedDate,
-        reason: createForm.description || 'No reason provided',
-        status: 'pending',
-        priority: 'medium',
-        requestedBy: `${createForm.employee.toLowerCase().replace(' ', '.')}@company.com`,
-        comments: createForm.description || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      const requestData: CreateShiftRequestData = {
+        employee_id: parseInt(createForm.employee_id),
+        shift_id: parseInt(createForm.shift_id),
+        requested_date: createForm.requested_date,
+        requested_till: createForm.requested_till,
+        description: createForm.description,
+        is_permanent_shift: createForm.is_permanent_shift
       };
 
-      // Add to requests
-      setRequests(prev => [newRequest, ...prev]);
+      await createShiftRequest(requestData);
       
       // Reset form
       setCreateForm({
-        employee: '',
-        requestingShift: '',
-        requestedDate: '',
-        requestedTill: '',
+        employee_id: '',
+        shift_id: '',
+        requested_date: '',
+        requested_till: '',
         description: '',
-        permanentRequest: false
+        is_permanent_shift: false
       });
       
       setShowCreateModal(false);
@@ -323,13 +190,54 @@ const ShiftRequests: React.FC = () => {
         type: 'success',
         message: 'Shift request created successfully!'
       });
-    } catch (error) {
+      
+      // Refresh the list
+      await fetchShiftRequests();
+    } catch (error: any) {
       setNotification({
         type: 'error',
-        message: 'Failed to create shift request. Please try again.'
+        message: error.message || 'Failed to create shift request. Please try again.'
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Handle delete request
+  const handleDeleteRequest = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this shift request?')) {
+      return;
+    }
+
+    try {
+      await deleteShiftRequest(id);
+      setNotification({
+        type: 'success',
+        message: 'Shift request deleted successfully!'
+      });
+      await fetchShiftRequests();
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to delete shift request'
+      });
+    }
+  };
+
+  // Handle approve/reject request
+  const handleUpdateRequest = async (id: number, approved: boolean) => {
+    try {
+      await updateShiftRequest(id, { approved, canceled: !approved });
+      setNotification({
+        type: 'success',
+        message: `Shift request ${approved ? 'approved' : 'rejected'} successfully!`
+      });
+      await fetchShiftRequests();
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to update shift request'
+      });
     }
   };
 
@@ -360,7 +268,7 @@ const ShiftRequests: React.FC = () => {
     <div className="oh-wrapper">
       <Sidebar />
       <div className="oh-main">
-        <Navbar pageTitle="Shift Requests" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-main-content">
           <div className="oh-shift-requests">
             {/* Header */}
@@ -413,17 +321,7 @@ const ShiftRequests: React.FC = () => {
                   <option value="rejected">Rejected</option>
                 </select>
 
-                <select 
-                  value={priorityFilter} 
-                  onChange={(e) => setPriorityFilter(e.target.value)}
-                  className="oh-select"
-                >
-                  <option value="all">All Priority</option>
-                  <option value="urgent">Urgent</option>
-                  <option value="high">High</option>
-                  <option value="medium">Medium</option>
-                  <option value="low">Low</option>
-                </select>
+
               </div>
 
               <div className="oh-shift-requests__filters-right">
@@ -463,7 +361,7 @@ const ShiftRequests: React.FC = () => {
                         <th className="oh-table__header">From Shift</th>
                         <th className="oh-table__header">To Shift</th>
                         <th className="oh-table__header">Shift Date</th>
-                        <th className="oh-table__header">Priority</th>
+                        <th className="oh-table__header">Type</th>
                         <th className="oh-table__header">Status</th>
                         <th className="oh-table__header">Reason</th>
                         <th className="oh-table__header">Actions</th>
@@ -474,49 +372,43 @@ const ShiftRequests: React.FC = () => {
                         <tr key={request.id} className="oh-table__row">
                           <td className="oh-table__cell">
                             <div className="oh-employee-info">
-                              <img 
-                                src={request.employee.profile_image} 
-                                alt={request.employee.name}
-                                className="oh-employee-info__avatar"
-                              />
+                              <div className="oh-employee-info__avatar">
+                                {request.employee_first_name.charAt(0)}{request.employee_last_name.charAt(0)}
+                              </div>
                               <div className="oh-employee-info__details">
-                                <span className="oh-employee-info__name">{request.employee.name}</span>
-                                <span className="oh-employee-info__badge">{request.employee.badge}</span>
+                                <span className="oh-employee-info__name">{request.employee_first_name} {request.employee_last_name}</span>
+                                <span className="oh-employee-info__badge">EMP-{request.employee_id}</span>
                               </div>
                             </div>
                           </td>
                           <td className="oh-table__cell">
                             <div className="oh-shift-info">
-                              <span className="oh-shift-info__name">{request.fromShift.name}</span>
-                              <span className="oh-shift-info__time">
-                                {formatTime(request.fromShift.startTime)} - {formatTime(request.fromShift.endTime)}
-                              </span>
+                              <span className="oh-shift-info__name">{request.previous_shift_name || 'N/A'}</span>
+                              <span className="oh-shift-info__time">Previous Shift</span>
                             </div>
                           </td>
                           <td className="oh-table__cell">
                             <div className="oh-shift-info">
-                              <span className="oh-shift-info__name">{request.toShift.name}</span>
-                              <span className="oh-shift-info__time">
-                                {formatTime(request.toShift.startTime)} - {formatTime(request.toShift.endTime)}
-                              </span>
+                              <span className="oh-shift-info__name">{request.shift_name}</span>
+                              <span className="oh-shift-info__time">Requested Shift</span>
                             </div>
                           </td>
                           <td className="oh-table__cell">
-                            <span className="oh-date">{formatDate(request.shiftDate)}</span>
+                            <span className="oh-date">{formatDate(request.requested_date)}</span>
                           </td>
                           <td className="oh-table__cell">
-                            <span className={`oh-priority ${getPriorityClass(request.priority)}`}>
-                              {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                            <span className={`oh-priority ${request.is_permanent_shift ? 'oh-priority--high' : 'oh-priority--medium'}`}>
+                              {request.is_permanent_shift ? 'Permanent' : 'Temporary'}
                             </span>
                           </td>
                           <td className="oh-table__cell">
-                            <span className={`oh-status ${getStatusClass(request.status)}`}>
-                              {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                            <span className={`oh-status ${getStatusClass(request)}`}>
+                              {getStatusText(request)}
                             </span>
                           </td>
                           <td className="oh-table__cell">
-                            <span className="oh-reason" title={request.reason}>
-                              {request.reason.length > 30 ? `${request.reason.substring(0, 30)}...` : request.reason}
+                            <span className="oh-reason" title={request.description}>
+                              {request.description.length > 30 ? `${request.description.substring(0, 30)}...` : request.description}
                             </span>
                           </td>
                           <td className="oh-table__cell">
@@ -527,14 +419,22 @@ const ShiftRequests: React.FC = () => {
                                   <circle cx="12" cy="12" r="3"></circle>
                                 </svg>
                               </button>
-                              {request.status === 'pending' && (
+                              {!request.approved && !request.canceled && (
                                 <>
-                                  <button className="oh-btn oh-btn--icon oh-btn--sm oh-btn--success" title="Approve">
+                                  <button 
+                                    className="oh-btn oh-btn--icon oh-btn--sm oh-btn--success" 
+                                    title="Approve"
+                                    onClick={() => handleUpdateRequest(request.id, true)}
+                                  >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                       <polyline points="20,6 9,17 4,12"></polyline>
                                     </svg>
                                   </button>
-                                  <button className="oh-btn oh-btn--icon oh-btn--sm oh-btn--danger" title="Reject">
+                                  <button 
+                                    className="oh-btn oh-btn--icon oh-btn--sm oh-btn--danger" 
+                                    title="Reject"
+                                    onClick={() => handleUpdateRequest(request.id, false)}
+                                  >
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                       <line x1="18" y1="6" x2="6" y2="18"></line>
                                       <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -542,10 +442,15 @@ const ShiftRequests: React.FC = () => {
                                   </button>
                                 </>
                               )}
-                              <button className="oh-btn oh-btn--icon oh-btn--sm" title="Edit">
+                              <button 
+                                className="oh-btn oh-btn--icon oh-btn--sm" 
+                                title="Delete"
+                                onClick={() => handleDeleteRequest(request.id)}
+                              >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                  <path d="M3 6h18"></path>
+                                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                                 </svg>
                               </button>
                             </div>
@@ -561,22 +466,20 @@ const ShiftRequests: React.FC = () => {
                     <div key={request.id} className="oh-shift-requests__card">
                       <div className="oh-shift-requests__card-header">
                         <div className="oh-employee-info">
-                          <img 
-                            src={request.employee.profile_image} 
-                            alt={request.employee.name}
-                            className="oh-employee-info__avatar"
-                          />
+                          <div className="oh-employee-info__avatar">
+                            {request.employee_first_name.charAt(0)}{request.employee_last_name.charAt(0)}
+                          </div>
                           <div className="oh-employee-info__details">
-                            <span className="oh-employee-info__name">{request.employee.name}</span>
-                            <span className="oh-employee-info__badge">{request.employee.badge}</span>
+                            <span className="oh-employee-info__name">{request.employee_first_name} {request.employee_last_name}</span>
+                            <span className="oh-employee-info__badge">EMP-{request.employee_id}</span>
                           </div>
                         </div>
                         <div className="oh-shift-requests__card-badges">
-                          <span className={`oh-priority ${getPriorityClass(request.priority)}`}>
-                            {request.priority.charAt(0).toUpperCase() + request.priority.slice(1)}
+                          <span className={`oh-priority ${request.is_permanent_shift ? 'oh-priority--high' : 'oh-priority--medium'}`}>
+                            {request.is_permanent_shift ? 'Permanent' : 'Temporary'}
                           </span>
-                          <span className={`oh-status ${getStatusClass(request.status)}`}>
-                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          <span className={`oh-status ${getStatusClass(request)}`}>
+                            {getStatusText(request)}
                           </span>
                         </div>
                       </div>
@@ -586,10 +489,8 @@ const ShiftRequests: React.FC = () => {
                           <div className="oh-shift-change__from">
                             <span className="oh-shift-change__label">From:</span>
                             <div className="oh-shift-info">
-                              <span className="oh-shift-info__name">{request.fromShift.name}</span>
-                              <span className="oh-shift-info__time">
-                                {formatTime(request.fromShift.startTime)} - {formatTime(request.fromShift.endTime)}
-                              </span>
+                              <span className="oh-shift-info__name">{request.previous_shift_name || 'N/A'}</span>
+                              <span className="oh-shift-info__time">Previous Shift</span>
                             </div>
                           </div>
                           <div className="oh-shift-change__arrow">
@@ -601,10 +502,8 @@ const ShiftRequests: React.FC = () => {
                           <div className="oh-shift-change__to">
                             <span className="oh-shift-change__label">To:</span>
                             <div className="oh-shift-info">
-                              <span className="oh-shift-info__name">{request.toShift.name}</span>
-                              <span className="oh-shift-info__time">
-                                {formatTime(request.toShift.startTime)} - {formatTime(request.toShift.endTime)}
-                              </span>
+                              <span className="oh-shift-info__name">{request.shift_name}</span>
+                              <span className="oh-shift-info__time">Requested Shift</span>
                             </div>
                           </div>
                         </div>
@@ -612,17 +511,17 @@ const ShiftRequests: React.FC = () => {
                         <div className="oh-shift-requests__card-meta">
                           <div className="oh-meta-item">
                             <span className="oh-meta-item__label">Shift Date:</span>
-                            <span className="oh-meta-item__value">{formatDate(request.shiftDate)}</span>
+                            <span className="oh-meta-item__value">{formatDate(request.requested_date)}</span>
                           </div>
                           <div className="oh-meta-item">
                             <span className="oh-meta-item__label">Requested:</span>
-                            <span className="oh-meta-item__value">{formatDate(request.createdAt)}</span>
+                            <span className="oh-meta-item__value">{formatDate(request.created_at)}</span>
                           </div>
                         </div>
 
                         <div className="oh-shift-requests__card-reason">
                           <span className="oh-shift-requests__card-reason-label">Reason:</span>
-                          <p className="oh-shift-requests__card-reason-text">{request.reason}</p>
+                          <p className="oh-shift-requests__card-reason-text">{request.description}</p>
                         </div>
                       </div>
 
@@ -634,14 +533,22 @@ const ShiftRequests: React.FC = () => {
                               <circle cx="12" cy="12" r="3"></circle>
                             </svg>
                           </button>
-                          {request.status === 'pending' && (
+                          {!request.approved && !request.canceled && (
                             <>
-                              <button className="oh-btn oh-btn--icon oh-btn--sm oh-btn--success" title="Approve">
+                              <button 
+                                className="oh-btn oh-btn--icon oh-btn--sm oh-btn--success" 
+                                title="Approve"
+                                onClick={() => handleUpdateRequest(request.id, true)}
+                              >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <polyline points="20,6 9,17 4,12"></polyline>
                                 </svg>
                               </button>
-                              <button className="oh-btn oh-btn--icon oh-btn--sm oh-btn--danger" title="Reject">
+                              <button 
+                                className="oh-btn oh-btn--icon oh-btn--sm oh-btn--danger" 
+                                title="Reject"
+                                onClick={() => handleUpdateRequest(request.id, false)}
+                              >
                                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <line x1="18" y1="6" x2="6" y2="18"></line>
                                   <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -649,10 +556,15 @@ const ShiftRequests: React.FC = () => {
                               </button>
                             </>
                           )}
-                          <button className="oh-btn oh-btn--icon oh-btn--sm" title="Edit">
+                          <button 
+                            className="oh-btn oh-btn--icon oh-btn--sm" 
+                            title="Delete"
+                            onClick={() => handleDeleteRequest(request.id)}
+                          >
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                              <path d="M3 6h18"></path>
+                              <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                              <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                             </svg>
                           </button>
                         </div>
@@ -673,7 +585,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'pending').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => !r.approved && !r.canceled).length}</span>
                   <span className="oh-stat-card__label">Pending</span>
                 </div>
               </div>
@@ -685,7 +597,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'approved').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => r.approved).length}</span>
                   <span className="oh-stat-card__label">Approved</span>
                 </div>
               </div>
@@ -698,7 +610,7 @@ const ShiftRequests: React.FC = () => {
                   </svg>
                 </div>
                 <div className="oh-stat-card__content">
-                  <span className="oh-stat-card__value">{requests.filter(r => r.status === 'rejected').length}</span>
+                  <span className="oh-stat-card__value">{requests.filter(r => r.canceled).length}</span>
                   <span className="oh-stat-card__label">Rejected</span>
                 </div>
               </div>
@@ -744,37 +656,28 @@ const ShiftRequests: React.FC = () => {
               <div className="oh-form-grid">
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Employee <span className="oh-required">*</span>
+                    Employee ID <span className="oh-required">*</span>
                   </label>
-                  <select
+                  <input
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.employee}
-                    onChange={(e) => handleFormChange('employee', e.target.value)}
-                  >
-                    <option value="">Select Employee</option>
-                    <option value="John Doe">John Doe</option>
-                    <option value="Jane Smith">Jane Smith</option>
-                    <option value="Mike Johnson">Mike Johnson</option>
-                    <option value="Sarah Wilson">Sarah Wilson</option>
-                    <option value="David Brown">David Brown</option>
-                  </select>
+                    placeholder="Enter Employee ID"
+                    value={createForm.employee_id}
+                    onChange={(e) => handleFormChange('employee_id', e.target.value)}
+                  />
                 </div>
 
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Requesting Shift <span className="oh-required">*</span>
+                    Shift ID <span className="oh-required">*</span>
                   </label>
-                  <select
+                  <input
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.requestingShift}
-                    onChange={(e) => handleFormChange('requestingShift', e.target.value)}
-                  >
-                    <option value="">Select Shift</option>
-                    <option value="Day Shift">Day Shift (09:00 - 17:00)</option>
-                    <option value="Evening Shift">Evening Shift (14:00 - 22:00)</option>
-                    <option value="Night Shift">Night Shift (22:00 - 06:00)</option>
-                    <option value="Morning Shift">Morning Shift (06:00 - 14:00)</option>
-                  </select>
+                    placeholder="Enter Shift ID"
+                    value={createForm.shift_id}
+                    onChange={(e) => handleFormChange('shift_id', e.target.value)}
+                  />
                 </div>
 
                 <div className="oh-form-group">
@@ -784,8 +687,8 @@ const ShiftRequests: React.FC = () => {
                   <input
                     type="date"
                     className="oh-form-input"
-                    value={createForm.requestedDate}
-                    onChange={(e) => handleFormChange('requestedDate', e.target.value)}
+                    value={createForm.requested_date}
+                    onChange={(e) => handleFormChange('requested_date', e.target.value)}
                     min={new Date().toISOString().split('T')[0]}
                   />
                 </div>
@@ -795,9 +698,9 @@ const ShiftRequests: React.FC = () => {
                   <input
                     type="date"
                     className="oh-form-input"
-                    value={createForm.requestedTill}
-                    onChange={(e) => handleFormChange('requestedTill', e.target.value)}
-                    min={createForm.requestedDate || new Date().toISOString().split('T')[0]}
+                    value={createForm.requested_till}
+                    onChange={(e) => handleFormChange('requested_till', e.target.value)}
+                    min={createForm.requested_date || new Date().toISOString().split('T')[0]}
                   />
                 </div>
 
@@ -817,8 +720,8 @@ const ShiftRequests: React.FC = () => {
                     <input
                       type="checkbox"
                       className="oh-checkbox"
-                      checked={createForm.permanentRequest}
-                      onChange={(e) => handleFormChange('permanentRequest', e.target.checked)}
+                      checked={createForm.is_permanent_shift}
+                      onChange={(e) => handleFormChange('is_permanent_shift', e.target.checked)}
                     />
                     <span className="oh-checkbox-text">Make this a permanent shift change</span>
                   </label>

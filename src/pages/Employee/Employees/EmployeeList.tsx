@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 // Corrected import paths: changed '../../' to '../../../'
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import './EmployeeList.css';
@@ -98,7 +98,7 @@ const EmployeeList: React.FC = () => {
     emergencyContactRelation: ''
   });
 
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const itemsPerPage = 12;
 
   // Fetch employees from API
@@ -318,7 +318,7 @@ const EmployeeList: React.FC = () => {
     <div className="oh-app-layout">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Employees" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-employees-container">
           {/* Modal for Create Employee */}
           {showCreateModal && (

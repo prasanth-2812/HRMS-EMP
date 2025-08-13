@@ -1,19 +1,19 @@
 import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './Myattendances.css';
 
 const Myattendances: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <div className="attendance-activities-page">
       <Sidebar />
       <div className={`ha-main-content ${isCollapsed ? 'ha-main-content--collapsed' : ''}`}>
         <div className={`ha-navbar ${isCollapsed ? 'ha-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="My Attendances" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ha-content ha-content--centered">
           {/* Breadcrumb */}

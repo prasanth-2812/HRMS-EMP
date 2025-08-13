@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import SendMail from './modals/sendMail';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
@@ -47,7 +47,7 @@ interface Employee {
 }
 
 const AttendanceDashboard: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0]);
   const [mailModalOpen, setMailModalOpen] = useState(false);
@@ -175,7 +175,7 @@ const AttendanceDashboard: React.FC = () => {
       <Sidebar />
       <div className={`ad-main-content ${isCollapsed ? 'ad-main-content--collapsed' : ''}`}>
         <div className={`ad-navbar ${isCollapsed ? 'ad-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendance Dashboard" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ad-content">
           <div className="ad-content-container">

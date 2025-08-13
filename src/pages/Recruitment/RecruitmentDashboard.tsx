@@ -1,19 +1,19 @@
 import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './RecruitmentDashboard.css';
 
 const RecruitmentDashboard: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <div className="recruitment-dashboard">
       <Sidebar />
       <div className={`rd-main-content ${isCollapsed ? 'rd-main-content--collapsed' : ''}`}>
         <div className={`rd-navbar ${isCollapsed ? 'rd-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Recruitment Dashboard" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="rd-content">
           <div className="rd-content-container">

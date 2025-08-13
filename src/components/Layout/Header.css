@@ -4,13 +4,19 @@
   border-bottom: 1px solid #e5e7eb;
   position: fixed;
   top: 0;
-  left: 0;
+  left: 280px; /* Start after expanded sidebar */
   right: 0;
   z-index: 1000;
   height: 64px;
   display: flex;
   align-items: center;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  transition: left 0.3s ease-in-out; /* Smooth transition when sidebar collapses */
+}
+
+/* Header position when sidebar is collapsed */
+.oh-navbar.sidebar-collapsed {
+  left: 80px; /* Start after collapsed sidebar */
 }
 
 .oh-navbar-wrapper {
@@ -74,6 +80,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
+  min-width: 120px;
 }
 
 .oh-clock-in-btn:hover {
@@ -89,8 +96,36 @@
   background: #dc2626;
 }
 
+.oh-clock-in-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .oh-clock-in-btn ion-icon {
   font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.oh-clock-in-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.125rem;
+}
+
+.oh-clock-in-text {
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.oh-work-timer {
+  font-size: 0.75rem;
+  font-weight: 400;
+  opacity: 0.9;
+  font-family: 'Courier New', monospace;
+  line-height: 1;
 }
 
 /* Companies Dropdown Styles */
@@ -515,6 +550,210 @@
   border-top: 1px solid #e9ecef;
 }
 
+/* Notifications Styles */
+.oh-navbar-notifications {
+  position: relative;
+}
+
+.oh-notification-btn {
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  border-radius: 0.375rem;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.oh-notification-btn:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.oh-notification-btn ion-icon {
+  font-size: 1.25rem;
+}
+
+.oh-notification-badge {
+  position: absolute;
+  top: 0.25rem;
+  right: 0.25rem;
+  background: #ef4444;
+  color: white;
+  font-size: 0.625rem;
+  font-weight: 600;
+  padding: 0.125rem 0.375rem;
+  border-radius: 9999px;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.oh-notification-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  min-width: 320px;
+  max-width: 400px;
+  z-index: 50;
+  margin-top: 0.5rem;
+  overflow: hidden;
+}
+
+.oh-notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.oh-notification-header h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.oh-mark-all-read {
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  transition: all 0.2s ease;
+}
+
+.oh-mark-all-read:hover {
+  background: #eef2ff;
+}
+
+.oh-notification-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.oh-notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #f3f4f6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oh-notification-item:hover {
+  background: #f9fafb;
+}
+
+.oh-notification-item:last-child {
+  border-bottom: none;
+}
+
+.oh-notification-item.unread {
+  background: #fef7ff;
+  border-left: 3px solid #6366f1;
+}
+
+.oh-notification-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  background: #f3f4f6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.oh-notification-icon ion-icon {
+  font-size: 1rem;
+  color: #6b7280;
+}
+
+.oh-notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.oh-notification-text {
+  font-size: 0.875rem;
+  color: #374151;
+  margin: 0 0 0.25rem 0;
+  line-height: 1.4;
+}
+
+.oh-notification-date {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.oh-unread-indicator {
+  width: 0.5rem;
+  height: 0.5rem;
+  background: #6366f1;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 0.375rem;
+}
+
+.oh-no-notifications {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  color: #6b7280;
+}
+
+.oh-no-notifications ion-icon {
+  font-size: 2rem;
+}
+
+.oh-no-notifications p {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.oh-notification-footer {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid #e5e7eb;
+  background: #f9fafb;
+}
+
+.oh-view-all-btn {
+  width: 100%;
+  background: none;
+  border: none;
+  color: #6366f1;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.oh-view-all-btn:hover {
+  background: #eef2ff;
+}
+
 /* Settings Styles */
 .oh-navbar-settings {
   display: flex;
@@ -911,12 +1150,21 @@
     display: none;
   }
   
-  .oh-clock-in-btn span {
+  .oh-clock-in-text {
     display: none;
+  }
+  
+  .oh-work-timer {
+    font-size: 0.625rem;
   }
   
   .oh-clock-in-btn {
     padding: 0.5rem;
+    min-width: auto;
+  }
+  
+  .oh-clock-in-content {
+    align-items: center;
   }
 }
 

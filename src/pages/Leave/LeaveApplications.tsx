@@ -1,19 +1,19 @@
 import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import './LeaveApplications.css';
 
 const LeaveApplications: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   return (
     <div className="leave-applications-page">
       <Sidebar />
       <div className={`la-main-content ${isCollapsed ? 'la-main-content--collapsed' : ''}`}>
         <div className={`la-navbar ${isCollapsed ? 'la-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Leave Applications" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="la-content">
           <div className="la-content-container">

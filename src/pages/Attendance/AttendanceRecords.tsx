@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
@@ -44,7 +44,7 @@ interface AttendanceResponse {
 }
 
 const AttendanceRecords: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [showModal, setShowModal] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
@@ -299,7 +299,7 @@ const AttendanceRecords: React.FC = () => {
       <Sidebar />
       <div className={`ar-main-content ${isCollapsed ? 'ar-main-content--collapsed' : ''}`}>
         <div className={`ar-navbar ${isCollapsed ? 'ar-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendances" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ar-content">
           <div className="ar-content-container">
@@ -617,8 +617,8 @@ const AttendanceRecords: React.FC = () => {
           </div>
         )}
       </div>
-      </div>
-    );
+    </div>
+  );
 };
 
 export default AttendanceRecords;

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { getAllPolicies, createPolicy, updatePolicy, deletePolicy } from '../../../services/employeeService';
@@ -30,7 +30,7 @@ const Policies: React.FC = () => {
   const [policies, setPolicies] = useState<Policy[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   // Create form state matching backend structure
   const [createForm, setCreateForm] = useState({
@@ -232,7 +232,7 @@ const Policies: React.FC = () => {
     <div className="oh-dashboard">
       <Sidebar />
       <div className={`oh-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Policies" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="oh-content">
           <div className="oh-container">
             {/* Header Section */}

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
@@ -9,7 +9,7 @@ import { AttendanceActivity } from '../../types/attendanceActivity';
 import './AttendanceActivities.css';
 
 const AttendanceActivities: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [searchTerm, setSearchTerm] = useState('');
   
   // Fetch attendance activity data
@@ -42,7 +42,7 @@ const AttendanceActivities: React.FC = () => {
       <Sidebar />
       <div className={`ha-main-content ${isCollapsed ? 'ha-main-content--collapsed' : ''}`}>
         <div className={`ha-navbar ${isCollapsed ? 'ha-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendance Activity" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="ha-content ha-content--centered">
           {/* Breadcrumb */}

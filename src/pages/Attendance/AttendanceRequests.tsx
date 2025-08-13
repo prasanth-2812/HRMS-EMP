@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
-import Navbar from '../../components/Layout/Navbar';
+import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
@@ -46,7 +46,7 @@ interface AttendanceRequestResponse {
 }
 
 const AttendanceRequests: React.FC = () => {
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
@@ -311,7 +311,7 @@ const AttendanceRequests: React.FC = () => {
       <Sidebar />
       <div className={`areq-main-content ${isCollapsed ? 'areq-main-content--collapsed' : ''}`}>
         <div className={`areq-navbar ${isCollapsed ? 'areq-navbar--collapsed' : ''}`}>
-          <Navbar pageTitle="Attendance Requests" />
+          <Header toggleSidebar={toggleSidebar} />
         </div>
         <div className="areq-content">
           <div className="areq-content-container">

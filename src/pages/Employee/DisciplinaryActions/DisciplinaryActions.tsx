@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
-import Navbar from '../../../components/Layout/Navbar';
+import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { 
@@ -105,7 +105,7 @@ const DisciplinaryActions: React.FC = () => {
     followUpRequired: false,
     followUpDate: ''
   });
-  const { isCollapsed } = useSidebar();
+  const { isCollapsed, toggleSidebar } = useSidebar();
 
   // Data transformation functions
   const transformEmployeeData = (employee: any): Employee => ({
@@ -407,7 +407,7 @@ const DisciplinaryActions: React.FC = () => {
     <div className="da-dashboard">
       <Sidebar />
       <div className={`da-main-content ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-        <Navbar pageTitle="Disciplinary Actions" />
+        <Header toggleSidebar={toggleSidebar} />
         <div className="da-content">
           <div className="oh-container">
             {/* Success Message */}
