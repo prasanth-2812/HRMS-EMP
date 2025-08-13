@@ -1,5 +1,290 @@
 /* QuickAccess.css - Matching Original Horilla Design */
 
+/* Toggle Switch Styles */
+.oh-toggle-container {
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+  height: 48px;
+}
+
+.oh-toggle-input {
+  display: none;
+}
+
+.oh-toggle-label {
+  position: relative;
+  display: inline-block;
+  width: 52px;
+  height: 28px;
+  background-color: #d1d5db;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.oh-toggle-label:hover {
+  background-color: #9ca3af;
+}
+
+.oh-toggle-label::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.oh-toggle-input:checked + .oh-toggle-label {
+  background-color: #f59e0b;
+  border-color: #f59e0b;
+}
+
+.oh-toggle-input:checked + .oh-toggle-label:hover {
+  background-color: #d97706;
+}
+
+.oh-toggle-input:checked + .oh-toggle-label::after {
+  transform: translateX(24px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.oh-toggle-input:focus + .oh-toggle-label {
+  outline: 2px solid #f59e0b;
+  outline-offset: 2px;
+}
+
+/* Modal Styles */
+.oh-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.oh-create-attendance-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.oh-modal-header {
+  padding: 24px 32px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9fafb;
+}
+
+.oh-modal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.oh-modal-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 6px;
+  transition: all 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oh-modal-close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.oh-modal-body {
+  padding: 32px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+/* Form Grid Improvements */
+.oh-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px 20px;
+  margin-bottom: 32px;
+}
+
+.oh-form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.oh-form-group--full-width {
+  grid-column: 1 / -1;
+}
+
+.oh-form-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #374151;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.oh-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.oh-form-input,
+.oh-form-textarea {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1.5px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.oh-form-input:focus,
+.oh-form-textarea:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.1);
+  background-color: #fffbeb;
+}
+
+.oh-form-input::placeholder,
+.oh-form-textarea::placeholder {
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.oh-form-textarea {
+  resize: vertical;
+  min-height: 100px;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.oh-form-input:disabled {
+  background-color: #f9fafb;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* Modal Footer */
+.oh-modal-footer {
+  padding: 24px 32px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  background: #f9fafb;
+}
+
+.oh-btn {
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 100px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.oh-btn--secondary {
+  background-color: #ffffff;
+  color: #374151;
+  border: 1.5px solid #d1d5db;
+}
+
+.oh-btn--secondary:hover {
+  background-color: #f9fafb;
+  border-color: #9ca3af;
+}
+
+.oh-btn--primary {
+  background-color: #f59e0b;
+  color: white;
+  border: 1.5px solid #f59e0b;
+}
+
+.oh-btn--primary:hover:not(:disabled) {
+  background-color: #d97706;
+  border-color: #d97706;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.oh-btn--primary:disabled {
+  background-color: #9ca3af;
+  border-color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .oh-create-attendance-modal {
+    max-width: 95vw;
+    margin: 10px;
+  }
+  
+  .oh-form-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .oh-modal-header,
+  .oh-modal-body,
+  .oh-modal-footer {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+  
+  .oh-modal-footer {
+    flex-direction: column;
+  }
+  
+  .oh-btn {
+    width: 100%;
+  }
+}
+
 .oh-quick-access {
   position: fixed;
   bottom: 30px;

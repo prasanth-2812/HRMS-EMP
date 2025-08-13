@@ -206,6 +206,32 @@ const AttendanceRequests: React.FC = () => {
     );
   };
 
+  // Function to create new attendance request
+  const handleCreateAttendanceRequest = async (requestData: {
+    employee_id: number;
+    attendance_date: string;
+    shift_id: number;
+    work_type_id: number;
+    minimum_hour: string;
+    request_description?: string;
+    attendance_clock_in_date?: string;
+    attendance_clock_in?: string;
+    attendance_clock_out_date?: string;
+    attendance_clock_out?: string;
+    attendance_worked_hour?: string;
+    batch_attendance_id?: string;
+  }) => {
+    try {
+       const response = await apiClient.post('/api/v1/attendance/attendance-request/', requestData) as any;
+       console.log('Attendance request created successfully:', response.data);
+       await refetch(); // Refresh the data
+       return response.data;
+     } catch (error) {
+      console.error('Error creating attendance request:', error);
+      throw error;
+    }
+  };
+
   // API action handlers
   const handleApproveRequest = async (requestId: number) => {
     try {
@@ -588,7 +614,15 @@ const AttendanceRequests: React.FC = () => {
         {showModal && (
           <div className="areq-modal-overlay">
             <div className="areq-modal">
-              <AttendanceRequestModal isOpen={showModal} onClose={() => setShowModal(false)} />
+              <AttendanceRequestModal 
+                isOpen={showModal} 
+                onClose={() => setShowModal(false)}
+                onRefresh={refetch}
+                onSuccess={(message) => {
+                  console.log('Attendance request result:', message);
+                  // You can add a toast notification here if needed
+                }}
+              />
             </div>
           </div>
         )}
