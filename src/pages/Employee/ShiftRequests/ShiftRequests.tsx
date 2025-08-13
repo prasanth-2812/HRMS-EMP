@@ -12,6 +12,8 @@ import {
   ShiftRequest as ApiShiftRequest,
   CreateShiftRequestData
 } from '../../../services/shiftRequestsApi';
+import { getAllShifts, Shift } from '../../../services/shiftService';
+import { getAllEmployees } from '../../../services/employeeService';
 
 // Updated interface to match API response
 interface ShiftRequest {
@@ -73,6 +75,11 @@ const ShiftRequests: React.FC = () => {
     description: '',
     is_permanent_shift: false
   });
+  
+  // State for dropdown options
+  const [employees, setEmployees] = useState<any[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(false);
 
   // Fetch shift requests from API
   const fetchShiftRequests = async () => {
@@ -90,9 +97,46 @@ const ShiftRequests: React.FC = () => {
     }
   };
 
+  // Fetch employees for dropdown
+  const fetchEmployees = async () => {
+    try {
+      const employeeData = await getAllEmployees();
+      setEmployees(employeeData);
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to fetch employees'
+      });
+    }
+  };
+
+  // Fetch shifts for dropdown
+  const fetchShifts = async () => {
+    try {
+      const shiftData = await getAllShifts();
+      setShifts(shiftData);
+    } catch (error: any) {
+      setNotification({
+        type: 'error',
+        message: error.message || 'Failed to fetch shifts'
+      });
+    }
+  };
+
+  // Fetch dropdown data
+  const fetchDropdownData = async () => {
+    setLoadingDropdowns(true);
+    try {
+      await Promise.all([fetchEmployees(), fetchShifts()]);
+    } finally {
+      setLoadingDropdowns(false);
+    }
+  };
+
   // Load data on component mount
   useEffect(() => {
     fetchShiftRequests();
+    fetchDropdownData();
   }, []);
 
   const filteredRequests = requests.filter(request => {
@@ -656,28 +700,46 @@ const ShiftRequests: React.FC = () => {
               <div className="oh-form-grid">
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Employee ID <span className="oh-required">*</span>
+                    Employee <span className="oh-required">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <select
                     className="oh-form-input"
-                    placeholder="Enter Employee ID"
                     value={createForm.employee_id}
                     onChange={(e) => handleFormChange('employee_id', e.target.value)}
-                  />
+                    disabled={loadingDropdowns}
+                  >
+                    <option value="">Select Employee</option>
+                    {employees.map((employee) => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.employee_first_name} {employee.employee_last_name} (ID: {employee.id})
+                      </option>
+                    ))}
+                  </select>
+                  {loadingDropdowns && (
+                    <div className="oh-loading-text">Loading employees...</div>
+                  )}
                 </div>
 
                 <div className="oh-form-group">
                   <label className="oh-form-label">
-                    Shift ID <span className="oh-required">*</span>
+                    Shift <span className="oh-required">*</span>
                   </label>
-                  <input
-                    type="number"
+                  <select
                     className="oh-form-input"
-                    placeholder="Enter Shift ID"
                     value={createForm.shift_id}
                     onChange={(e) => handleFormChange('shift_id', e.target.value)}
-                  />
+                    disabled={loadingDropdowns}
+                  >
+                    <option value="">Select Shift</option>
+                    {shifts.map((shift) => (
+                      <option key={shift.id} value={shift.id}>
+                        {shift.shift}
+                      </option>
+                    ))}
+                  </select>
+                  {loadingDropdowns && (
+                    <div className="oh-loading-text">Loading shifts...</div>
+                  )}
                 </div>
 
                 <div className="oh-form-group">

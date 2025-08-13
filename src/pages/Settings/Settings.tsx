@@ -1,8 +1,20 @@
 import React, { useState } from 'react';
+import Sidebar from '../../components/Layout/Sidebar';
+import Header from '../../components/Layout/Header';
+import QuickAccess from '../../components/QuickAccess/QuickAccess';
+import { useSidebar } from '../../contexts/SidebarContext';
+import GeneralSettingsForm from './components/GeneralSettingsForm';
 import './Settings.css';
 
 // Import all modal components
 import GeneralSettingsModal from './modals/GeneralSettingsModal';
+import EmployeePermissionModal from './modals/EmployeePermissionModal';
+import AccessibilityRestrictionModal from './modals/AccessibilityRestrictionModal';
+import UserGroupModal from './modals/UserGroupModal';
+import DateTimeFormatModal from './modals/DateTimeFormatModal';
+import HistoryTagsModal from './modals/HistoryTagsModal';
+import MailServerModal from './modals/MailServerModal';
+import GdriveBackupModal from './modals/GdriveBackupModal';
 import DepartmentModal from './modals/DepartmentModal';
 import JobPositionsModal from './modals/JobPositionsModal';
 import JobRoleModal from './modals/JobRoleModal';
@@ -41,11 +53,19 @@ interface SettingsItem {
 }
 
 const Settings: React.FC = () => {
-  const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { isCollapsed, toggleSidebar } = useSidebar();
+  const [selectedSetting, setSelectedSetting] = useState<string | null>(null);
 
   // Modal mapping for all settings items
   const modalComponents: { [key: string]: React.ComponentType<{ onClose: () => void }> } = {
     'General Settings': GeneralSettingsModal,
+    'Employee Permission': EmployeePermissionModal,
+    'Accessibility Restriction': AccessibilityRestrictionModal,
+    'User Group': UserGroupModal,
+    'Date & Time Format': DateTimeFormatModal,
+    'History Tags': HistoryTagsModal,
+    'Mail Server': MailServerModal,
+    'Gdrive Backup': GdriveBackupModal,
     'Department': DepartmentModal,
     'Job Positions': JobPositionsModal,
     'Job Role': JobRoleModal,
@@ -77,11 +97,20 @@ const Settings: React.FC = () => {
     'Ticket Type': TicketTypeModal,
     'Helpdesk Tags': HelpdeskTagsModal
   };
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['Base']);
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['General']);
 
   const settingsItems: SettingsItem[] = [
+    // General
+    { id: 'general', label: 'General Settings', category: 'General' },
+    { id: 'employee-permission', label: 'Employee Permission', category: 'General' },
+    { id: 'accessibility-restriction', label: 'Accessibility Restriction', category: 'General' },
+    { id: 'user-group', label: 'User Group', category: 'General' },
+    { id: 'date-time-format', label: 'Date & Time Format', category: 'General' },
+    { id: 'history-tags', label: 'History Tags', category: 'General' },
+    { id: 'mail-server', label: 'Mail Server', category: 'General' },
+    { id: 'gdrive-backup', label: 'Gdrive Backup', category: 'General' },
+    
     // Base
-    { id: 'general', label: 'General Settings', category: 'Base' },
     { id: 'department', label: 'Department', category: 'Base' },
     { id: 'job-positions', label: 'Job Positions', category: 'Base' },
     { id: 'job-role', label: 'Job Role', category: 'Base' },
@@ -112,9 +141,9 @@ const Settings: React.FC = () => {
     { id: 'ip-restriction', label: 'IP Restriction', category: 'Attendance' },
     { id: 'geo-face-config', label: 'Geo & Face Config', category: 'Attendance' },
     
-    // Leaves
-    { id: 'restrictions', label: 'Restrictions', category: 'Leaves' },
-    { id: 'compensatory-leave', label: 'Compensatory Leave', category: 'Leaves' },
+    // Leave
+    { id: 'restrictions', label: 'Restrictions', category: 'Leave' },
+    { id: 'compensatory-leave', label: 'Compensatory Leave', category: 'Leave' },
     
     // Payroll
     { id: 'payslip-auto-generation', label: 'Payslip Auto Generation', category: 'Payroll' },
@@ -128,7 +157,7 @@ const Settings: React.FC = () => {
     { id: 'helpdesk-tags', label: 'Helpdesk Tags', category: 'Help Desk' },
   ];
 
-  const categories = ['Base', 'Recruitment', 'Employee', 'Attendance', 'Leaves', 'Payroll', 'Performance', 'Help Desk'];
+  const categories = ['General', 'Base', 'Recruitment', 'Employee', 'Attendance', 'Leave', 'Payroll', 'Performance', 'Help Desk'];
 
   const toggleCategory = (category: string) => {
     setExpandedCategories(prev => 
@@ -141,74 +170,90 @@ const Settings: React.FC = () => {
   const openModal = (itemId: string) => {
     const item = settingsItems.find(item => item.id === itemId);
     if (item) {
-      setActiveModal(item.label);
+      if (item.id === 'general') {
+        setSelectedSetting('general');
+      } else {
+        setSelectedSetting(item.label);
+      }
     }
   };
 
-  const closeModal = () => {
-    setActiveModal(null);
-  };
-
-
-
   return (
-    <div className="settings-container">
-      <div className="settings-header">
-        <h1>Settings</h1>
-        <p>Configure your HRMS system settings</p>
-      </div>
-
-      <div className="settings-content">
-        <div className="settings-sidebar">
-          {categories.map(category => (
-            <div key={category} className="settings-category">
-              <button
-                className={`settings-category-header ${expandedCategories.includes(category) ? 'expanded' : ''}`}
-                onClick={() => toggleCategory(category)}
-              >
-                <ion-icon name={expandedCategories.includes(category) ? 'chevron-down-outline' : 'chevron-forward-outline'}></ion-icon>
-                <span>{category}</span>
-              </button>
-              
-              {expandedCategories.includes(category) && (
-                <div className="settings-category-items">
-                  {settingsItems
-                    .filter(item => item.category === category)
-                    .map(item => (
-                      <button
-                        key={item.id}
-                        className="settings-item"
-                        onClick={() => openModal(item.id)}
-                      >
-                        {item.label}
-                      </button>
-                    ))
-                  }
-                </div>
-              )}
-            </div>
-          ))}
+    <div className="settings-page">
+      <Sidebar />
+      <div className={`settings-main-content ${isCollapsed ? 'settings-main-content--collapsed' : ''}`}>
+        <div className={`settings-navbar ${isCollapsed ? 'settings-navbar--collapsed' : ''}`}>
+          <Header toggleSidebar={toggleSidebar} />
         </div>
-
-        <div className="settings-main">
-          {!activeModal ? (
-            <div className="settings-welcome">
-              <div className="settings-welcome-content">
-                <ion-icon name="settings-outline"></ion-icon>
-                <h2>Welcome to Settings</h2>
-                <p>Select a setting from the sidebar to configure your HRMS system.</p>
+        <div className="settings-content">
+          <div className="settings-content-container">
+            {/* Header Section */}
+            <div className="settings-header">
+              <div className="settings-header__left">
+                <h1 className="settings-header__title">Settings</h1>
+                <p className="settings-header__subtitle">Configure your HRMS system settings</p>
               </div>
             </div>
-          ) : null}
+
+            {/* Settings Content */}
+            <div className="settings-layout">
+              <div className="settings-sidebar">
+                {categories.map(category => (
+                  <div key={category} className="settings-category">
+                    <button
+                      className={`settings-category-header ${expandedCategories.includes(category) ? 'expanded' : ''}`}
+                      onClick={() => toggleCategory(category)}
+                    >
+                      <ion-icon name={expandedCategories.includes(category) ? 'chevron-down-outline' : 'chevron-forward-outline'}></ion-icon>
+                      <span>{category}</span>
+                    </button>
+                    
+                    {expandedCategories.includes(category) && (
+                      <div className="settings-category-items">
+                        {settingsItems
+                          .filter(item => item.category === category)
+                          .map(item => (
+                            <button
+                              key={item.id}
+                              className="settings-item"
+                              onClick={() => openModal(item.id)}
+                            >
+                              {item.label}
+                            </button>
+                          ))
+                        }
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="settings-main">
+                {selectedSetting === 'general' ? (
+                  <GeneralSettingsForm />
+                ) : selectedSetting && modalComponents[selectedSetting] ? (
+                  <div className="settings-modal-content">
+                    {React.createElement(modalComponents[selectedSetting], { 
+                      onClose: () => setSelectedSetting(null) 
+                    })}
+                  </div>
+                ) : (
+                  <div className="settings-welcome">
+                    <div className="settings-welcome-content">
+                      <ion-icon name="settings-outline"></ion-icon>
+                      <h2>Welcome to Settings</h2>
+                      <p>Select a setting from the sidebar to configure your HRMS system.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
+        <QuickAccess />
       </div>
 
-      {/* Render active modal */}
-      {activeModal && modalComponents[activeModal] && 
-        React.createElement(modalComponents[activeModal], { 
-          onClose: () => setActiveModal(null) 
-        })
-      }
+      {/* Modal overlays are now rendered in the main content area */}
     </div>
   );
 };
