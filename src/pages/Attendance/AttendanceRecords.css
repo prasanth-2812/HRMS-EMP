@@ -41,10 +41,18 @@
 }
 /* Attendance Records Page Styles */
 
+body {
+  overflow: hidden;
+}
+
 .attendance-records-page {
   display: flex;
   min-height: 100vh;
   background-color: #f8fafc;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100vh;
 }
 
 /* Bulk Actions */
@@ -106,7 +114,8 @@
 
 /* Tabs */
 .ar-tabs {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .ar-tabs__nav {
@@ -160,35 +169,147 @@
 /* Table */
 .ar-table-container {
   overflow-x: auto;
+  overflow-y: auto;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
+  position: relative;
+  width: 100%;
+  background: white;
 }
 
 .ar-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   background: white;
+  min-width: 1200px; /* Reduced minimum width */
+  table-layout: fixed;
 }
 
 .ar-table th {
   background-color: #f9fafb;
-  padding: 12px 16px;
+  padding: 8px 12px;
   text-align: left;
   font-weight: 600;
-  font-size: 12px;
+  font-size: 11px;
   color: #374151;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   border-bottom: 1px solid #e5e7eb;
   white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 5;
 }
 
 .ar-table td {
-  padding: 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid #f3f4f6;
-  font-size: 14px;
+  font-size: 13px;
   color: #374151;
   white-space: nowrap;
+  background: white;
+}
+
+/* Sticky Columns - Checkbox */
+.ar-table th:nth-child(1),
+.ar-table td:nth-child(1) {
+  position: sticky;
+  left: 0;
+  z-index: 15;
+  background-color: #f9fafb;
+  border-right: 2px solid #e5e7eb;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.08);
+  width: 50px;
+  min-width: 50px;
+  max-width: 50px;
+}
+
+.ar-table td:nth-child(1) {
+  background-color: white;
+}
+
+.ar-table tbody tr:hover td:nth-child(1) {
+  background-color: #f9fafb;
+}
+
+/* Sticky Columns - Employee Name */
+.ar-table th:nth-child(2),
+.ar-table td:nth-child(2) {
+  position: sticky;
+  left: 50px;
+  z-index: 14;
+  background-color: #f9fafb;
+  border-right: 2px solid #e5e7eb;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.08);
+  width: 180px;
+  min-width: 180px;
+  max-width: 180px;
+}
+
+.ar-table td:nth-child(2) {
+  background-color: white;
+}
+
+.ar-table tbody tr:hover td:nth-child(2) {
+  background-color: #f9fafb;
+}
+
+/* Sticky Columns - Actions */
+.ar-table th:last-child,
+.ar-table td:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 13;
+  background-color: #f9fafb;
+  border-left: 2px solid #e5e7eb;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.08);
+  width: 120px;
+  min-width: 120px;
+  max-width: 120px;
+}
+
+.ar-table td:last-child {
+  background-color: white;
+}
+
+.ar-table tbody tr:hover td:last-child {
+  background-color: #f9fafb;
+}
+
+/* Scrollable columns */
+.ar-table th:not(:nth-child(1)):not(:nth-child(2)):not(:last-child),
+.ar-table td:not(:nth-child(1)):not(:nth-child(2)):not(:last-child) {
+  width: 100px;
+  min-width: 100px;
+}
+
+/* Enhanced hover effects */
+.ar-table tbody tr:hover {
+  background-color: transparent;
+}
+
+.ar-table tbody tr:hover td:not(:nth-child(1)):not(:nth-child(2)):not(:last-child) {
+  background-color: #f9fafb;
+}
+
+/* Prevent body scroll during table scroll */
+.ar-table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.ar-table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.ar-table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.ar-table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .ar-table tbody tr:hover {
@@ -244,6 +365,7 @@
   justify-content: center;
   padding: 48px 24px;
   gap: 16px;
+  min-height: 400px;
 }
 
 .ar-loading__spinner {
@@ -273,6 +395,7 @@
   justify-content: center;
   padding: 48px 24px;
   gap: 16px;
+  min-height: 400px;
 }
 
 .ar-error p {
@@ -312,12 +435,15 @@
 
 .ar-main-content {
   flex: 1;
-  margin-left: 280px;
+  margin-left: 0;
   transition: margin-left 0.3s ease;
+  position: relative;
+  width: 100%;
+  height: 100vh;
 }
 
 .ar-main-content.ar-main-content--collapsed {
-  margin-left: 80px;
+  margin-left: 0;
 }
 
 .ar-navbar {
@@ -327,6 +453,7 @@
   right: 0;
   z-index: 1000;
   transition: left 0.3s ease;
+  height: 70px;
 }
 
 .ar-navbar--collapsed {
@@ -334,14 +461,28 @@
 }
 
 .ar-content {
-  padding: 100px 24px 24px 24px;
-  min-height: calc(100vh - 80px);
+  padding: 70px 12px 12px 12px;
+  height: 100vh;
   background-color: #f5f7fa;
+  overflow: hidden;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+}
+
+.ar-content.ar-content--collapsed {
+  left: 80px;
 }
 
 .ar-content-container {
-  max-width: 1400px;
+  max-width: 100%;
   margin: 0 auto;
+  height: calc(100vh - 96px);
+  display: flex;
+  flex-direction: column;
 }
 
 /* Header Section */
@@ -349,7 +490,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 24px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
 }
 
 .ar-header__left {
@@ -502,15 +644,36 @@
   border-radius: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  min-height: 400px;
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .ar-card__content {
-  padding: 48px 24px;
+  padding: 0;
   display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 400px;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Prevent body scroll when table scrolls */
+.ar-card__content:has(.ar-table-container) {
+  padding: 0;
+  overflow: hidden;
+}
+
+.ar-table-container {
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  flex: 1;
+  height: auto;
+  min-height: 0;
 }
 
 /* Empty State */
@@ -519,6 +682,12 @@
   max-width: 400px;
   margin: 0 auto;
   color: #9ca3af;
+  padding: 48px 24px;
+  min-height: 400px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .ar-empty-state__icon {
@@ -552,11 +721,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 24px;
+  padding: 12px 16px;
   background: white;
   border-radius: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
 }
 
 .ar-controls__left {

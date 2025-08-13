@@ -1,8 +1,17 @@
-/* Existing styles - kept unchanged for your layout */
+/* Fixed Body Layout */
+body {
+  overflow: hidden;
+}
+
 .work-records-page {
   display: flex;
   height: 100vh;
   background: #f7f7f7;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
 }
 
 .ha-main-content {
@@ -10,29 +19,52 @@
   display: flex;
   flex-direction: column;
   background: #f7f7f7;
-}
-
-/* Ensure Work Records content clears the fixed sidebar */
-.ha-main-content {
-  margin-left: 280px; /* match expanded sidebar width */
-  padding: 16px;
+  margin-left: 0;
+  padding: 0;
   transition: margin-left 0.3s ease;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .ha-main-content--collapsed {
-  margin-left: 80px; /* match collapsed sidebar width */
+  margin-left: 0;
 }
 
 .ha-navbar {
   background: #fff;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  z-index: 2;
+  z-index: 1000;
+  position: fixed;
+  top: 0;
+  left: 280px;
+  right: 0;
+  height: 70px;
+  transition: left 0.3s ease;
+}
+
+.ha-navbar--collapsed {
+  left: 80px;
 }
 
 .ha-content {
   flex: 1;
-  padding: 32px 32px 0 32px;
+  padding: 80px 24px 16px 24px;
   background: #f7f7f7;
+  position: fixed;
+  top: 0;
+  left: 280px;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+.ha-content--collapsed {
+  left: 80px;
 }
 
 .ha-breadcrumb {
@@ -51,9 +83,10 @@
 .wr-header-card {
   background: #fff;
   border-radius: 8px;
-  padding: 24px 24px 12px 24px;
-  margin-bottom: 24px;
+  padding: 16px 20px 12px 20px;
+  margin-bottom: 16px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+  flex-shrink: 0;
 }
 .wr-header-title-row {
   display: flex;
@@ -140,7 +173,10 @@
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0,0,0,0.04);
   padding: 0 0 16px 0;
-  overflow-x: auto;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  margin-top: 16px;
 }
 .wr-table {
   width: 100%;
@@ -412,6 +448,17 @@
 .wr-status--pending {
   background-color: #ef4444;
   color: white;
+}
+
+.wr-status--clickable {
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.wr-status--clickable:hover {
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  opacity: 0.9;
 }
 
 /* Table Header Improvements */

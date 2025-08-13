@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee';
 import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo';
@@ -35,6 +36,7 @@ const formattedDate = today.toLocaleDateString('en-US', { month: 'short', day: '
 
 const WorkRecords: React.FC = () => {
   const { isCollapsed } = useSidebar();
+  const navigate = useNavigate();
   const [showFilter, setShowFilter] = useState(false);
   const [openSection, setOpenSection] = useState<string | null>('employee');
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
@@ -117,6 +119,11 @@ const WorkRecords: React.FC = () => {
   // Handle Filter Button in modal (here just closes modal after click, adjust as needed)
   const handleApplyFilter = () => {
     setShowFilter(false);
+  };
+
+  // Handle navigation to attendance records for validation
+  const handleValidationClick = () => {
+    navigate('/attendance/attendances');
   };
 
   // Export table data as Excel file
@@ -223,12 +230,15 @@ const WorkRecords: React.FC = () => {
                       {days.map(day => {
                         const status = getAttendanceStatus(employee.id, day);
                         const display = getStatusDisplay(status);
+                        const needsValidation = status && !status.validated;
                         return (
                           <td key={day} className="wr-day-cell">
                             {status && (
                               <span 
-                                className={`wr-status wr-status--${display.color}`}
+                                className={`wr-status wr-status--${display.color} ${needsValidation ? 'wr-status--clickable' : ''}`}
                                 title={display.title}
+                                onClick={needsValidation ? handleValidationClick : undefined}
+                                style={needsValidation ? { cursor: 'pointer' } : {}}
                               >
                                 {display.symbol}
                               </span>
