@@ -1,229 +1,182 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Sidebar from '../../../components/Layout/Sidebar';
 import Header from '../../../components/Layout/Header';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
+import {
+  getRotatingWorkTypeAssigns,
+  createRotatingWorkTypeAssign,
+  updateRotatingWorkTypeAssign,
+  deleteRotatingWorkTypeAssign,
+  RotatingWorkTypeAssign as ApiRotatingWorkTypeAssign,
+  CreateRotatingWorkTypeAssignData
+} from '../../../services/rotatingWorkTypeAssignApi';
 import './RotatingWorkTypeAssign.css';
 
-interface Employee {
-  id: string;
-  name: string;
-  avatar: string;
-  badgeId: string;
-  department: string;
-  position: string;
-  currentWorkType?: string;
+// Updated interfaces to match API response
+interface RotatingWorkTypeAssign {
+  id: number;
+  current_work_type_name: string;
+  next_work_type_name: string;
+  rotating_work_type_name: string;
+  created_at: string;
+  is_active: boolean;
+  start_date: string;
+  next_change_date: string;
+  based_on: string;
+  rotate_after_day: number;
+  rotate_every_weekend: string;
+  rotate_every: string;
+  additional_data: {
+    next_work_type_index: number;
+  };
+  created_by: number;
+  modified_by: number;
+  employee_id: number;
+  rotating_work_type_id: number;
+  current_work_type: number;
+  next_work_type: number;
+  rotate: string;
 }
 
-interface WorkType {
-  id: string;
-  name: string;
-  description: string;
-  isRemote: boolean;
-  requirements: string[];
+interface CreateRotatingWorkTypeAssignForm {
+  employee_id: string;
+  rotating_work_type_id: string;
+  start_date: string;
+  based_on: string;
+  rotate_after_day: string;
+  rotate_every_weekend: string;
+  rotate_every: string;
 }
 
-interface WorkTypePattern {
-  id: string;
-  name: string;
-  description: string;
-  workTypes: WorkType[];
-  rotationPeriod: number; // in days
-  isActive: boolean;
-}
-
-interface Assignment {
-  id: string;
-  employee: Employee;
-  workTypePattern: WorkTypePattern;
-  startDate: string;
-  endDate?: string;
-  currentCycle: number;
-  status: 'active' | 'upcoming' | 'completed';
-  assignedBy: string;
-  assignedDate: string;
-}
+type NotificationType = 'success' | 'error';
 
 const RotatingWorkTypeAssign: React.FC = () => {
-  const [viewMode, setViewMode] = useState<'assignments' | 'patterns'>('assignments');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [departmentFilter, setDepartmentFilter] = useState<string>('all');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [createForm, setCreateForm] = useState({
-    employee: '',
-    workTypePattern: '',
-    startDate: '',
-    endDate: '',
-    notes: ''
+  const [loading, setLoading] = useState(false);
+  const [assignments, setAssignments] = useState<RotatingWorkTypeAssign[]>([]);
+  const [notification, setNotification] = useState<{ type: NotificationType; message: string } | null>(null);
+  const [createForm, setCreateForm] = useState<CreateRotatingWorkTypeAssignForm>({
+    employee_id: '',
+    rotating_work_type_id: '',
+    start_date: '',
+    based_on: 'after',
+    rotate_after_day: '7',
+    rotate_every_weekend: 'monday',
+    rotate_every: '1'
   });
   const { isCollapsed, toggleSidebar } = useSidebar();
 
-  // Mock data for work types
-  const mockWorkTypes: WorkType[] = [
-    {
-      id: 'WT-001',
-      name: 'Office Work',
-      description: 'Standard office-based work arrangement',
-      isRemote: false,
-      requirements: ['Physical presence', 'Office equipment']
-    },
-    {
-      id: 'WT-002',
-      name: 'Remote Work',
-      description: 'Work from home arrangement',
-      isRemote: true,
-      requirements: ['Stable internet', 'Home office setup']
-    },
-    {
-      id: 'WT-003',
-      name: 'Field Work',
-      description: 'Client-facing field work arrangement',
-      isRemote: false,
-      requirements: ['Travel capability', 'Client interaction skills']
-    },
-    {
-      id: 'WT-004',
-      name: 'Hybrid Work',
-      description: 'Mix of office and remote work',
-      isRemote: false,
-      requirements: ['Flexibility', 'Home and office setup']
+  // API functions
+  const fetchRotatingWorkTypeAssigns = async () => {
+    try {
+      setLoading(true);
+      const response = await getRotatingWorkTypeAssigns();
+      setAssignments(response.results);
+    } catch (error) {
+      console.error('Error fetching rotating work type assigns:', error);
+      showNotification('error', 'Failed to load rotating work type assignments');
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
 
-  // Mock data for work type patterns
-  const mockWorkTypePatterns: WorkTypePattern[] = [
-    {
-      id: 'WTP-001',
-      name: 'Office-Remote Rotation',
-      description: 'Alternating between office and remote work weekly',
-      workTypes: [mockWorkTypes[0], mockWorkTypes[1]],
-      rotationPeriod: 7,
-      isActive: true
-    },
-    {
-      id: 'WTP-002',
-      name: 'Full Cycle Rotation',
-      description: 'Complete rotation through all work types monthly',
-      workTypes: mockWorkTypes,
-      rotationPeriod: 30,
-      isActive: true
-    },
-    {
-      id: 'WTP-003',
-      name: 'Sales Field Rotation',
-      description: 'Office and field work for sales team',
-      workTypes: [mockWorkTypes[0], mockWorkTypes[2]],
-      rotationPeriod: 14,
-      isActive: false
+  const handleCreateAssignment = async () => {
+    if (!createForm.employee_id || !createForm.rotating_work_type_id || !createForm.start_date) {
+      showNotification('error', 'Please fill in all required fields');
+      return;
     }
-  ];
 
-  // Mock data for assignments
-  const mockAssignments: Assignment[] = [
-    {
-      id: 'RWTA-001',
-      employee: {
-        id: 'EMP-001',
-        name: 'John Smith',
-        avatar: '/avatars/john-smith.jpg',
-        badgeId: 'HOH-001',
-        department: 'Engineering',
-        position: 'Senior Developer',
-        currentWorkType: 'Remote Work'
-      },
-      workTypePattern: mockWorkTypePatterns[0],
-      startDate: '2024-01-15',
-      currentCycle: 3,
-      status: 'active',
-      assignedBy: 'Manager Name',
-      assignedDate: '2024-01-10'
-    },
-    {
-      id: 'RWTA-002',
-      employee: {
-        id: 'EMP-002',
-        name: 'Sarah Johnson',
-        avatar: '/avatars/sarah-johnson.jpg',
-        badgeId: 'HOH-002',
-        department: 'Marketing',
-        position: 'Marketing Manager',
-        currentWorkType: 'Hybrid Work'
-      },
-      workTypePattern: mockWorkTypePatterns[1],
-      startDate: '2024-02-01',
-      currentCycle: 1,
-      status: 'upcoming',
-      assignedBy: 'Manager Name',
-      assignedDate: '2024-01-25'
-    },
-    {
-      id: 'RWTA-003',
-      employee: {
-        id: 'EMP-003',
-        name: 'Mike Chen',
-        avatar: '/avatars/mike-chen.jpg',
-        badgeId: 'HOH-003',
-        department: 'Sales',
-        position: 'Sales Executive',
-        currentWorkType: 'Field Work'
-      },
-      workTypePattern: mockWorkTypePatterns[2],
-      startDate: '2023-12-01',
-      endDate: '2024-01-15',
-      currentCycle: 2,
-      status: 'completed',
-      assignedBy: 'Manager Name',
-      assignedDate: '2023-11-25'
-    }
-  ];
-
-  // Filter and search logic for assignments
-  const filteredAssignments = useMemo(() => {
-    return mockAssignments.filter(assignment => {
-      const matchesSearch = assignment.employee.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          assignment.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          assignment.workTypePattern.name.toLowerCase().includes(searchTerm.toLowerCase());
+    try {
+      setLoading(true);
+      const data: CreateRotatingWorkTypeAssignData = {
+        employee_id: parseInt(createForm.employee_id),
+        rotating_work_type_id: parseInt(createForm.rotating_work_type_id),
+        start_date: createForm.start_date,
+        based_on: createForm.based_on,
+        rotate_after_day: parseInt(createForm.rotate_after_day),
+        rotate_every_weekend: createForm.rotate_every_weekend,
+        rotate_every: createForm.rotate_every
+      };
       
-      const matchesStatus = statusFilter === 'all' || assignment.status === statusFilter;
-      const matchesDepartment = departmentFilter === 'all' || assignment.employee.department === departmentFilter;
-      
-      return matchesSearch && matchesStatus && matchesDepartment;
-    });
-  }, [mockAssignments, searchTerm, statusFilter, departmentFilter]);
+      await createRotatingWorkTypeAssign(data);
+      showNotification('success', 'Rotating work type assignment created successfully');
+      setCreateForm({
+        employee_id: '',
+        rotating_work_type_id: '',
+        start_date: '',
+        based_on: 'after',
+        rotate_after_day: '7',
+        rotate_every_weekend: 'monday',
+        rotate_every: '1'
+      });
+      setShowCreateModal(false);
+      fetchRotatingWorkTypeAssigns();
+    } catch (error: any) {
+      showNotification('error', error.message || 'Failed to create assignment');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // Filter work type patterns
-  const filteredPatterns = useMemo(() => {
-    return mockWorkTypePatterns.filter(pattern => {
-      return pattern.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-             pattern.description.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  }, [mockWorkTypePatterns, searchTerm]);
+  const handleUpdateAssignment = async (id: number, data: { is_active: boolean }) => {
+    try {
+      await updateRotatingWorkTypeAssign(id, data);
+      showNotification('success', `Assignment ${data.is_active ? 'activated' : 'deactivated'} successfully`);
+      fetchRotatingWorkTypeAssigns();
+    } catch (error: any) {
+      showNotification('error', error.message || 'Failed to update assignment');
+    }
+  };
 
-  // Statistics
-  const stats = useMemo(() => {
-    const totalAssignments = mockAssignments.length;
-    const activeAssignments = mockAssignments.filter(a => a.status === 'active').length;
-    const upcomingAssignments = mockAssignments.filter(a => a.status === 'upcoming').length;
-    const totalPatterns = mockWorkTypePatterns.length;
-    const activePatterns = mockWorkTypePatterns.filter(p => p.isActive).length;
+  const handleDeleteAssignment = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this assignment?')) {
+      return;
+    }
+
+    try {
+      await deleteRotatingWorkTypeAssign(id);
+      showNotification('success', 'Assignment deleted successfully');
+      fetchRotatingWorkTypeAssigns();
+    } catch (error: any) {
+      showNotification('error', error.message || 'Failed to delete assignment');
+    }
+  };
+
+  useEffect(() => {
+    fetchRotatingWorkTypeAssigns();
+  }, []);
+
+  // Helper functions
+  const showNotification = (type: NotificationType, message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 5000);
+  };
+
+  const getStatusText = (assignment: RotatingWorkTypeAssign): string => {
+    if (!assignment.is_active) return 'Inactive';
     
-    return { totalAssignments, activeAssignments, upcomingAssignments, totalPatterns, activePatterns };
-  }, [mockAssignments, mockWorkTypePatterns]);
-
-  const getStatusBadge = (status: string) => {
-    const statusClasses = {
-      active: 'oh-status-badge oh-status-badge--active',
-      upcoming: 'oh-status-badge oh-status-badge--upcoming',
-      completed: 'oh-status-badge oh-status-badge--completed'
-    };
+    const today = new Date();
+    const startDate = new Date(assignment.start_date);
+    const nextChangeDate = new Date(assignment.next_change_date);
     
-    return (
-      <span className={statusClasses[status as keyof typeof statusClasses]}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
-      </span>
-    );
+    if (startDate > today) return 'Upcoming';
+    if (nextChangeDate < today) return 'Expired';
+    return 'Active';
+  };
+
+  const getStatusClass = (assignment: RotatingWorkTypeAssign): string => {
+    const status = getStatusText(assignment);
+    switch (status) {
+      case 'Active': return 'oh-status-badge--active';
+      case 'Upcoming': return 'oh-status-badge--upcoming';
+      case 'Inactive': return 'oh-status-badge--inactive';
+      case 'Expired': return 'oh-status-badge--expired';
+      default: return 'oh-status-badge--inactive';
+    }
   };
 
   const formatDate = (dateString: string) => {
@@ -234,44 +187,57 @@ const RotatingWorkTypeAssign: React.FC = () => {
     });
   };
 
-  const getCurrentWorkType = (assignment: Assignment) => {
-    const currentWorkType = assignment.workTypePattern.workTypes[assignment.currentCycle % assignment.workTypePattern.workTypes.length];
-    return currentWorkType;
+  // Filter and search logic for assignments
+  const filteredAssignments = useMemo(() => {
+    return assignments.filter(assignment => {
+      const matchesSearch = assignment.rotating_work_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          assignment.current_work_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          assignment.next_work_type_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          assignment.id.toString().includes(searchTerm.toLowerCase());
+      
+      const status = getStatusText(assignment);
+      const matchesStatus = statusFilter === 'all' || status.toLowerCase() === statusFilter.toLowerCase();
+      
+      const matchesType = typeFilter === 'all' || assignment.based_on === typeFilter;
+      
+      return matchesSearch && matchesStatus && matchesType;
+    });
+  }, [assignments, searchTerm, statusFilter, typeFilter]);
+
+  // Statistics
+  const stats = useMemo(() => {
+    const totalAssignments = assignments.length;
+    const activeAssignments = assignments.filter(a => getStatusText(a) === 'Active').length;
+    const upcomingAssignments = assignments.filter(a => getStatusText(a) === 'Upcoming').length;
+    const inactiveAssignments = assignments.filter(a => getStatusText(a) === 'Inactive').length;
+    
+    return { totalAssignments, activeAssignments, upcomingAssignments, inactiveAssignments };
+  }, [assignments]);
+
+  const getStatusBadge = (assignment: RotatingWorkTypeAssign) => {
+    const status = getStatusText(assignment);
+    const statusClass = getStatusClass(assignment);
+    
+    return (
+      <span className={`oh-status-badge ${statusClass}`}>
+        {status}
+      </span>
+    );
   };
 
   // Form handling functions
-  const handleFormChange = (field: string, value: string) => {
+  const handleFormChange = (field: keyof CreateRotatingWorkTypeAssignForm, value: string) => {
     setCreateForm(prev => ({
       ...prev,
       [field]: value
     }));
   };
 
-  const handleCreateAssignment = async () => {
-    if (!createForm.employee || !createForm.workTypePattern || !createForm.startDate) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Reset form and close modal
-      setCreateForm({
-        employee: '',
-        workTypePattern: '',
-        startDate: '',
-        endDate: '',
-        notes: ''
-      });
-      setShowCreateModal(false);
-    } catch (error) {
-      console.error('Error creating assignment:', error);
-    } finally {
-      setIsLoading(false);
-    }
+  const closeNotification = () => {
+    setNotification(null);
   };
+
+
 
   return (
     <div className="oh-dashboard">
@@ -303,104 +269,75 @@ const RotatingWorkTypeAssign: React.FC = () => {
             {/* Tab Navigation */}
             <div className="oh-tabs">
               <button 
-                className={`oh-tab ${viewMode === 'assignments' ? 'oh-tab--active' : ''}`}
-                onClick={() => setViewMode('assignments')}
+                className="oh-tab oh-tab--active"
               >
                 Assignments ({stats.totalAssignments})
-              </button>
-              <button 
-                className={`oh-tab ${viewMode === 'patterns' ? 'oh-tab--active' : ''}`}
-                onClick={() => setViewMode('patterns')}
-              >
-                Work Type Patterns ({stats.totalPatterns})
               </button>
             </div>
 
             {/* Statistics Cards */}
             <div className="oh-stats-grid">
-              {viewMode === 'assignments' ? (
-                <>
-                  <div className="oh-stat-card">
-                    <div className="oh-stat-card__icon oh-stat-card__icon--total">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                        <line x1="16" y1="2" x2="16" y2="6"></line>
-                        <line x1="8" y1="2" x2="8" y2="6"></line>
-                        <line x1="3" y1="10" x2="21" y2="10"></line>
-                      </svg>
-                    </div>
-                    <div className="oh-stat-card__content">
-                      <div className="oh-stat-card__value">{stats.totalAssignments}</div>
-                      <div className="oh-stat-card__label">Total Assignments</div>
-                    </div>
-                  </div>
+              <div className="oh-stat-card">
+                <div className="oh-stat-card__icon oh-stat-card__icon--total">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                </div>
+                <div className="oh-stat-card__content">
+                  <div className="oh-stat-card__value">{stats.totalAssignments}</div>
+                  <div className="oh-stat-card__label">Total Assignments</div>
+                </div>
+              </div>
 
-                  <div className="oh-stat-card">
-                    <div className="oh-stat-card__icon oh-stat-card__icon--active">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12,6 12,12 16,14"></polyline>
-                      </svg>
-                    </div>
-                    <div className="oh-stat-card__content">
-                      <div className="oh-stat-card__value">{stats.activeAssignments}</div>
-                      <div className="oh-stat-card__label">Active</div>
-                    </div>
-                  </div>
+              <div className="oh-stat-card">
+                <div className="oh-stat-card__icon oh-stat-card__icon--active">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12,6 12,12 16,14"></polyline>
+                  </svg>
+                </div>
+                <div className="oh-stat-card__content">
+                  <div className="oh-stat-card__value">{stats.activeAssignments}</div>
+                  <div className="oh-stat-card__label">Active</div>
+                </div>
+              </div>
 
-                  <div className="oh-stat-card">
-                    <div className="oh-stat-card__icon oh-stat-card__icon--upcoming">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M8 2v4"></path>
-                        <path d="M16 2v4"></path>
-                        <rect width="18" height="18" x="3" y="4" rx="2"></rect>
-                        <path d="M3 10h18"></path>
-                        <path d="M8 14h.01"></path>
-                        <path d="M12 14h.01"></path>
-                        <path d="M16 14h.01"></path>
-                        <path d="M8 18h.01"></path>
-                        <path d="M12 18h.01"></path>
-                        <path d="M16 18h.01"></path>
-                      </svg>
-                    </div>
-                    <div className="oh-stat-card__content">
-                      <div className="oh-stat-card__value">{stats.upcomingAssignments}</div>
-                      <div className="oh-stat-card__label">Upcoming</div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="oh-stat-card">
-                    <div className="oh-stat-card__icon oh-stat-card__icon--total">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M12 2L2 7l10 5 10-5-10-5z"></path>
-                        <path d="M2 17l10 5 10-5"></path>
-                        <path d="M2 12l10 5 10-5"></path>
-                      </svg>
-                    </div>
-                    <div className="oh-stat-card__content">
-                      <div className="oh-stat-card__value">{stats.totalPatterns}</div>
-                      <div className="oh-stat-card__label">Total Patterns</div>
-                    </div>
-                  </div>
+              <div className="oh-stat-card">
+                <div className="oh-stat-card__icon oh-stat-card__icon--upcoming">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M8 2v4"></path>
+                    <path d="M16 2v4"></path>
+                    <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+                    <path d="M3 10h18"></path>
+                    <path d="M8 14h.01"></path>
+                    <path d="M12 14h.01"></path>
+                    <path d="M16 14h.01"></path>
+                    <path d="M8 18h.01"></path>
+                    <path d="M12 18h.01"></path>
+                    <path d="M16 18h.01"></path>
+                  </svg>
+                </div>
+                <div className="oh-stat-card__content">
+                  <div className="oh-stat-card__value">{stats.upcomingAssignments}</div>
+                  <div className="oh-stat-card__label">Upcoming</div>
+                </div>
+              </div>
 
-                  <div className="oh-stat-card">
-                    <div className="oh-stat-card__icon oh-stat-card__icon--active">
-                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <polyline points="9,11 12,14 22,4"></polyline>
-                        <path d="m21,4 0,7 -5,0"></path>
-                        <path d="M5.5,7 8.5,7"></path>
-                        <path d="M7,16 l-1.5,0 0,-4.5"></path>
-                      </svg>
-                    </div>
-                    <div className="oh-stat-card__content">
-                      <div className="oh-stat-card__value">{stats.activePatterns}</div>
-                      <div className="oh-stat-card__label">Active Patterns</div>
-                    </div>
-                  </div>
-                </>
-              )}
+              <div className="oh-stat-card">
+                <div className="oh-stat-card__icon oh-stat-card__icon--inactive">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+                  </svg>
+                </div>
+                <div className="oh-stat-card__content">
+                  <div className="oh-stat-card__value">{stats.inactiveAssignments}</div>
+                  <div className="oh-stat-card__label">Inactive</div>
+                </div>
+              </div>
             </div>
 
             {/* Filters and Controls */}
@@ -414,7 +351,7 @@ const RotatingWorkTypeAssign: React.FC = () => {
                   <input
                     type="text"
                     className="oh-search-field__input"
-                    placeholder={viewMode === 'assignments' ? "Search assignments..." : "Search patterns..."}
+                    placeholder="Search assignments..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -422,182 +359,119 @@ const RotatingWorkTypeAssign: React.FC = () => {
               </div>
 
               <div className="oh-controls__right">
-                {viewMode === 'assignments' && (
-                  <>
-                    <select 
-                      className="oh-select"
-                      value={statusFilter}
-                      onChange={(e) => setStatusFilter(e.target.value)}
-                    >
-                      <option value="all">All Status</option>
-                      <option value="active">Active</option>
-                      <option value="upcoming">Upcoming</option>
-                      <option value="completed">Completed</option>
-                    </select>
+                <select 
+                  className="oh-select"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="active">Active</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="inactive">Inactive</option>
+                </select>
 
-                    <select 
-                      className="oh-select"
-                      value={departmentFilter}
-                      onChange={(e) => setDepartmentFilter(e.target.value)}
-                    >
-                      <option value="all">All Departments</option>
-                      <option value="Engineering">Engineering</option>
-                      <option value="Marketing">Marketing</option>
-                      <option value="Sales">Sales</option>
-                    </select>
-                  </>
-                )}
+                <select 
+                  className="oh-select"
+                  value={typeFilter}
+                  onChange={(e) => setTypeFilter(e.target.value)}
+                >
+                  <option value="all">All Types</option>
+                  <option value="after">After Days</option>
+                  <option value="weekend">Weekend</option>
+                </select>
               </div>
             </div>
 
             {/* Content Area */}
             <div className="oh-content-area">
-              {viewMode === 'assignments' ? (
-                <div className="oh-table-container">
+              <div className="oh-table-container">
+                {loading ? (
+                  <div className="oh-loading-state">
+                    <div className="oh-spinner"></div>
+                    <p>Loading assignments...</p>
+                  </div>
+                ) : filteredAssignments.length === 0 ? (
+                  <div className="oh-empty-state">
+                    <div className="oh-empty-state__icon">
+                      <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="m21 21-4.35-4.35"></path>
+                      </svg>
+                    </div>
+                    <h3 className="oh-empty-state__title">No assignments found</h3>
+                    <p className="oh-empty-state__message">No employees assigned to rotating work types.</p>
+                  </div>
+                ) : (
                   <table className="oh-table">
                     <thead>
                       <tr>
                         <th>Assignment ID</th>
                         <th>Employee</th>
-                        <th>Work Type Pattern</th>
                         <th>Current Work Type</th>
-                        <th>Cycle</th>
+                        <th>Next Work Type</th>
+                        <th>Rotation</th>
                         <th>Start Date</th>
+                        <th>Next Change</th>
                         <th>Status</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredAssignments.map((assignment) => {
-                        const currentWorkType = getCurrentWorkType(assignment);
-                        return (
-                          <tr key={assignment.id}>
-                            <td>
-                              <span className="oh-assignment-id">{assignment.id}</span>
-                            </td>
-                            <td>
-                              <div className="oh-employee-info">
-                                <div className="oh-employee-avatar">
-                                  {assignment.employee.name.charAt(0)}
-                                </div>
-                                <div className="oh-employee-details">
-                                  <div className="oh-employee-name">{assignment.employee.name}</div>
-                                  <div className="oh-employee-badge">{assignment.employee.badgeId}</div>
-                                  <div className="oh-employee-dept">{assignment.employee.department}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="oh-pattern-info">
-                                <div className="oh-pattern-name">{assignment.workTypePattern.name}</div>
-                                <div className="oh-pattern-desc">{assignment.workTypePattern.description}</div>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="oh-current-worktype">
-                                <div className="oh-worktype-name">{currentWorkType?.name}</div>
-                                <div className="oh-worktype-desc">{currentWorkType?.description}</div>
-                                <div className="oh-worktype-remote">
-                                  <span className={`oh-remote-badge ${currentWorkType?.isRemote ? 'oh-remote-badge--remote' : 'oh-remote-badge--office'}`}>
-                                    {currentWorkType?.isRemote ? 'Remote' : 'On-site'}
-                                  </span>
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <span className="oh-cycle-badge">Cycle {assignment.currentCycle}</span>
-                            </td>
-                            <td>{formatDate(assignment.startDate)}</td>
-                            <td>{getStatusBadge(assignment.status)}</td>
-                            <td>
-                              <div className="oh-actions">
-                                <button className="oh-btn oh-btn--sm oh-btn--ghost">View</button>
-                                {assignment.status === 'active' && (
-                                  <button className="oh-btn oh-btn--sm oh-btn--secondary">Modify</button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
+                      {filteredAssignments.map((assignment) => (
+                        <tr key={assignment.id}>
+                          <td>
+                            <span className="oh-assignment-id">{assignment.id}</span>
+                          </td>
+                          <td>
+                            <div className="oh-employee-info">
+                              <div className="oh-employee-name">Employee {assignment.employee_id}</div>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="oh-work-type-badge">
+                              {assignment.current_work_type_name}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="oh-work-type-badge">
+                              {assignment.next_work_type_name}
+                            </span>
+                          </td>
+                          <td>{assignment.rotating_work_type_name}</td>
+                          <td>{formatDate(assignment.start_date)}</td>
+                          <td>{assignment.next_change_date ? formatDate(assignment.next_change_date) : 'N/A'}</td>
+                          <td>{getStatusBadge(assignment)}</td>
+                          <td>
+                            <div className="oh-actions">
+                              {assignment.is_active ? (
+                                <button 
+                                  className="oh-btn oh-btn--sm oh-btn--warning"
+                                  onClick={() => handleUpdateAssignment(assignment.id, { is_active: false })}
+                                >
+                                  Deactivate
+                                </button>
+                              ) : (
+                                <button 
+                                  className="oh-btn oh-btn--sm oh-btn--success"
+                                  onClick={() => handleUpdateAssignment(assignment.id, { is_active: true })}
+                                >
+                                  Activate
+                                </button>
+                              )}
+                              <button 
+                                className="oh-btn oh-btn--sm oh-btn--danger"
+                                onClick={() => handleDeleteAssignment(assignment.id)}
+                              >
+                                Delete
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
-                </div>
-              ) : (
-                <div className="oh-patterns-grid">
-                  {filteredPatterns.map((pattern) => (
-                    <div key={pattern.id} className="oh-pattern-card">
-                      <div className="oh-pattern-card__header">
-                        <div className="oh-pattern-card__title">
-                          <h3>{pattern.name}</h3>
-                          <span className={`oh-pattern-status ${pattern.isActive ? 'oh-pattern-status--active' : 'oh-pattern-status--inactive'}`}>
-                            {pattern.isActive ? 'Active' : 'Inactive'}
-                          </span>
-                        </div>
-                        <p className="oh-pattern-card__description">{pattern.description}</p>
-                      </div>
-
-                      <div className="oh-pattern-card__details">
-                        <div className="oh-pattern-detail">
-                          <span className="oh-pattern-detail__label">Rotation Period:</span>
-                          <span className="oh-pattern-detail__value">{pattern.rotationPeriod} days</span>
-                        </div>
-                        <div className="oh-pattern-detail">
-                          <span className="oh-pattern-detail__label">Work Types:</span>
-                          <span className="oh-pattern-detail__value">{pattern.workTypes.length} types</span>
-                        </div>
-                      </div>
-
-                      <div className="oh-pattern-card__worktypes">
-                        {pattern.workTypes.map((workType, index) => (
-                          <div key={workType.id} className="oh-worktype-item">
-                            <div className="oh-worktype-item__header">
-                              <div className="oh-worktype-item__name">{workType.name}</div>
-                              <span className={`oh-remote-badge ${workType.isRemote ? 'oh-remote-badge--remote' : 'oh-remote-badge--office'}`}>
-                                {workType.isRemote ? 'Remote' : 'On-site'}
-                              </span>
-                            </div>
-                            <div className="oh-worktype-item__desc">{workType.description}</div>
-                            <div className="oh-worktype-item__requirements">
-                              <span className="oh-requirements-label">Requirements:</span>
-                              <div className="oh-requirements-list">
-                                {workType.requirements.map((req, reqIndex) => (
-                                  <span key={reqIndex} className="oh-requirement-tag">{req}</span>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className="oh-pattern-card__actions">
-                        <button className="oh-btn oh-btn--sm oh-btn--ghost">View Details</button>
-                        <button className="oh-btn oh-btn--sm oh-btn--primary">Assign Employees</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {((viewMode === 'assignments' && filteredAssignments.length === 0) || 
-                (viewMode === 'patterns' && filteredPatterns.length === 0)) && (
-                <div className="oh-empty-state">
-                  <div className="oh-empty-state__icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <path d="m21 21-4.35-4.35"></path>
-                    </svg>
-                  </div>
-                  <h3 className="oh-empty-state__title">
-                    {viewMode === 'assignments' ? 'No assignments found' : 'No work type patterns found'}
-                  </h3>
-                  <p className="oh-empty-state__message">
-                    {viewMode === 'assignments' 
-                      ? 'No employees assigned to rotating work types.' 
-                      : 'No work type patterns have been created yet.'}
-                  </p>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -624,34 +498,24 @@ const RotatingWorkTypeAssign: React.FC = () => {
               <div className="oh-form-grid">
                 <div className="oh-form-group">
                   <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
-                  <select 
+                  <input 
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.employee}
-                    onChange={(e) => handleFormChange('employee', e.target.value)}
-                  >
-                    <option value="">Select employee</option>
-                    {mockAssignments.map(assignment => (
-                      <option key={assignment.employee.id} value={assignment.employee.id}>
-                        {assignment.employee.name} - {assignment.employee.department}
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Enter employee ID"
+                    value={createForm.employee_id}
+                    onChange={(e) => handleFormChange('employee_id', e.target.value)}
+                  />
                 </div>
 
                 <div className="oh-form-group">
-                  <label className="oh-form-label">Work Type Pattern <span className="oh-required">*</span></label>
-                  <select 
+                  <label className="oh-form-label">Rotating Work Type ID <span className="oh-required">*</span></label>
+                  <input 
+                    type="number"
                     className="oh-form-input"
-                    value={createForm.workTypePattern}
-                    onChange={(e) => handleFormChange('workTypePattern', e.target.value)}
-                  >
-                    <option value="">Select work type pattern</option>
-                    {mockWorkTypePatterns.filter(p => p.isActive).map(pattern => (
-                      <option key={pattern.id} value={pattern.id}>
-                        {pattern.name} - {pattern.rotationPeriod} days
-                      </option>
-                    ))}
-                  </select>
+                    placeholder="Enter rotating work type ID"
+                    value={createForm.rotating_work_type_id}
+                    onChange={(e) => handleFormChange('rotating_work_type_id', e.target.value)}
+                  />
                 </div>
 
                 <div className="oh-form-group">
@@ -659,29 +523,54 @@ const RotatingWorkTypeAssign: React.FC = () => {
                   <input 
                     type="date"
                     className="oh-form-input"
-                    value={createForm.startDate}
-                    onChange={(e) => handleFormChange('startDate', e.target.value)}
+                    value={createForm.start_date}
+                    onChange={(e) => handleFormChange('start_date', e.target.value)}
                   />
                 </div>
                 
                 <div className="oh-form-group">
-                  <label className="oh-form-label">End Date</label>
-                  <input 
-                    type="date"
+                  <label className="oh-form-label">Based On</label>
+                  <select 
                     className="oh-form-input"
-                    value={createForm.endDate}
-                    onChange={(e) => handleFormChange('endDate', e.target.value)}
+                    value={createForm.based_on}
+                    onChange={(e) => handleFormChange('based_on', e.target.value)}
+                  >
+                    <option value="after">After Days</option>
+                    <option value="weekend">Weekend</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Rotate After Days</label>
+                  <input 
+                    type="number"
+                    className="oh-form-input"
+                    value={createForm.rotate_after_day}
+                    onChange={(e) => handleFormChange('rotate_after_day', e.target.value)}
                   />
                 </div>
 
-                <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-label">Notes</label>
-                  <textarea 
-                    className="oh-form-textarea"
-                    rows={3}
-                    placeholder="Additional notes for this assignment..."
-                    value={createForm.notes}
-                    onChange={(e) => handleFormChange('notes', e.target.value)}
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Rotate Every Weekend</label>
+                  <select 
+                    className="oh-form-input"
+                    value={createForm.rotate_every_weekend}
+                    onChange={(e) => handleFormChange('rotate_every_weekend', e.target.value)}
+                  >
+                    <option value="monday">Monday</option>
+                    <option value="friday">Friday</option>
+                    <option value="saturday">Saturday</option>
+                    <option value="sunday">Sunday</option>
+                  </select>
+                </div>
+
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Rotate Every</label>
+                  <input 
+                    type="text"
+                    className="oh-form-input"
+                    value={createForm.rotate_every}
+                    onChange={(e) => handleFormChange('rotate_every', e.target.value)}
                   />
                 </div>
               </div>
@@ -697,9 +586,9 @@ const RotatingWorkTypeAssign: React.FC = () => {
               <button 
                 className="oh-btn oh-btn--primary"
                 onClick={handleCreateAssignment}
-                disabled={isLoading || !createForm.employee || !createForm.workTypePattern || !createForm.startDate}
+                disabled={loading || !createForm.employee_id || !createForm.rotating_work_type_id || !createForm.start_date}
               >
-                {isLoading ? (
+                {loading ? (
                   <>
                     <div className="oh-spinner"></div>
                     Creating...
@@ -710,6 +599,38 @@ const RotatingWorkTypeAssign: React.FC = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className={`oh-notification oh-notification--${notification.type}`}>
+          <div className="oh-notification__content">
+            <div className="oh-notification__icon">
+              {notification.type === 'success' ? (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9,11 12,14 22,4"></polyline>
+                  <path d="m21,4 0,7 -5,0"></path>
+                </svg>
+              ) : (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+            </div>
+            <div className="oh-notification__message">{notification.message}</div>
+          </div>
+          <button 
+            className="oh-notification__close"
+            onClick={closeNotification}
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
       )}
 
