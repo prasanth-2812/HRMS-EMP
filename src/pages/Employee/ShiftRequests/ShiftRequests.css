@@ -5,6 +5,14 @@
   background-color: #f8f9fa;
 }
 
+/* Loading text for dropdowns */
+.oh-loading-text {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 4px;
+  font-style: italic;
+}
+
 /* Main Content Area */
 .oh-main-content {
   flex: 1;
