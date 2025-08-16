@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
+import {
+  getAllDisciplinaryActionTypes,
+  getDisciplinaryActionTypeById,
+  createDisciplinaryActionType,
+  updateDisciplinaryActionType,
+  deleteDisciplinaryActionType
+} from '../../../services/employeeService';
 
-interface DisciplinaryActionTypeData {
+interface DisciplinaryActionType {
   id: number;
   title: string;
-  type: string;
-  loginBlock: boolean;
-  company?: string;
+  action_type: 'warning' | 'suspension' | 'dismissal';
+  block_option: boolean;
+  created_at?: string;
+  is_active?: boolean;
 }
 
 interface DisciplinaryActionTypeModalProps {
@@ -14,119 +22,143 @@ interface DisciplinaryActionTypeModalProps {
 
 const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = ({ onClose }) => {
   // State for list view and form management
-  const [actionTypes, setActionTypes] = useState<DisciplinaryActionTypeData[]>([
-    { id: 1, title: 'Warning', type: 'Warning', loginBlock: false, company: 'Tech Corp' },
-    { id: 2, title: 'sdsds', type: 'Warning', loginBlock: false, company: 'Innovation Ltd' }
-  ]);
+  const [actionTypes, setActionTypes] = useState<DisciplinaryActionType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isEditing, setIsEditing] = useState<DisciplinaryActionType | null>(null);
   
   const [formData, setFormData] = useState({
     title: '',
-    type: '',
-    loginBlock: false,
-    company: ''
+    action_type: '' as 'warning' | 'suspension' | 'dismissal' | '',
+    block_option: false
   });
 
-  // Dummy disciplinary action type options
-  const typeOptions = [
-    'Warning',
-    'Suspension',
-    'Dismissal',
-    'Corrective Action',
-    'Performance Review',
-    'Probation'
+  // Action type options based on backend model choices
+  const actionTypeOptions = [
+    { value: 'warning', label: 'Warning' },
+    { value: 'suspension', label: 'Suspension' },
+    { value: 'dismissal', label: 'Dismissal' }
   ];
 
-  // Dummy company options
-  const companyOptions = [
-    'Tech Corp',
-    'Innovation Ltd',
-    'StartUp Inc',
-    'Global Solutions',
-    'Digital Dynamics'
-  ];
-
-  // Handler functions for list view operations
-  const handleEdit = (actionType: DisciplinaryActionTypeData) => {
-    setFormData({
-      title: actionType.title,
-      type: actionType.type,
-      loginBlock: actionType.loginBlock,
-      company: actionType.company || ''
-    });
-    setEditingId(actionType.id);
-    setIsEditing(true);
-    setShowCreateForm(true);
-  };
-
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this disciplinary action type?')) {
-      setActionTypes(prev => prev.filter(item => item.id !== id));
-      showNotification('Disciplinary action type deleted successfully!');
+  // Fetch action types from API
+  const fetchActionTypes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response: any = await getAllDisciplinaryActionTypes();
+      if (response?.data?.results) {
+        setActionTypes(response.data.results);
+      } else if (Array.isArray(response?.data)) {
+        setActionTypes(response.data);
+      } else if (response?.data) {
+        setActionTypes([response.data]);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch action types');
+      console.error('Error fetching action types:', err);
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchActionTypes();
+  }, []);
 
   const showNotification = (message: string) => {
     // TODO: Implement proper notification system
     alert(message);
   };
 
+  // Handler functions for list view operations
+  const handleEdit = (actionType: DisciplinaryActionType) => {
+    setFormData({
+      title: actionType.title,
+      action_type: actionType.action_type,
+      block_option: actionType.block_option
+    });
+    setIsEditing(actionType);
+    setShowCreateForm(true);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this disciplinary action type?')) {
+      try {
+        setLoading(true);
+        await deleteDisciplinaryActionType(id);
+        await fetchActionTypes(); // Refresh the list
+        showNotification('Action type deleted successfully');
+      } catch (err: any) {
+        setError(err.message || 'Failed to delete action type');
+        console.error('Error deleting action type:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleCreateNew = () => {
-    setFormData({ title: '', type: '', loginBlock: false, company: '' });
-    setIsEditing(false);
-    setEditingId(null);
+    setFormData({
+      title: '',
+      action_type: '' as 'warning' | 'suspension' | 'dismissal' | '',
+      block_option: false
+    });
+    setIsEditing(null);
     setShowCreateForm(true);
   };
 
   const handleCancel = () => {
-    setFormData({ title: '', type: '', loginBlock: false, company: '' });
-    setIsEditing(false);
-    setEditingId(null);
+    setFormData({
+      title: '',
+      action_type: '' as 'warning' | 'suspension' | 'dismissal' | '',
+      block_option: false
+    });
+    setIsEditing(null);
     setShowCreateForm(false);
+    setError(null);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({
-        ...prev,
-        [name]: checked
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+    }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing && editingId) {
-      // Update existing action type
-      setActionTypes(prev => prev.map(item => 
-        item.id === editingId 
-          ? { ...item, ...formData }
-          : item
-      ));
-      showNotification('Disciplinary action type updated successfully!');
-    } else {
-      // Create new action type
-      const newActionType: DisciplinaryActionTypeData = {
-        id: Math.max(...actionTypes.map(item => item.id), 0) + 1,
-        ...formData
-      };
-      setActionTypes(prev => [...prev, newActionType]);
-      showNotification('Disciplinary action type created successfully!');
+    // Basic validation
+    if (!formData.title.trim() || !formData.action_type) {
+      setError('Please fill in all required fields');
+      return;
     }
-    
-    handleCancel();
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (isEditing) {
+        // Update existing action type
+        await updateDisciplinaryActionType(isEditing.id, formData);
+        showNotification('Action type updated successfully');
+      } else {
+        // Create new action type
+        await createDisciplinaryActionType(formData);
+        showNotification('Action type created successfully');
+      }
+      
+      await fetchActionTypes(); // Refresh the list
+      handleCancel();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save action type');
+      console.error('Error saving action type:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (showCreateForm) {
@@ -156,35 +188,18 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
             </div>
 
             <div className="form-group">
-              <label htmlFor="type">Type <span className="required">*</span>:</label>
+              <label htmlFor="action_type">Action Type <span className="required">*</span>:</label>
               <select
-                id="type"
-                name="type"
-                value={formData.type}
+                id="action_type"
+                name="action_type"
+                value={formData.action_type}
                 onChange={handleInputChange}
                 required
               >
-                <option value="">Select Type</option>
-                {typeOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="company">Company:</label>
-              <select
-                id="company"
-                name="company"
-                value={formData.company}
-                onChange={handleInputChange}
-              >
-                <option value="">Select Company (Optional)</option>
-                {companyOptions.map((option: string) => (
-                  <option key={option} value={option}>
-                    {option}
+                <option value="">Select Action Type</option>
+                {actionTypeOptions.map(option => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
                   </option>
                 ))}
               </select>
@@ -194,8 +209,8 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
               <label className="checkbox-label">
                 <input
                   type="checkbox"
-                  name="loginBlock"
-                  checked={formData.loginBlock}
+                  name="block_option"
+                  checked={formData.block_option}
                   onChange={handleInputChange}
                 />
                 <div className="checkbox-content">
@@ -218,11 +233,13 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
               type="button" 
               className="btn btn-secondary" 
               onClick={handleCancel}
+              disabled={loading}
               style={{
                 backgroundColor: '#6c757d',
                 borderColor: '#6c757d',
                 color: 'white',
-                marginRight: '12px'
+                marginRight: '12px',
+                opacity: loading ? 0.6 : 1
               }}
             >
               Cancel
@@ -231,13 +248,15 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
               type="submit" 
               form="disciplinary-action-type-form" 
               className="btn btn-primary"
+              disabled={loading}
               style={{
                 backgroundColor: '#dc3545',
                 borderColor: '#dc3545',
-                color: 'white'
+                color: 'white',
+                opacity: loading ? 0.6 : 1
               }}
             >
-              {isEditing ? '✓ UPDATE' : '+ CREATE'}
+              {loading ? 'Saving...' : (isEditing ? '✓ UPDATE' : '+ CREATE')}
             </button>
           </div>
         </div>
@@ -263,10 +282,12 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
             <button 
               className="btn btn-primary"
               onClick={handleCreateNew}
+              disabled={loading}
               style={{
                 backgroundColor: '#dc3545',
                 borderColor: '#dc3545',
-                color: 'white'
+                color: 'white',
+                opacity: loading ? 0.6 : 1
               }}
             >
               + Create
@@ -298,8 +319,8 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
                 <thead>
                   <tr>
                     <th>Title</th>
-                    <th>Type</th>
-                    <th>Login block</th>
+                    <th>Action Type</th>
+                    <th>Block Login</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -307,8 +328,8 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
                   {actionTypes.map(actionType => (
                     <tr key={actionType.id}>
                       <td>{actionType.title}</td>
-                      <td>{actionType.type}</td>
-                      <td>{actionType.loginBlock ? 'Yes' : 'No'}</td>
+                      <td style={{ textTransform: 'capitalize' }}>{actionType.action_type}</td>
+                      <td>{actionType.block_option ? 'Yes' : 'No'}</td>
                       <td>
                         <div className="action-buttons">
                           <button
@@ -320,7 +341,8 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
                               backgroundColor: '#6c757d',
                               borderColor: '#6c757d',
                               color: 'white',
-                              marginRight: '8px'
+                              marginRight: '8px',
+                              opacity: loading ? 0.6 : 1
                             }}
                           >
                             <ion-icon name="create-outline"></ion-icon>
@@ -333,7 +355,8 @@ const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = 
                             style={{
                               backgroundColor: '#dc3545',
                               borderColor: '#dc3545',
-                              color: 'white'
+                              color: 'white',
+                              opacity: loading ? 0.6 : 1
                             }}
                           >
                             <ion-icon name="trash-outline"></ion-icon>

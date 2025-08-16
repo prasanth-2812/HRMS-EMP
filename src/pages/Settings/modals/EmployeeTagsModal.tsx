@@ -1,14 +1,17 @@
 import React, { useState, useEffect } from 'react';
+import { getAllEmployeeTags, createEmployeeTag, updateEmployeeTag, deleteEmployeeTag } from '../../../services/employeeService';
 
-interface EmployeeTagData {
+interface EmployeeTag {
   id: number;
   title: string;
   color: string;
+  created_at?: string;
+  is_active?: boolean;
 }
 
 interface EmployeeTagsModalProps {
   onClose: () => void;
-  editingItem?: EmployeeTagData | null;
+  editingItem?: EmployeeTag | null;
 }
 
 const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingItem }) => {
@@ -17,12 +20,10 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
     title: '',
     color: '#3b82f6'
   });
-  
-  // Mock data for employee tags - replace with actual API call
-  const [employeeTags] = useState<EmployeeTagData[]>([
-    { id: 1, title: 'proactivity', color: '#000000' },
-    { id: 2, title: 'skilled', color: '#dc2626' }
-  ]);
+  const [employeeTags, setEmployeeTags] = useState<EmployeeTag[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<EmployeeTag | null>(null);
 
   // Predefined color options
   const colorOptions = [
@@ -48,12 +49,33 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
     '#be185d'  // Pink-700
   ];
 
+  const fetchEmployeeTags = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response: any = await getAllEmployeeTags();
+      if (response.data) {
+        setEmployeeTags(response.data);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch employee tags');
+      console.error('Error fetching employee tags:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEmployeeTags();
+  }, []);
+
   useEffect(() => {
     if (editingItem) {
       setFormData({
         title: editingItem.title,
         color: editingItem.color
       });
+      setIsEditing(editingItem);
       setShowCreateForm(true);
     }
   }, [editingItem]);
@@ -61,24 +83,39 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
   const handleCreateClick = () => {
     setShowCreateForm(true);
     setFormData({ title: '', color: '#3b82f6' });
+    setIsEditing(null);
   };
 
   const handleBackToList = () => {
     setShowCreateForm(false);
     setFormData({ title: '', color: '#3b82f6' });
+    setIsEditing(null);
   };
 
-  const handleEdit = (tag: EmployeeTagData) => {
+  const handleEdit = (tag: EmployeeTag) => {
     setFormData({
       title: tag.title,
       color: tag.color
     });
+    setIsEditing(tag);
     setShowCreateForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    console.log('Delete employee tag:', id);
-    // TODO: Implement delete functionality
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this employee tag?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await deleteEmployeeTag(id);
+      await fetchEmployeeTags(); // Refresh the list
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete employee tag');
+      console.error('Error deleting employee tag:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -96,18 +133,41 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Employee Tag form data:', formData);
-    // TODO: Implement save functionality
-    setShowCreateForm(false);
-    setFormData({ title: '', color: '#3b82f6' });
+    
+    if (!formData.title.trim()) {
+      setError('Title is required');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (isEditing) {
+        await updateEmployeeTag(isEditing.id, formData);
+      } else {
+        await createEmployeeTag(formData);
+      }
+      
+      await fetchEmployeeTags(); // Refresh the list
+      setShowCreateForm(false);
+      setFormData({ title: '', color: '#3b82f6' });
+      setIsEditing(null);
+    } catch (err: any) {
+      setError(err.message || 'Failed to save employee tag');
+      console.error('Error saving employee tag:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCancel = () => {
     if (showCreateForm) {
       setShowCreateForm(false);
       setFormData({ title: '', color: '#3b82f6' });
+      setIsEditing(null);
     } else {
       onClose();
     }
@@ -126,15 +186,23 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
           </div>
           
           <div className="modal-body">
+            {error && (
+              <div className="alert alert-danger" style={{ marginBottom: '1rem' }}>
+                {error}
+              </div>
+            )}
+            
             <div className="table-header">
               <h3>Manage Employee Tags</h3>
               <button 
                 className="btn btn-primary"
                 onClick={handleCreateClick}
+                disabled={loading}
                 style={{
                   backgroundColor: '#dc3545',
                   borderColor: '#dc3545',
-                  color: 'white'
+                  color: 'white',
+                  opacity: loading ? 0.6 : 1
                 }}
               >
                 + Create
@@ -142,45 +210,67 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
             </div>
             
             <div className="table-container">
-              <div className="table-header-row">
-                <div>Title</div>
-                <div>Color</div>
-                <div>Actions</div>
-              </div>
-              
-              {employeeTags.map((tag) => (
-                <div key={tag.id} className="table-row">
-                  <div>{tag.title}</div>
-                  <div>
-                    <div className="color-indicator" style={{ backgroundColor: tag.color }}></div>
-                  </div>
-                  <div className="action-buttons">
-                    <button 
-                      className="btn btn-sm btn-primary" 
-                      onClick={() => handleEdit(tag)}
-                      style={{
-                        backgroundColor: '#6c757d',
-                        borderColor: '#6c757d',
-                        color: 'white',
-                        marginRight: '8px'
-                      }}
-                    >
-                      <ion-icon name="create-outline"></ion-icon>
-                    </button>
-                    <button 
-                      className="btn btn-sm btn-danger" 
-                      onClick={() => handleDelete(tag.id)}
-                      style={{
-                        backgroundColor: '#dc3545',
-                        borderColor: '#dc3545',
-                        color: 'white'
-                      }}
-                    >
-                      <ion-icon name="trash-outline"></ion-icon>
-                    </button>
-                  </div>
+              {loading && employeeTags.length === 0 ? (
+                <div style={{ 
+                  textAlign: 'center', 
+                  padding: '2rem',
+                  color: '#6b7280'
+                }}>
+                  Loading employee tags...
                 </div>
-              ))}
+              ) : (
+                <>
+                  <div className="table-header-row">
+                    <div>Title</div>
+                    <div>Color</div>
+                    <div>Actions</div>
+                  </div>
+                  
+                  {employeeTags.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
+                      No employee tags found. Create your first tag!
+                    </div>
+                  ) : (
+                    employeeTags.map((tag) => (
+                      <div key={tag.id} className="table-row">
+                        <div>{tag.title}</div>
+                        <div>
+                          <div className="color-indicator" style={{ backgroundColor: tag.color }}></div>
+                        </div>
+                        <div className="action-buttons">
+                          <button 
+                            className="btn btn-sm btn-primary" 
+                            onClick={() => handleEdit(tag)}
+                            disabled={loading}
+                            style={{
+                              backgroundColor: '#6c757d',
+                              borderColor: '#6c757d',
+                              color: 'white',
+                              marginRight: '8px',
+                              opacity: loading ? 0.6 : 1
+                            }}
+                          >
+                            <ion-icon name="create-outline"></ion-icon>
+                          </button>
+                          <button 
+                            className="btn btn-sm btn-danger" 
+                            onClick={() => handleDelete(tag.id)}
+                            disabled={loading}
+                            style={{
+                              backgroundColor: '#dc3545',
+                              borderColor: '#dc3545',
+                              color: 'white',
+                              opacity: loading ? 0.6 : 1
+                            }}
+                          >
+                            <ion-icon name="trash-outline"></ion-icon>
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </>
+              )}
             </div>
           </div>
           
@@ -239,7 +329,11 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
                 value={formData.title}
                 onChange={handleInputChange}
                 placeholder="Enter tag title"
+                disabled={loading}
                 required
+                style={{
+                  opacity: loading ? 0.6 : 1
+                }}
               />
             </div>
 
@@ -253,13 +347,15 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
                   name="color"
                   value={formData.color}
                   onChange={handleInputChange}
+                  disabled={loading}
                   style={{
                     width: '60px',
                     height: '40px',
                     border: '2px solid #e2e8f0',
                     borderRadius: '8px',
-                    cursor: 'pointer',
-                    backgroundColor: 'transparent'
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    backgroundColor: 'transparent',
+                    opacity: loading ? 0.6 : 1
                   }}
                 />
                 <span style={{ 
@@ -295,18 +391,20 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
                       key={color}
                       type="button"
                       onClick={() => handleColorSelect(color)}
+                      disabled={loading}
                       style={{
                         width: '32px',
                         height: '32px',
                         backgroundColor: color,
                         border: formData.color === color ? '3px solid #1f2937' : '2px solid #e2e8f0',
                         borderRadius: '8px',
-                        cursor: 'pointer',
+                        cursor: loading ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s ease',
                         boxShadow: formData.color === color 
                           ? '0 4px 12px rgba(0,0,0,0.3)' 
                           : '0 2px 4px rgba(0,0,0,0.1)',
-                        transform: formData.color === color ? 'scale(1.1)' : 'scale(1)'
+                        transform: formData.color === color ? 'scale(1.1)' : 'scale(1)',
+                        opacity: loading ? 0.6 : 1
                       }}
                       title={color}
                     />
@@ -351,11 +449,13 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
             type="button" 
             className="btn btn-secondary" 
             onClick={handleCancel}
+            disabled={loading}
             style={{
               backgroundColor: '#6c757d',
               borderColor: '#6c757d',
               color: 'white',
-              marginRight: '12px'
+              marginRight: '12px',
+              opacity: loading ? 0.6 : 1
             }}
           >
             Cancel
@@ -364,13 +464,15 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
             type="submit" 
             form="employee-tag-form" 
             className="btn btn-primary"
+            disabled={loading}
             style={{
               backgroundColor: '#dc3545',
               borderColor: '#dc3545',
-              color: 'white'
+              color: 'white',
+              opacity: loading ? 0.6 : 1
             }}
           >
-            {editingItem ? 'Update' : 'Save'}
+            {loading ? 'Saving...' : (isEditing ? 'Update' : 'Save')}
           </button>
         </div>
       </div>

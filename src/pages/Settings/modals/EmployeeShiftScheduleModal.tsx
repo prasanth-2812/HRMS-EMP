@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import {
+  getEmployeeShiftSchedules,
+  createEmployeeShiftSchedule,
+  updateEmployeeShiftSchedule,
+  deleteEmployeeShiftSchedule,
+  EmployeeShiftSchedule as ApiEmployeeShiftSchedule
+} from '../../../services/baseService';
+import { getAllShifts, Shift } from '../../../services/shiftService';
 
 interface EmployeeShiftScheduleData {
-  id: number;
-  shift: string;
+  id?: number;
   day: string;
-  minimumWorkingHours: string;
-  startTime: string;
-  endTime: string;
-  autoCheckOut: boolean;
+  shift_id: number;
+  shift_name?: string;
+  start_time: string;
+  end_time: string;
+  minimum_working_hour: number;
   company?: string;
 }
 
@@ -16,38 +24,17 @@ interface EmployeeShiftScheduleModalProps {
 }
 
 const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({ onClose }) => {
-  const [shiftSchedules, setShiftSchedules] = useState<EmployeeShiftScheduleData[]>([
-    {
-      id: 1,
-      shift: 'Morning',
-      day: 'Monday',
-      minimumWorkingHours: '8',
-      startTime: '09:00',
-      endTime: '17:00',
-      autoCheckOut: false,
-      company: 'Prasanth Technologies'
-    },
-    {
-      id: 2,
-      shift: 'Evening',
-      day: 'Tuesday',
-      minimumWorkingHours: '8',
-      startTime: '14:00',
-      endTime: '22:00',
-      autoCheckOut: true,
-      company: 'Prasanth Technologies'
-    }
-  ]);
+  const [shiftSchedules, setShiftSchedules] = useState<EmployeeShiftScheduleData[]>([]);
+  const [shifts, setShifts] = useState<Shift[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     day: '',
-    shift: '',
-    minimumWorkingHours: '',
-    startTime: '',
-    endTime: '',
-    autoCheckOut: false,
+    shift_id: 0,
+    start_time: '',
+    end_time: '',
+    minimum_working_hour: 8,
     company: 'Prasanth Technologies'
   });
   const [isEditing, setIsEditing] = useState<number | null>(null);
@@ -63,38 +50,68 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
     'Saturday'
   ];
 
-  // Dummy shift options
-  const shiftOptions = [
-    'Morning',
-    'Afternoon', 
-    'Evening',
-    'Night'
-  ];
-
-
-
+  // Fetch data on component mount
   useEffect(() => {
-    // Component initialization - no need to fetch data as we're using dummy data
+    fetchShiftSchedules();
+    fetchShifts();
   }, []);
+
+  const fetchShiftSchedules = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getEmployeeShiftSchedules();
+      const schedulesWithShiftNames = response.results.map(schedule => ({
+        ...schedule,
+        shift_name: getShiftName(schedule.shift_id)
+      }));
+      setShiftSchedules(schedulesWithShiftNames);
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch shift schedules');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchShifts = async () => {
+    try {
+      const response = await getAllShifts();
+      setShifts(response);
+    } catch (err: any) {
+      console.error('Failed to fetch shifts:', err);
+    }
+  };
+
+  const getShiftName = (shiftId: number): string => {
+    const shift = shifts.find(s => s.id === shiftId);
+    return shift ? shift.shift : 'Unknown Shift';
+  };
 
   const handleEdit = (schedule: EmployeeShiftScheduleData) => {
     setFormData({
       day: schedule.day,
-      shift: schedule.shift,
-      minimumWorkingHours: schedule.minimumWorkingHours,
-      startTime: schedule.startTime,
-      endTime: schedule.endTime,
-      autoCheckOut: schedule.autoCheckOut,
+      shift_id: schedule.shift_id,
+      start_time: schedule.start_time,
+      end_time: schedule.end_time,
+      minimum_working_hour: schedule.minimum_working_hour,
       company: schedule.company || 'Prasanth Technologies'
     });
-    setIsEditing(schedule.id);
+    setIsEditing(schedule.id!);
     setShowCreateForm(true);
   };
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (window.confirm('Are you sure you want to delete this shift schedule?')) {
-      setShiftSchedules(prev => prev.filter(schedule => schedule.id !== id));
-      showNotification('Shift schedule deleted successfully!');
+      try {
+        setLoading(true);
+        await deleteEmployeeShiftSchedule(id);
+        await fetchShiftSchedules();
+        showNotification('Shift schedule deleted successfully!');
+      } catch (err: any) {
+        setError(err.message || 'Failed to delete shift schedule');
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -107,11 +124,10 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
     setIsEditing(null);
     setFormData({
       day: '',
-      shift: '',
-      minimumWorkingHours: '',
-      startTime: '',
-      endTime: '',
-      autoCheckOut: false,
+      shift_id: 0,
+      start_time: '',
+      end_time: '',
+      minimum_working_hour: 8,
       company: 'Prasanth Technologies'
     });
     setShowCreateForm(true);
@@ -121,11 +137,10 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
     setIsEditing(null);
     setFormData({
       day: '',
-      shift: '',
-      minimumWorkingHours: '',
-      startTime: '',
-      endTime: '',
-      autoCheckOut: false,
+      shift_id: 0,
+      start_time: '',
+      end_time: '',
+      minimum_working_hour: 8,
       company: 'Prasanth Technologies'
     });
     setShowCreateForm(false);
@@ -135,11 +150,10 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
     
-    if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
+    if (name === 'shift_id' || name === 'minimum_working_hour') {
       setFormData(prev => ({
         ...prev,
-        [name]: checked
+        [name]: parseInt(value) || 0
       }));
     } else {
       setFormData(prev => ({
@@ -151,29 +165,48 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
 
 
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing) {
-      // Update existing schedule
-      setShiftSchedules(prev => prev.map(schedule => 
-        schedule.id === isEditing 
-          ? { ...formData, id: isEditing, autoCheckOut: formData.autoCheckOut }
-          : schedule
-      ));
-      showNotification('Shift schedule updated successfully!');
-    } else {
-      // Create new schedule
-      const newSchedule: EmployeeShiftScheduleData = {
-        ...formData,
-        id: Math.max(...shiftSchedules.map(s => s.id), 0) + 1,
-        autoCheckOut: formData.autoCheckOut
-      };
-      setShiftSchedules(prev => [...prev, newSchedule]);
-      showNotification('Shift schedule created successfully!');
+    // Validation
+    if (!formData.day || !formData.shift_id || !formData.start_time || !formData.end_time) {
+      setError('Please fill in all required fields');
+      return;
     }
     
-    handleCancel();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (isEditing) {
+        // Update existing schedule
+        await updateEmployeeShiftSchedule(isEditing, {
+          day: formData.day,
+          shift_id: formData.shift_id,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+          minimum_working_hour: formData.minimum_working_hour
+        });
+        showNotification('Shift schedule updated successfully!');
+      } else {
+        // Create new schedule
+        await createEmployeeShiftSchedule({
+          day: formData.day,
+          shift_id: formData.shift_id,
+          start_time: formData.start_time,
+          end_time: formData.end_time,
+          minimum_working_hour: formData.minimum_working_hour
+        });
+        showNotification('Shift schedule created successfully!');
+      }
+      
+      await fetchShiftSchedules();
+      handleCancel();
+    } catch (err: any) {
+      setError(err.message || 'Failed to save shift schedule');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (showCreateForm) {
@@ -250,7 +283,7 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
             </div>
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label htmlFor="shift" style={{ 
+              <label htmlFor="shift_id" style={{ 
                 display: 'block', 
                 marginBottom: '8px', 
                 fontSize: '14px', 
@@ -260,32 +293,34 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                 Shift <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <select
-                id="shift"
-                name="shift"
-                value={formData.shift}
+                id="shift_id"
+                name="shift_id"
+                value={formData.shift_id}
                 onChange={handleInputChange}
                 required
+                disabled={loading}
                 style={{ 
                   width: '100%', 
                   padding: '12px', 
                   border: '1px solid #d1d5db', 
                   borderRadius: '6px', 
                   fontSize: '14px',
-                  backgroundColor: '#ffffff',
-                  outline: 'none'
+                  backgroundColor: loading ? '#f9fafb' : '#ffffff',
+                  outline: 'none',
+                  cursor: loading ? 'not-allowed' : 'pointer'
                 }}
               >
-                <option value="">---Choose Shift---</option>
-                {shiftOptions.map(option => (
-                  <option key={option} value={option}>
-                    {option}
+                <option value={0}>---Choose Shift---</option>
+                {shifts.map(shift => (
+                  <option key={shift.id} value={shift.id}>
+                    {shift.shift}
                   </option>
                 ))}
               </select>
             </div>
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label htmlFor="minimumWorkingHours" style={{ 
+              <label htmlFor="minimum_working_hour" style={{ 
                 display: 'block', 
                 marginBottom: '8px', 
                 fontSize: '14px', 
@@ -295,20 +330,23 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                 Minimum Working Hours <span style={{ color: '#ef4444' }}>*</span>
               </label>
               <input
-                type="text"
-                id="minimumWorkingHours"
-                name="minimumWorkingHours"
-                value={formData.minimumWorkingHours}
+                type="number"
+                id="minimum_working_hour"
+                name="minimum_working_hour"
+                value={formData.minimum_working_hour}
                 onChange={handleInputChange}
-                placeholder="08:15"
+                placeholder="8"
+                min="1"
+                max="24"
                 required
+                disabled={loading}
                 style={{ 
                   width: '100%', 
                   padding: '12px', 
                   border: '1px solid #d1d5db', 
                   borderRadius: '6px', 
                   fontSize: '14px',
-                  backgroundColor: '#ffffff',
+                  backgroundColor: loading ? '#f9fafb' : '#ffffff',
                   outline: 'none'
                 }}
               />
@@ -328,18 +366,19 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                 <div style={{ position: 'relative' }}>
                   <input
                     type="time"
-                    id="startTime"
-                    name="startTime"
-                    value={formData.startTime}
+                    id="start_time"
+                    name="start_time"
+                    value={formData.start_time}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                     style={{ 
                       width: '100%', 
                       padding: '12px 40px 12px 12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '6px', 
                       fontSize: '14px',
-                      backgroundColor: '#ffffff',
+                      backgroundColor: loading ? '#f9fafb' : '#ffffff',
                       outline: 'none'
                     }}
                   />
@@ -358,7 +397,7 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
               </div>
 
               <div className="form-group">
-                <label htmlFor="endTime" style={{ 
+                <label htmlFor="end_time" style={{ 
                   display: 'block', 
                   marginBottom: '8px', 
                   fontSize: '14px', 
@@ -370,18 +409,19 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                 <div style={{ position: 'relative' }}>
                   <input
                     type="time"
-                    id="endTime"
-                    name="endTime"
-                    value={formData.endTime}
+                    id="end_time"
+                    name="end_time"
+                    value={formData.end_time}
                     onChange={handleInputChange}
                     required
+                    disabled={loading}
                     style={{ 
                       width: '100%', 
                       padding: '12px 40px 12px 12px', 
                       border: '1px solid #d1d5db', 
                       borderRadius: '6px', 
                       fontSize: '14px',
-                      backgroundColor: '#ffffff',
+                      backgroundColor: loading ? '#f9fafb' : '#ffffff',
                       outline: 'none'
                     }}
                   />
@@ -400,31 +440,19 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
               </div>
             </div>
 
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <input
-                  type="checkbox"
-                  id="autoCheckOut"
-                  name="autoCheckOut"
-                  checked={formData.autoCheckOut}
-                  onChange={handleInputChange}
-                  style={{ 
-                    width: '16px', 
-                    height: '16px',
-                    cursor: 'pointer'
-                  }}
-                />
-                <label htmlFor="autoCheckOut" style={{ 
-                  fontSize: '14px', 
-                  fontWeight: '500', 
-                  color: '#374151',
-                  cursor: 'pointer'
-                }}>
-                  Enable Automatic Check Out
-                </label>
-                <ion-icon name="information-circle-outline" style={{ color: '#6b7280', fontSize: '16px' }}></ion-icon>
+            {error && (
+              <div style={{ 
+                padding: '12px', 
+                backgroundColor: '#fef2f2', 
+                border: '1px solid #fecaca', 
+                borderRadius: '6px', 
+                color: '#dc2626',
+                marginBottom: '16px',
+                fontSize: '14px'
+              }}>
+                {error}
               </div>
-            </div>
+            )}
 
             <div className="form-group" style={{ marginBottom: '20px' }}>
               <label htmlFor="company" style={{ 
@@ -469,15 +497,16 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
             type="button" 
             className="btn btn-secondary" 
             onClick={handleCancel}
+            disabled={loading}
             style={{ 
               padding: '8px 16px',
               fontSize: '14px',
               fontWeight: '500',
               border: '1px solid #d1d5db',
               borderRadius: '6px',
-              backgroundColor: '#ffffff',
-              color: '#374151',
-              cursor: 'pointer',
+              backgroundColor: loading ? '#f9fafb' : '#ffffff',
+              color: loading ? '#9ca3af' : '#374151',
+              cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease'
             }}
           >
@@ -487,19 +516,20 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
             type="submit" 
             form="shift-schedule-form" 
             className="btn btn-primary" 
+            disabled={loading || !formData.day || !formData.shift_id || !formData.start_time || !formData.end_time}
             style={{ 
               padding: '8px 16px',
               fontSize: '14px',
               fontWeight: '500',
-              backgroundColor: '#dc2626',
-              border: '1px solid #dc2626',
+              backgroundColor: (loading || !formData.day || !formData.shift_id || !formData.start_time || !formData.end_time) ? '#9ca3af' : '#dc2626',
+              border: `1px solid ${(loading || !formData.day || !formData.shift_id || !formData.start_time || !formData.end_time) ? '#9ca3af' : '#dc2626'}`,
               borderRadius: '6px',
               color: '#ffffff',
-              cursor: 'pointer',
+              cursor: (loading || !formData.day || !formData.shift_id || !formData.start_time || !formData.end_time) ? 'not-allowed' : 'pointer',
               transition: 'all 0.2s ease'
             }}
           >
-            Save
+            {loading ? 'Saving...' : 'Save'}
           </button>
         </div>
       </div>
@@ -528,13 +558,14 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
             <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Shift Schedules</h3>
             <button 
               onClick={handleCreateNew}
+              disabled={loading}
               style={{
-                backgroundColor: '#dc2626',
+                backgroundColor: loading ? '#9ca3af' : '#dc2626',
                 color: 'white',
                 border: 'none',
                 padding: '8px 16px',
                 borderRadius: '6px',
-                cursor: 'pointer',
+                cursor: loading ? 'not-allowed' : 'pointer',
                 fontSize: '14px',
                 fontWeight: '500'
               }}
@@ -606,9 +637,9 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                   {shiftSchedules.map(schedule => (
                     <tr key={schedule.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                       <td style={{ padding: '12px' }}>{schedule.day}</td>
-                      <td style={{ padding: '12px' }}>{schedule.shift}</td>
-                      <td style={{ padding: '12px' }}>{schedule.minimumWorkingHours}h</td>
-                      <td style={{ padding: '12px' }}>{schedule.startTime} - {schedule.endTime}</td>
+                      <td style={{ padding: '12px' }}>{schedule.shift_name || getShiftName(schedule.shift_id)}</td>
+                      <td style={{ padding: '12px' }}>{schedule.minimum_working_hour}h</td>
+                      <td style={{ padding: '12px' }}>{schedule.start_time} - {schedule.end_time}</td>
                       <td style={{ padding: '12px', textAlign: 'center' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
                           <button
@@ -616,8 +647,8 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                             style={{
                               background: 'none',
                               border: 'none',
-                              cursor: 'pointer',
-                              color: '#64748b',
+                              cursor: loading ? 'not-allowed' : 'pointer',
+                              color: loading ? '#9ca3af' : '#64748b',
                               padding: '4px'
                             }}
                             title="Edit"
@@ -626,12 +657,12 @@ const EmployeeShiftScheduleModal: React.FC<EmployeeShiftScheduleModalProps> = ({
                             <ion-icon name="create-outline" style={{ fontSize: '16px' }}></ion-icon>
                           </button>
                           <button
-                            onClick={() => handleDelete(schedule.id)}
+                            onClick={() => handleDelete(schedule.id!)}
                             style={{
                               background: 'none',
                               border: 'none',
-                              cursor: 'pointer',
-                              color: '#ef4444',
+                              cursor: loading ? 'not-allowed' : 'pointer',
+                              color: loading ? '#9ca3af' : '#ef4444',
                               padding: '4px'
                             }}
                             title="Delete"

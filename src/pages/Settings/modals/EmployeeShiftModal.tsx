@@ -1,9 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { 
+  getEmployeeShifts, 
+  createEmployeeShift, 
+  updateEmployeeShift, 
+  deleteEmployeeShift, 
+  EmployeeShift 
+} from '../../../services/baseService';
+import { getAllEmployees } from '../../../services/employeeService';
+
+interface Employee {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 interface EmployeeShiftScheduleData {
-  id: number;
-  shift: string;
-  days: string;
+  id?: number;
+  employee_id: number;
+  shift_start_time: string;
+  shift_end_time: string;
+  minimum_hour: number;
+  employee_name?: string;
 }
 
 interface EmployeeShiftModalProps {
@@ -11,110 +29,166 @@ interface EmployeeShiftModalProps {
 }
 
 const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
-  const [employeeShiftSchedules, setEmployeeShiftSchedules] = useState<EmployeeShiftScheduleData[]>([
-    {
-      id: 1,
-      shift: 'Morning',
-      days: 'Monday, Tuesday, Wednesday, Thursday, Friday'
-    },
-    {
-      id: 2,
-      shift: 'Evening',
-      days: 'Saturday, Sunday'
-    }
-  ]);
-
+  const [employeeShiftSchedules, setEmployeeShiftSchedules] = useState<EmployeeShiftScheduleData[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingValue, setEditingValue] = useState<EmployeeShiftScheduleData | null>(null);
+  
   const [newEmployeeShiftSchedule, setNewEmployeeShiftSchedule] = useState({
-    day: '',
-    shift: '',
-    employee: '',
-    minimumWorkingHours: '',
-    startTime: '',
-    endTime: '',
-    enableAutomaticCheckOut: false,
-    company: ''
+    employee_id: '',
+    shift_start_time: '',
+    shift_end_time: '',
+    minimum_hour: ''
   });
 
-  // Dummy options
-  const companyOptions = [
-    'Prasanth Technologies',
-    'Tech Corp',
-    'Innovation Ltd',
-    'StartUp Inc',
-    'Global Solutions'
-  ];
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchEmployeeShifts();
+    fetchEmployees();
+  }, []);
 
-  const dayOptions = [
-    'Monday',
-    'Tuesday',
-    'Wednesday',
-    'Thursday',
-    'Friday',
-    'Saturday',
-    'Sunday'
-  ];
+  const fetchEmployeeShifts = async () => {
+    setLoading(true);
+    try {
+      const response = await getEmployeeShifts();
+      const shiftsWithEmployeeNames = response.results.map((shift: EmployeeShift) => {
+        const employee = employees.find(emp => emp.id === shift.employee_id.toString());
+        return {
+          ...shift,
+          employee_name: employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee'
+        };
+      });
+      setEmployeeShiftSchedules(shiftsWithEmployeeNames);
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || 'Failed to fetch employee shifts');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  const shiftOptions = [
-    'Morning',
-    'Evening',
-    'Night'
-  ];
-
-  const employeeOptions = [
-    'John Doe',
-    'Jane Smith',
-    'Mike Johnson',
-    'Sarah Wilson',
-    'David Brown'
-  ];
+  const fetchEmployees = async () => {
+    try {
+      const employeeData = await getAllEmployees();
+      setEmployees(employeeData);
+    } catch (error: any) {
+      console.error('Failed to fetch employees:', error.message);
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target as HTMLInputElement;
+    const { name, value } = e.target;
     setNewEmployeeShiftSchedule(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
-  const handleCreate = () => {
-    if (newEmployeeShiftSchedule.shift.trim() && newEmployeeShiftSchedule.day.trim()) {
-      const newItem: EmployeeShiftScheduleData = {
-        id: Date.now(),
-        shift: newEmployeeShiftSchedule.shift,
-        days: newEmployeeShiftSchedule.day
+  const handleCreate = async () => {
+    if (!newEmployeeShiftSchedule.employee_id || !newEmployeeShiftSchedule.shift_start_time || 
+        !newEmployeeShiftSchedule.shift_end_time || !newEmployeeShiftSchedule.minimum_hour) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const shiftData = {
+        employee_id: parseInt(newEmployeeShiftSchedule.employee_id),
+        shift_start_time: newEmployeeShiftSchedule.shift_start_time,
+        shift_end_time: newEmployeeShiftSchedule.shift_end_time,
+        minimum_hour: parseFloat(newEmployeeShiftSchedule.minimum_hour)
       };
-      setEmployeeShiftSchedules([...employeeShiftSchedules, newItem]);
+      
+      await createEmployeeShift(shiftData);
+      await fetchEmployeeShifts();
+      
       setNewEmployeeShiftSchedule({
-        day: '',
-        shift: '',
-        employee: '',
-        minimumWorkingHours: '',
-        startTime: '',
-        endTime: '',
-        enableAutomaticCheckOut: false,
-        company: ''
+        employee_id: '',
+        shift_start_time: '',
+        shift_end_time: '',
+        minimum_hour: ''
       });
       setShowCreateModal(false);
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || 'Failed to create employee shift');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDelete = (id: number) => {
-    setEmployeeShiftSchedules(employeeShiftSchedules.filter(item => item.id !== id));
+  const handleEdit = (shift: EmployeeShiftScheduleData) => {
+    if (shift.id !== undefined) {
+      setEditingId(shift.id);
+      setEditingValue({ ...shift });
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingValue || !editingId) return;
+
+    setLoading(true);
+    try {
+      const updateData = {
+        employee_id: editingValue.employee_id,
+        shift_start_time: editingValue.shift_start_time,
+        shift_end_time: editingValue.shift_end_time,
+        minimum_hour: editingValue.minimum_hour
+      };
+      
+      await updateEmployeeShift(editingId, updateData);
+      await fetchEmployeeShifts();
+      
+      setEditingId(null);
+      setEditingValue(null);
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || 'Failed to update employee shift');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setEditingValue(null);
+  };
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm('Are you sure you want to delete this employee shift?')) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await deleteEmployeeShift(id);
+      await fetchEmployeeShifts();
+      setError(null);
+    } catch (error: any) {
+      setError(error.message || 'Failed to delete employee shift');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCloseModal = () => {
     setShowCreateModal(false);
     setNewEmployeeShiftSchedule({
-      day: '',
-      shift: '',
-      employee: '',
-      minimumWorkingHours: '',
-      startTime: '',
-      endTime: '',
-      enableAutomaticCheckOut: false,
-      company: ''
+      employee_id: '',
+      shift_start_time: '',
+      shift_end_time: '',
+      minimum_hour: ''
     });
+    setError(null);
+  };
+
+  const getEmployeeName = (employeeId: number) => {
+    const employee = employees.find(emp => emp.id === employeeId.toString());
+    return employee ? `${employee.firstName} ${employee.lastName}` : 'Unknown Employee';
   };
 
   return (
@@ -126,7 +200,12 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
             <button
               className="btn btn-primary"
               onClick={() => setShowCreateModal(true)}
-              style={{ marginRight: '10px' }}
+              style={{ 
+                marginRight: '10px',
+                backgroundColor: loading ? '#6b7280' : '#3b82f6',
+                cursor: loading ? 'not-allowed' : 'pointer'
+              }}
+              disabled={loading}
             >
               + Create
             </button>
@@ -136,6 +215,18 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
           </div>
           
           <div className="modal-body">
+            {error && (
+              <div style={{
+                backgroundColor: '#fee2e2',
+                border: '1px solid #fecaca',
+                color: '#dc2626',
+                padding: '12px',
+                borderRadius: '6px',
+                marginBottom: '16px'
+              }}>
+                {error}
+              </div>
+            )}
             <table style={{
               width: '100%',
               borderCollapse: 'collapse',
@@ -152,14 +243,28 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
                     fontWeight: '600',
                     color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
-                  }}>Shift</th>
+                  }}>Employee</th>
                   <th style={{
                     padding: '16px',
                     textAlign: 'left',
                     fontWeight: '600',
                     color: '#374151',
                     borderBottom: '1px solid #e2e8f0'
-                  }}>Days</th>
+                  }}>Start Time</th>
+                  <th style={{
+                    padding: '16px',
+                    textAlign: 'left',
+                    fontWeight: '600',
+                    color: '#374151',
+                    borderBottom: '1px solid #e2e8f0'
+                  }}>End Time</th>
+                  <th style={{
+                    padding: '16px',
+                    textAlign: 'left',
+                    fontWeight: '600',
+                    color: '#374151',
+                    borderBottom: '1px solid #e2e8f0'
+                  }}>Min Hours</th>
                   <th style={{
                     padding: '16px',
                     textAlign: 'left',
@@ -170,41 +275,150 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
                 </tr>
               </thead>
               <tbody>
-                {employeeShiftSchedules.map((item) => (
-                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                    <td style={{ padding: '16px', color: '#374151' }}>{item.shift}</td>
-                    <td style={{ padding: '16px', color: '#374151' }}>{item.days}</td>
-                    <td style={{ padding: '16px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#6b7280',
-                            fontSize: '16px'
-                          }}
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleDelete(item.id)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'pointer',
-                            color: '#ef4444',
-                            fontSize: '16px'
-                          }}
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                      </div>
+                {loading && employeeShiftSchedules.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                      Loading employee shifts...
                     </td>
                   </tr>
-                ))}
+                ) : employeeShiftSchedules.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: '#6b7280' }}>
+                      No employee shifts found
+                    </td>
+                  </tr>
+                ) : (
+                  employeeShiftSchedules.map((item) => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '16px', color: '#374151' }}>
+                        {editingId === item.id ? (
+                          <select
+                            value={editingValue?.employee_id || ''}
+                            onChange={(e) => setEditingValue(prev => prev ? { ...prev, employee_id: parseInt(e.target.value) } : null)}
+                            style={{ width: '100%', padding: '4px' }}
+                          >
+                            <option value="">Select Employee</option>
+                            {employees.map(emp => (
+                              <option key={emp.id} value={emp.id}>
+                                {emp.firstName} {emp.lastName}
+                              </option>
+                            ))}
+                          </select>
+                        ) : (
+                          getEmployeeName(item.employee_id)
+                        )}
+                      </td>
+                      <td style={{ padding: '16px', color: '#374151' }}>
+                        {editingId === item.id ? (
+                          <input
+                            type="time"
+                            value={editingValue?.shift_start_time || ''}
+                            onChange={(e) => setEditingValue(prev => prev ? { ...prev, shift_start_time: e.target.value } : null)}
+                            style={{ width: '100%', padding: '4px' }}
+                          />
+                        ) : (
+                          item.shift_start_time
+                        )}
+                      </td>
+                      <td style={{ padding: '16px', color: '#374151' }}>
+                        {editingId === item.id ? (
+                          <input
+                            type="time"
+                            value={editingValue?.shift_end_time || ''}
+                            onChange={(e) => setEditingValue(prev => prev ? { ...prev, shift_end_time: e.target.value } : null)}
+                            style={{ width: '100%', padding: '4px' }}
+                          />
+                        ) : (
+                          item.shift_end_time
+                        )}
+                      </td>
+                      <td style={{ padding: '16px', color: '#374151' }}>
+                        {editingId === item.id ? (
+                          <input
+                            type="number"
+                            step="0.5"
+                            value={editingValue?.minimum_hour || ''}
+                            onChange={(e) => setEditingValue(prev => prev ? { ...prev, minimum_hour: parseFloat(e.target.value) } : null)}
+                            style={{ width: '100%', padding: '4px' }}
+                          />
+                        ) : (
+                          item.minimum_hour
+                        )}
+                      </td>
+                      <td style={{ padding: '16px' }}>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {editingId === item.id ? (
+                            <>
+                              <button
+                                onClick={handleSaveEdit}
+                                disabled={loading}
+                                style={{
+                                  background: '#10b981',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  cursor: loading ? 'not-allowed' : 'pointer',
+                                  fontSize: '12px'
+                                }}
+                                title="Save"
+                              >
+                                Save
+                              </button>
+                              <button
+                                onClick={handleCancelEdit}
+                                disabled={loading}
+                                style={{
+                                  background: '#6b7280',
+                                  color: 'white',
+                                  border: 'none',
+                                  padding: '4px 8px',
+                                  borderRadius: '4px',
+                                  cursor: loading ? 'not-allowed' : 'pointer',
+                                  fontSize: '12px'
+                                }}
+                                title="Cancel"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                disabled={loading}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: loading ? 'not-allowed' : 'pointer',
+                                  color: '#6b7280',
+                                  fontSize: '16px'
+                                }}
+                                title="Edit"
+                              >
+                                ✏️
+                              </button>
+                              <button
+                                onClick={() => item.id !== undefined && handleDelete(item.id)}
+                                disabled={loading || item.id === undefined}
+                                style={{
+                                  background: 'none',
+                                  border: 'none',
+                                  cursor: (loading || item.id === undefined) ? 'not-allowed' : 'pointer',
+                                  color: '#ef4444',
+                                  fontSize: '16px'
+                                }}
+                                title="Delete"
+                              >
+                                🗑️
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -224,126 +438,101 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
             </div>
             
             <div className="modal-body">
+              {error && (
+                <div style={{
+                  backgroundColor: '#fee2e2',
+                  border: '1px solid #fecaca',
+                  color: '#dc2626',
+                  padding: '12px',
+                  borderRadius: '6px',
+                  marginBottom: '16px'
+                }}>
+                  {error}
+                </div>
+              )}
               <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
                 <div className="form-group">
-                  <label htmlFor="day">Day <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <label htmlFor="employee_id">Employee <span style={{ color: '#ef4444' }}>*</span>:</label>
                   <select
-                    id="day"
-                    name="day"
-                    value={newEmployeeShiftSchedule.day}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">---Choose Day---</option>
-                    {dayOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="shift">Shift <span style={{ color: '#ef4444' }}>*</span>:</label>
-                  <select
-                    id="shift"
-                    name="shift"
-                    value={newEmployeeShiftSchedule.shift}
-                    onChange={handleInputChange}
-                    required
-                  >
-                    <option value="">---Choose Shift---</option>
-                    {shiftOptions.map(option => (
-                      <option key={option} value={option}>{option}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="employee">Employee <span style={{ color: '#ef4444' }}>*</span>:</label>
-                  <select
-                    id="employee"
-                    name="employee"
-                    value={newEmployeeShiftSchedule.employee}
+                    id="employee_id"
+                    name="employee_id"
+                    value={newEmployeeShiftSchedule.employee_id}
                     onChange={handleInputChange}
                     required
                   >
                     <option value="">---Choose Employee---</option>
-                    {employeeOptions.map((option: string) => (
-                      <option key={option} value={option}>{option}</option>
+                    {employees.map(employee => (
+                      <option key={employee.id} value={employee.id}>
+                        {employee.firstName} {employee.lastName}
+                      </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="minimumWorkingHours">Minimum Working Hours:</label>
+                  <label htmlFor="shift_start_time">Start Time <span style={{ color: '#ef4444' }}>*</span>:</label>
                   <input
-                    type="text"
-                    id="minimumWorkingHours"
-                    name="minimumWorkingHours"
-                    value={newEmployeeShiftSchedule.minimumWorkingHours}
+                    type="time"
+                    id="shift_start_time"
+                    name="shift_start_time"
+                    value={newEmployeeShiftSchedule.shift_start_time}
                     onChange={handleInputChange}
-                    placeholder="8:00"
+                    required
                   />
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label htmlFor="startTime">Start Time:</label>
-                    <input
-                      type="time"
-                      id="startTime"
-                      name="startTime"
-                      value={newEmployeeShiftSchedule.startTime}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="endTime">End Time:</label>
-                    <input
-                      type="time"
-                      id="endTime"
-                      name="endTime"
-                      value={newEmployeeShiftSchedule.endTime}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                </div>
-
                 <div className="form-group">
-                  <label htmlFor="enableAutomaticCheckOut">
-                    <input
-                      type="checkbox"
-                      id="enableAutomaticCheckOut"
-                      name="enableAutomaticCheckOut"
-                      checked={newEmployeeShiftSchedule.enableAutomaticCheckOut}
-                      onChange={handleInputChange}
-                    />
-                    Enable Automatic Check Out
-                  </label>
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="company">Company:</label>
-                  <select
-                    id="company"
-                    name="company"
-                    value={newEmployeeShiftSchedule.company}
+                  <label htmlFor="shift_end_time">End Time <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <input
+                    type="time"
+                    id="shift_end_time"
+                    name="shift_end_time"
+                    value={newEmployeeShiftSchedule.shift_end_time}
                     onChange={handleInputChange}
-                  >
-                    <option value="">Prasanth Technologies</option>
-                    {companyOptions.map((option: string) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-                  </select>
+                    required
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="minimum_hour">Minimum Hours <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    id="minimum_hour"
+                    name="minimum_hour"
+                    value={newEmployeeShiftSchedule.minimum_hour}
+                    onChange={handleInputChange}
+                    placeholder="8"
+                    required
+                  />
                 </div>
 
               </form>
             </div>
             <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={handleCloseModal}
+                disabled={loading}
+                style={{ 
+                  marginRight: '12px',
+                  cursor: loading ? 'not-allowed' : 'pointer'
+                }}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" onClick={handleCreate}>
-                Save
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                onClick={handleCreate}
+                disabled={loading || !newEmployeeShiftSchedule.employee_id || !newEmployeeShiftSchedule.shift_start_time || !newEmployeeShiftSchedule.shift_end_time || !newEmployeeShiftSchedule.minimum_hour}
+                style={{
+                  backgroundColor: (loading || !newEmployeeShiftSchedule.employee_id || !newEmployeeShiftSchedule.shift_start_time || !newEmployeeShiftSchedule.shift_end_time || !newEmployeeShiftSchedule.minimum_hour) ? '#6b7280' : '#3b82f6',
+                  cursor: (loading || !newEmployeeShiftSchedule.employee_id || !newEmployeeShiftSchedule.shift_start_time || !newEmployeeShiftSchedule.shift_end_time || !newEmployeeShiftSchedule.minimum_hour) ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {loading ? 'Creating...' : 'Create'}
               </button>
             </div>
           </div>

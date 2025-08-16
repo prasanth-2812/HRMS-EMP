@@ -84,6 +84,33 @@ export interface EmployeeShift {
   is_active?: boolean;
 }
 
+export interface RotatingShift {
+  id?: number;
+  name: string;
+  shift1: number;
+  shift2: number;
+  additional_shifts?: number[];
+  company_id?: number[];
+  created_at?: string;
+  created_by?: number;
+  modified_by?: number;
+  is_active?: boolean;
+}
+
+export interface EmployeeShiftSchedule {
+  id?: number;
+  day: string;
+  shift_id: number;
+  start_time: string;
+  end_time: string;
+  minimum_working_hour: number;
+  company_id?: number[];
+  created_at?: string;
+  created_by?: number;
+  modified_by?: number;
+  is_active?: boolean;
+}
+
 // Response types for paginated endpoints
 export interface PaginatedResponse<T> {
   count: number;
@@ -433,5 +460,116 @@ export const deleteEmployeeShift = async (id: number): Promise<void> => {
     await apiClient.delete(`/api/v1/base/employee-shifts/${id}/`);
   } catch (error: any) {
     throw new Error(error.response?.data?.detail || 'Failed to delete employee shift');
+  }
+};
+
+// RotatingShift API functions
+export const getRotatingShifts = async (): Promise<PaginatedResponse<RotatingShift>> => {
+  try {
+    const response = await apiClient.get<PaginatedResponse<RotatingShift>>('/api/v1/base/rotating-shifts/');
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to fetch rotating shifts');
+  }
+};
+
+export const createRotatingShift = async (data: Omit<RotatingShift, 'id' | 'created_at' | 'created_by' | 'modified_by' | 'is_active' | 'company_id'>): Promise<RotatingShift> => {
+  try {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('shift1', data.shift1.toString());
+    formData.append('shift2', data.shift2.toString());
+    if (data.additional_shifts && data.additional_shifts.length > 0) {
+      data.additional_shifts.forEach(shift => {
+        formData.append('additional_shifts', shift.toString());
+      });
+    }
+    const response = await apiClient.post<RotatingShift>('/api/v1/base/rotating-shifts/', formData);
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to create rotating shift');
+  }
+};
+
+export const updateRotatingShift = async (id: number, data: Omit<RotatingShift, 'id' | 'created_at' | 'created_by' | 'modified_by' | 'is_active' | 'company_id'>): Promise<RotatingShift> => {
+  try {
+    const formData = new FormData();
+    formData.append('name', data.name);
+    formData.append('shift1', data.shift1.toString());
+    formData.append('shift2', data.shift2.toString());
+    if (data.additional_shifts && data.additional_shifts.length > 0) {
+      data.additional_shifts.forEach(shift => {
+        formData.append('additional_shifts', shift.toString());
+      });
+    }
+    const response = await apiClient.put<RotatingShift>(`/api/v1/base/rotating-shifts/${id}/`, formData);
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to update rotating shift');
+  }
+};
+
+export const deleteRotatingShift = async (id: number): Promise<void> => {
+  try {
+    await apiClient.delete(`/api/v1/base/rotating-shifts/${id}/`);
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to delete rotating shift');
+  }
+};
+
+// Employee Shift Schedule API functions
+export const getEmployeeShiftSchedules = async (): Promise<PaginatedResponse<EmployeeShiftSchedule>> => {
+  try {
+    const response = await apiClient.get<PaginatedResponse<EmployeeShiftSchedule>>('/api/v1/base/employee-shift-schedules/');
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to fetch employee shift schedules');
+  }
+};
+
+export const getEmployeeShiftScheduleById = async (id: number): Promise<EmployeeShiftSchedule> => {
+  try {
+    const response = await apiClient.get<EmployeeShiftSchedule>(`/api/v1/base/employee-shift-schedules/${id}/`);
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to fetch employee shift schedule');
+  }
+};
+
+export const createEmployeeShiftSchedule = async (data: Omit<EmployeeShiftSchedule, 'id' | 'created_at' | 'created_by' | 'modified_by' | 'is_active' | 'company_id'>): Promise<EmployeeShiftSchedule> => {
+  try {
+    const formData = new FormData();
+    formData.append('day', data.day);
+    formData.append('shift_id', data.shift_id.toString());
+    formData.append('start_time', data.start_time);
+    formData.append('end_time', data.end_time);
+    formData.append('minimum_working_hour', data.minimum_working_hour.toString());
+    const response = await apiClient.post<EmployeeShiftSchedule>('/api/v1/base/employee-shift-schedules/', formData);
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to create employee shift schedule');
+  }
+};
+
+export const updateEmployeeShiftSchedule = async (id: number, data: Omit<EmployeeShiftSchedule, 'id' | 'created_at' | 'created_by' | 'modified_by' | 'is_active' | 'company_id'>): Promise<EmployeeShiftSchedule> => {
+  try {
+    const formData = new FormData();
+    formData.append('day', data.day);
+    formData.append('shift_id', data.shift_id.toString());
+    formData.append('start_time', data.start_time);
+    formData.append('end_time', data.end_time);
+    formData.append('minimum_working_hour', data.minimum_working_hour.toString());
+    const response = await apiClient.put<EmployeeShiftSchedule>(`/api/v1/base/employee-shift-schedules/${id}/`, formData);
+    return response;
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to update employee shift schedule');
+  }
+};
+
+export const deleteEmployeeShiftSchedule = async (id: number): Promise<void> => {
+  try {
+    await apiClient.delete(`/api/v1/base/employee-shift-schedules/${id}/`);
+  } catch (error: any) {
+    throw new Error(error.response?.data?.detail || 'Failed to delete employee shift schedule');
   }
 };

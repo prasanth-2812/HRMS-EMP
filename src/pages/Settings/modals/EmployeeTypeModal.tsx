@@ -1,69 +1,86 @@
 import React, { useState, useEffect } from 'react';
-
-interface EmployeeTypeData {
-  id: number;
-  employeeType: string;
-  company?: string;
-}
+import {
+  JobPosition,
+  Department,
+  getJobPositions,
+  createJobPosition,
+  updateJobPosition,
+  deleteJobPosition,
+  getDepartments
+} from '../../../services/baseService';
 
 interface EmployeeTypeModalProps {
   onClose: () => void;
 }
 
 const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
-  const [employeeTypes, setEmployeeTypes] = useState<EmployeeTypeData[]>([
-    {
-      id: 1,
-      employeeType: 'Full-time',
-      company: 'Prasanth Technologies'
-    },
-    {
-      id: 2,
-      employeeType: 'Part-time',
-      company: 'Prasanth Technologies'
-    },
-    {
-      id: 3,
-      employeeType: 'Contract',
-      company: 'Prasanth Technologies'
-    }
-  ]);
+  const [jobPositions, setJobPositions] = useState<JobPosition[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    employeeType: '',
-    company: ''
+    job_position: '',
+    department_id: ''
   });
   const [isEditing, setIsEditing] = useState<number | null>(null);
 
-  // Dummy company options
-  const companyOptions = [
-    'Prasanth Technologies',
-    'Tech Corp',
-    'Innovation Ltd',
-    'StartUp Inc',
-    'Global Solutions',
-    'Digital Dynamics'
-  ];
-
   useEffect(() => {
-    // Component initialization - no need to fetch data as we're using dummy data
+    fetchJobPositions();
+    fetchDepartments();
   }, []);
 
-  const handleEdit = (employeeType: EmployeeTypeData) => {
+  const fetchJobPositions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getJobPositions();
+      setJobPositions(response.results);
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error fetching job positions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await getDepartments();
+      setDepartments(response.results);
+    } catch (err: any) {
+      console.error('Error fetching departments:', err);
+    }
+  };
+
+  const getDepartmentName = (departmentId: number): string => {
+    const department = departments.find(d => d.id === departmentId);
+    return department?.department || 'Unknown Department';
+  };
+
+  const handleEdit = (jobPosition: JobPosition) => {
     setFormData({
-      employeeType: employeeType.employeeType,
-      company: employeeType.company || ''
+      job_position: jobPosition.job_position,
+      department_id: jobPosition.department_id.toString()
     });
-    setIsEditing(employeeType.id);
+    setIsEditing(jobPosition.id!);
     setShowCreateForm(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this employee type?')) {
-      setEmployeeTypes(prev => prev.filter(type => type.id !== id));
-      showNotification('Employee type deleted successfully!');
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this job position?')) {
+      try {
+        setLoading(true);
+        setError(null);
+        await deleteJobPosition(id);
+        showNotification('Job position deleted successfully!');
+        await fetchJobPositions();
+      } catch (err: any) {
+        setError(err.message);
+        console.error('Error deleting job position:', err);
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -73,20 +90,20 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
   };
 
   const handleCreateNew = () => {
-    setIsEditing(null);
     setFormData({
-      employeeType: '',
-      company: ''
+      job_position: '',
+      department_id: ''
     });
+    setIsEditing(null);
     setShowCreateForm(true);
   };
 
   const handleCancel = () => {
-    setIsEditing(null);
     setFormData({
-      employeeType: '',
-      company: ''
+      job_position: '',
+      department_id: ''
     });
+    setIsEditing(null);
     setShowCreateForm(false);
     setError(null);
   };
@@ -95,32 +112,46 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'department_id' ? value : value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing) {
-      // Update existing employee type
-      setEmployeeTypes(prev => prev.map(type => 
-        type.id === isEditing 
-          ? { ...formData, id: isEditing }
-          : type
-      ));
-      showNotification('Employee type updated successfully!');
-    } else {
-      // Create new employee type
-      const newEmployeeType: EmployeeTypeData = {
-        ...formData,
-        id: Math.max(...employeeTypes.map(t => t.id), 0) + 1
-      };
-      setEmployeeTypes(prev => [...prev, newEmployeeType]);
-      showNotification('Employee type created successfully!');
+    // Validation
+    if (!formData.job_position.trim() || !formData.department_id) {
+      setError('Please fill in all required fields');
+      return;
     }
     
-    handleCancel();
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const jobPositionData = {
+        job_position: formData.job_position.trim(),
+        department_id: parseInt(formData.department_id)
+      };
+      
+      if (isEditing) {
+        // Update existing job position
+        await updateJobPosition(isEditing, jobPositionData);
+        showNotification('Job position updated successfully!');
+      } else {
+        // Create new job position
+        await createJobPosition(jobPositionData);
+        showNotification('Job position created successfully!');
+      }
+      
+      await fetchJobPositions();
+      handleCancel();
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error saving job position:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (showCreateForm) {
@@ -128,7 +159,7 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
-            <h2>{isEditing ? 'Edit Employee Type' : 'Create Employee Type'}</h2>
+            <h2>{isEditing ? 'Edit Job Position' : 'Create Job Position'}</h2>
             <button className="modal-close" onClick={onClose}>
               <ion-icon name="close-outline"></ion-icon>
             </button>
@@ -137,29 +168,48 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
         <div className="modal-body">
           <form id="employee-type-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label htmlFor="employeeType">Employee type:</label>
+              <label htmlFor="job_position">Job Position *</label>
               <input
                 type="text"
-                id="employeeType"
-                name="employeeType"
-                value={formData.employeeType}
+                id="job_position"
+                name="job_position"
+                value={formData.job_position}
                 onChange={handleInputChange}
-                placeholder="Employee type"
+                disabled={loading}
                 required
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: loading ? '#f8f9fa' : 'white'
+                }}
+                placeholder="Enter job position"
               />
             </div>
 
             <div className="form-group">
-              <label htmlFor="company">Company:</label>
+              <label htmlFor="department_id">Department *</label>
               <select
-                id="company"
-                name="company"
-                value={formData.company}
+                id="department_id"
+                name="department_id"
+                value={formData.department_id}
                 onChange={handleInputChange}
+                disabled={loading}
+                required
+                style={{
+                  width: '100%',
+                  padding: '8px 12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  backgroundColor: loading ? '#f8f9fa' : 'white'
+                }}
               >
-                <option value="Prasanth Technologies">Prasanth Technologies</option>
-                {companyOptions.map((option: string) => (
-                  <option key={option} value={option}>{option}</option>
+                <option value="">Select Department</option>
+                {departments.map(department => (
+                  <option key={department.id} value={department.id}>{department.department}</option>
                 ))}
               </select>
             </div>
@@ -192,7 +242,7 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Employee Type</h2>
+          <h2>Job Position</h2>
           <button className="modal-close" onClick={onClose}>
             <ion-icon name="close-outline"></ion-icon>
           </button>
@@ -200,7 +250,7 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
         
         <div className="modal-body">
           <div className="table-header">
-            <h3>Employee Types</h3>
+            <h3>Job Positions</h3>
             <button 
               className="btn btn-primary"
               onClick={handleCreateNew}
@@ -221,33 +271,33 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
             </div>
           )}
           
-          {!loading && !error && employeeTypes.length === 0 ? (
+          {!loading && !error && jobPositions.length === 0 ? (
             <div className="empty-state">
               <div className="empty-icon">
                 <ion-icon name="people-outline"></ion-icon>
               </div>
-              <p>There are no employee types at this moment.</p>
+              <p>There are no job positions at this moment.</p>
             </div>
           ) : !loading && !error && (
             <div className="table-container">
               <table className="data-table">
                 <thead>
                   <tr>
-                    <th>Employee Type</th>
-                    <th>Company</th>
+                    <th>Job Position</th>
+                    <th>Department</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {employeeTypes.map(type => (
-                    <tr key={type.id}>
-                      <td>{type.employeeType}</td>
-                      <td>{type.company}</td>
+                  {jobPositions.map(position => (
+                    <tr key={position.id}>
+                      <td>{position.job_position}</td>
+                      <td>{getDepartmentName(position.department_id)}</td>
                       <td>
                         <div className="action-buttons">
                           <button
                             className="btn btn-sm btn-primary"
-                            onClick={() => handleEdit(type)}
+                            onClick={() => handleEdit(position)}
                             title="Edit"
                             disabled={loading}
                           >
@@ -255,7 +305,7 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
                           </button>
                           <button
                             className="btn btn-sm btn-danger"
-                            onClick={() => handleDelete(type.id)}
+                            onClick={() => handleDelete(position.id!)}
                             title="Delete"
                             disabled={loading}
                           >

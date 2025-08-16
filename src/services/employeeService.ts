@@ -314,3 +314,30 @@ export const managerCheck = async () => {
   return await apiClient.get('/api/v1/employee/manager-check/');
 };
 
+// Employee Tags CRUD
+export const getAllEmployeeTags = async () => {
+  const response = await apiClient.get('/employee-tag-view/');
+  return response;
+};
+
+export const createEmployeeTag = async (data: { title: string; color: string }) => {
+  const formData = new FormData();
+  formData.append('title', data.title);
+  formData.append('color', data.color);
+  const response = await apiClient.post('/employee-tag-create', formData);
+  return response;
+};
+
+export const updateEmployeeTag = async (id: string | number, data: { title: string; color: string }) => {
+  const formData = new FormData();
+  formData.append('title', data.title);
+  formData.append('color', data.color);
+  const response = await apiClient.post(`/employee-tag-update/${id}`, formData);
+  return response;
+};
+
+export const deleteEmployeeTag = async (id: string | number) => {
+  const response = await apiClient.post(`/employee-tag-delete/${id}/`);
+  return response;
+};
+
