@@ -28,6 +28,7 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
   const [newEmployeeShiftSchedule, setNewEmployeeShiftSchedule] = useState({
     day: '',
     shift: '',
+    employee: '',
     minimumWorkingHours: '',
     startTime: '',
     endTime: '',
@@ -60,6 +61,14 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
     'Night'
   ];
 
+  const employeeOptions = [
+    'John Doe',
+    'Jane Smith',
+    'Mike Johnson',
+    'Sarah Wilson',
+    'David Brown'
+  ];
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target as HTMLInputElement;
     setNewEmployeeShiftSchedule(prev => ({
@@ -79,6 +88,7 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
       setNewEmployeeShiftSchedule({
         day: '',
         shift: '',
+        employee: '',
         minimumWorkingHours: '',
         startTime: '',
         endTime: '',
@@ -98,6 +108,7 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
     setNewEmployeeShiftSchedule({
       day: '',
       shift: '',
+      employee: '',
       minimumWorkingHours: '',
       startTime: '',
       endTime: '',
@@ -110,35 +121,21 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
     <>
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '1000px', width: '90%' }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            padding: '24px',
-            borderBottom: '1px solid #e2e8f0'
-          }}>
-            <h2 style={{ margin: 0, fontSize: '24px', fontWeight: '600', color: '#1f2937' }}>Employee Shift Schedule</h2>
+          <div className="modal-header">
+            <h2>Employee Shift Schedule</h2>
             <button
+              className="btn btn-primary"
               onClick={() => setShowCreateModal(true)}
-              style={{
-                backgroundColor: '#ef4444',
-                color: 'white',
-                border: 'none',
-                padding: '10px 20px',
-                borderRadius: '6px',
-                fontSize: '14px',
-                fontWeight: '500',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
+              style={{ marginRight: '10px' }}
             >
               + Create
             </button>
+            <button className="modal-close" onClick={onClose}>
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
           </div>
           
-          <div style={{ padding: '24px' }}>
+          <div className="modal-body">
             <table style={{
               width: '100%',
               borderCollapse: 'collapse',
@@ -212,242 +209,142 @@ const EmployeeShiftModal: React.FC<EmployeeShiftModalProps> = ({ onClose }) => {
             </table>
           </div>
 
-          <button
-            onClick={onClose}
-            style={{
-              position: 'absolute',
-              top: '20px',
-              right: '20px',
-              background: 'none',
-              border: 'none',
-              fontSize: '24px',
-              cursor: 'pointer',
-              color: '#6b7280'
-            }}
-          >
-            ×
-          </button>
+
         </div>
       </div>
 
       {showCreateModal && (
         <div className="modal-overlay" onClick={handleCloseModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '24px',
-              borderBottom: '1px solid #e2e8f0'
-            }}>
-              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: '600', color: '#374151' }}>Create Employee Shift Schedule</h2>
-              <button
-                onClick={handleCloseModal}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  fontSize: '24px',
-                  cursor: 'pointer',
-                  color: '#6b7280'
-                }}
-              >
-                ×
+            <div className="modal-header">
+              <h2>Create Employee Shift Schedule</h2>
+              <button className="modal-close" onClick={handleCloseModal}>
+                <ion-icon name="close-outline"></ion-icon>
               </button>
             </div>
             
-            <div style={{ padding: '24px' }}>
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>Day <span style={{ color: '#ef4444' }}>*</span></label>
-                <select
-                  name="day"
-                  value={newEmployeeShiftSchedule.day}
-                  onChange={handleInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="">---Choose Day---</option>
-                  {dayOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>Shift <span style={{ color: '#ef4444' }}>*</span></label>
-                <select
-                  name="shift"
-                  value={newEmployeeShiftSchedule.shift}
-                  onChange={handleInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="">---Choose Shift---</option>
-                  {shiftOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>Minimum Working Hours</label>
-                <input
-                  type="text"
-                  name="minimumWorkingHours"
-                  value={newEmployeeShiftSchedule.minimumWorkingHours}
-                  onChange={handleInputChange}
-                  placeholder="8:00"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ flex: 1 }}>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>Start Time</label>
-                  <input
-                    type="time"
-                    name="startTime"
-                    value={newEmployeeShiftSchedule.startTime}
+            <div className="modal-body">
+              <form onSubmit={(e) => { e.preventDefault(); handleCreate(); }}>
+                <div className="form-group">
+                  <label htmlFor="day">Day <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <select
+                    id="day"
+                    name="day"
+                    value={newEmployeeShiftSchedule.day}
                     onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      backgroundColor: 'white'
-                    }}
+                    required
+                  >
+                    <option value="">---Choose Day---</option>
+                    {dayOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="shift">Shift <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <select
+                    id="shift"
+                    name="shift"
+                    value={newEmployeeShiftSchedule.shift}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">---Choose Shift---</option>
+                    {shiftOptions.map(option => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="employee">Employee <span style={{ color: '#ef4444' }}>*</span>:</label>
+                  <select
+                    id="employee"
+                    name="employee"
+                    value={newEmployeeShiftSchedule.employee}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">---Choose Employee---</option>
+                    {employeeOptions.map((option: string) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="minimumWorkingHours">Minimum Working Hours:</label>
+                  <input
+                    type="text"
+                    id="minimumWorkingHours"
+                    name="minimumWorkingHours"
+                    value={newEmployeeShiftSchedule.minimumWorkingHours}
+                    onChange={handleInputChange}
+                    placeholder="8:00"
                   />
                 </div>
-                <div style={{ flex: 1 }}>
-                  <label style={{
-                    display: 'block',
-                    marginBottom: '8px',
-                    fontWeight: '600',
-                    color: '#374151'
-                  }}>End Time</label>
-                  <input
-                    type="time"
-                    name="endTime"
-                    value={newEmployeeShiftSchedule.endTime}
-                    onChange={handleInputChange}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '6px',
-                      fontSize: '14px',
-                      backgroundColor: 'white'
-                    }}
-                  />
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="startTime">Start Time:</label>
+                    <input
+                      type="time"
+                      id="startTime"
+                      name="startTime"
+                      value={newEmployeeShiftSchedule.startTime}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="endTime">End Time:</label>
+                    <input
+                      type="time"
+                      id="endTime"
+                      name="endTime"
+                      value={newEmployeeShiftSchedule.endTime}
+                      onChange={handleInputChange}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  cursor: 'pointer'
-                }}>
-                  <input
-                    type="checkbox"
-                    name="enableAutomaticCheckOut"
-                    checked={newEmployeeShiftSchedule.enableAutomaticCheckOut}
+                <div className="form-group">
+                  <label htmlFor="enableAutomaticCheckOut">
+                    <input
+                      type="checkbox"
+                      id="enableAutomaticCheckOut"
+                      name="enableAutomaticCheckOut"
+                      checked={newEmployeeShiftSchedule.enableAutomaticCheckOut}
+                      onChange={handleInputChange}
+                    />
+                    Enable Automatic Check Out
+                  </label>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="company">Company:</label>
+                  <select
+                    id="company"
+                    name="company"
+                    value={newEmployeeShiftSchedule.company}
                     onChange={handleInputChange}
-                    style={{
-                      width: '16px',
-                      height: '16px'
-                    }}
-                  />
-                  Enable Automatic Check Out
-                </label>
-              </div>
+                  >
+                    <option value="">Prasanth Technologies</option>
+                    {companyOptions.map((option: string) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+                  </select>
+                </div>
 
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{
-                  display: 'block',
-                  marginBottom: '8px',
-                  fontWeight: '600',
-                  color: '#374151'
-                }}>Company</label>
-                <select
-                  name="company"
-                  value={newEmployeeShiftSchedule.company}
-                  onChange={handleInputChange}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    backgroundColor: 'white'
-                  }}
-                >
-                  <option value="">Prasanth Technologies</option>
-                  {companyOptions.map(option => (
-                    <option key={option} value={option}>{option}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={handleCreate}
-                  style={{
-                    backgroundColor: '#ef4444',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 24px',
-                    borderRadius: '6px',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Save
-                </button>
-              </div>
+              </form>
+            </div>
+            <div className="modal-footer">
+              <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary" onClick={handleCreate}>
+                Save
+              </button>
             </div>
           </div>
         </div>

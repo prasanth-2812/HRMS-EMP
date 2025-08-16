@@ -12,10 +12,17 @@ interface EmployeeTagsModalProps {
 }
 
 const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingItem }) => {
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     color: '#3b82f6'
   });
+  
+  // Mock data for employee tags - replace with actual API call
+  const [employeeTags] = useState<EmployeeTagData[]>([
+    { id: 1, title: 'proactivity', color: '#000000' },
+    { id: 2, title: 'skilled', color: '#dc2626' }
+  ]);
 
   // Predefined color options
   const colorOptions = [
@@ -47,8 +54,32 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
         title: editingItem.title,
         color: editingItem.color
       });
+      setShowCreateForm(true);
     }
   }, [editingItem]);
+
+  const handleCreateClick = () => {
+    setShowCreateForm(true);
+    setFormData({ title: '', color: '#3b82f6' });
+  };
+
+  const handleBackToList = () => {
+    setShowCreateForm(false);
+    setFormData({ title: '', color: '#3b82f6' });
+  };
+
+  const handleEdit = (tag: EmployeeTagData) => {
+    setFormData({
+      title: tag.title,
+      color: tag.color
+    });
+    setShowCreateForm(true);
+  };
+
+  const handleDelete = (id: number) => {
+    console.log('Delete employee tag:', id);
+    // TODO: Implement delete functionality
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -69,20 +100,130 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
     e.preventDefault();
     console.log('Employee Tag form data:', formData);
     // TODO: Implement save functionality
-    onClose();
+    setShowCreateForm(false);
+    setFormData({ title: '', color: '#3b82f6' });
   };
 
   const handleCancel = () => {
-    setFormData({ title: '', color: '#3b82f6' });
-    onClose();
+    if (showCreateForm) {
+      setShowCreateForm(false);
+      setFormData({ title: '', color: '#3b82f6' });
+    } else {
+      onClose();
+    }
   };
 
+  // Render list view
+  if (!showCreateForm) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '800px' }}>
+          <div className="modal-header">
+            <h2>Employee Tags</h2>
+            <button className="modal-close" onClick={onClose}>
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+          
+          <div className="modal-body">
+            <div className="table-header">
+              <h3>Manage Employee Tags</h3>
+              <button 
+                className="btn btn-primary"
+                onClick={handleCreateClick}
+                style={{
+                  backgroundColor: '#dc3545',
+                  borderColor: '#dc3545',
+                  color: 'white'
+                }}
+              >
+                + Create
+              </button>
+            </div>
+            
+            <div className="table-container">
+              <div className="table-header-row">
+                <div>Title</div>
+                <div>Color</div>
+                <div>Actions</div>
+              </div>
+              
+              {employeeTags.map((tag) => (
+                <div key={tag.id} className="table-row">
+                  <div>{tag.title}</div>
+                  <div>
+                    <div className="color-indicator" style={{ backgroundColor: tag.color }}></div>
+                  </div>
+                  <div className="action-buttons">
+                    <button 
+                      className="btn btn-sm btn-primary" 
+                      onClick={() => handleEdit(tag)}
+                      style={{
+                        backgroundColor: '#6c757d',
+                        borderColor: '#6c757d',
+                        color: 'white',
+                        marginRight: '8px'
+                      }}
+                    >
+                      <ion-icon name="create-outline"></ion-icon>
+                    </button>
+                    <button 
+                      className="btn btn-sm btn-danger" 
+                      onClick={() => handleDelete(tag.id)}
+                      style={{
+                        backgroundColor: '#dc3545',
+                        borderColor: '#dc3545',
+                        color: 'white'
+                      }}
+                    >
+                      <ion-icon name="trash-outline"></ion-icon>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+          
+          <div className="modal-footer">
+            <button 
+              className="btn btn-secondary"
+              onClick={onClose}
+              style={{
+                backgroundColor: '#6c757d',
+                borderColor: '#6c757d',
+                color: 'white'
+              }}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Render create/edit form
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleCancel}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '600px' }}>
         <div className="modal-header">
-          <h2>{editingItem ? 'Edit Employee Tag' : 'Create Employee Tag'}</h2>
-          <button className="modal-close" onClick={onClose}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <button 
+              onClick={handleBackToList}
+              style={{
+                background: 'none',
+                border: 'none',
+                fontSize: '20px',
+                cursor: 'pointer',
+                color: '#6b7280',
+                padding: '4px'
+              }}
+            >
+              <ion-icon name="arrow-back-outline"></ion-icon>
+            </button>
+            <h2>{editingItem ? 'Edit Employee Tag' : 'Create Employee Tag'}</h2>
+          </div>
+          <button className="modal-close" onClick={handleCancel}>
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
@@ -205,67 +346,32 @@ const EmployeeTagsModal: React.FC<EmployeeTagsModalProps> = ({ onClose, editingI
           </form>
         </div>
         
-        <div className="modal-footer" style={{ 
-          padding: '24px', 
-          borderTop: '2px solid #e2e8f0', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          gap: '16px', 
-          backgroundColor: '#f8fafc', 
-          flexShrink: 0, 
-          boxShadow: '0 -6px 20px rgba(0,0,0,0.1)',
-          borderRadius: '0 0 12px 12px',
-          minHeight: '120px',
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 100
-        }}>
-          <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
-            {editingItem ? 'Update employee tag information' : 'Create new employee tag'}
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
-              onClick={handleCancel}
-              style={{ 
-                minWidth: '120px', 
-                height: '48px',
-                fontSize: '15px',
-                fontWeight: '600',
-                border: '2px solid #6b7280',
-                borderRadius: '10px',
-                backgroundColor: '#ffffff',
-                color: '#374151',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              form="employee-tag-form" 
-              className="btn btn-primary" 
-              style={{ 
-                minWidth: '140px', 
-                height: '48px',
-                fontSize: '15px',
-                fontWeight: '700',
-                backgroundColor: '#2563eb',
-                border: '2px solid #2563eb',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                color: '#ffffff',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              {editingItem ? '✓ UPDATE' : '+ CREATE'}
-            </button>
-          </div>
+        <div className="modal-footer">
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            onClick={handleCancel}
+            style={{
+              backgroundColor: '#6c757d',
+              borderColor: '#6c757d',
+              color: 'white',
+              marginRight: '12px'
+            }}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            form="employee-tag-form" 
+            className="btn btn-primary"
+            style={{
+              backgroundColor: '#dc3545',
+              borderColor: '#dc3545',
+              color: 'white'
+            }}
+          >
+            {editingItem ? 'Update' : 'Save'}
+          </button>
         </div>
       </div>
     </div>

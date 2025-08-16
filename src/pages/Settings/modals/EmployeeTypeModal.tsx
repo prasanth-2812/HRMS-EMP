@@ -136,16 +136,8 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
         
         <div className="modal-body">
           <form id="employee-type-form" onSubmit={handleSubmit}>
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label htmlFor="employeeType" style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#374151' 
-              }}>
-                Employee type:
-              </label>
+            <div className="form-group">
+              <label htmlFor="employeeType">Employee type:</label>
               <input
                 type="text"
                 id="employeeType"
@@ -153,110 +145,42 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
                 value={formData.employeeType}
                 onChange={handleInputChange}
                 placeholder="Employee type"
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #d1d5db', 
-                  borderRadius: '6px', 
-                  fontSize: '14px',
-                  backgroundColor: '#ffffff',
-                  outline: 'none'
-                }}
+                required
               />
             </div>
 
-            <div className="form-group" style={{ marginBottom: '20px' }}>
-              <label htmlFor="company" style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontSize: '14px', 
-                fontWeight: '500', 
-                color: '#374151' 
-              }}>
-                Company:
-              </label>
+            <div className="form-group">
+              <label htmlFor="company">Company:</label>
               <select
                 id="company"
                 name="company"
                 value={formData.company}
                 onChange={handleInputChange}
-                style={{ 
-                  width: '100%', 
-                  padding: '12px', 
-                  border: '1px solid #d1d5db', 
-                  borderRadius: '6px', 
-                  fontSize: '14px',
-                  backgroundColor: '#ffffff',
-                  outline: 'none'
-                }}
               >
                 <option value="Prasanth Technologies">Prasanth Technologies</option>
+                {companyOptions.map((option: string) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
               </select>
             </div>
           </form>
         </div>
         
-        <div className="modal-footer" style={{ 
-          padding: '24px', 
-          borderTop: '2px solid #e2e8f0', 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          gap: '16px', 
-          backgroundColor: '#f8fafc', 
-          flexShrink: 0, 
-          boxShadow: '0 -6px 20px rgba(0,0,0,0.1)',
-          borderRadius: '0 0 12px 12px',
-          minHeight: '120px',
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 100
-        }}>
-          <div style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
-            {isEditing ? 'Update employee type information' : 'Create new employee type'}
-          </div>
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <button 
-              type="button" 
-              className="btn btn-secondary" 
-              onClick={handleCancel}
-              style={{ 
-                minWidth: '120px', 
-                height: '48px',
-                fontSize: '15px',
-                fontWeight: '600',
-                border: '2px solid #6b7280',
-                borderRadius: '10px',
-                backgroundColor: '#ffffff',
-                color: '#374151',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Cancel
-            </button>
-            <button 
-              type="submit" 
-              form="employee-type-form" 
-              className="btn btn-primary" 
-              style={{ 
-                minWidth: '140px', 
-                height: '48px',
-                fontSize: '15px',
-                fontWeight: '700',
-                backgroundColor: '#2563eb',
-                border: '2px solid #2563eb',
-                borderRadius: '10px',
-                boxShadow: '0 4px 12px rgba(37, 99, 235, 0.4)',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                color: '#ffffff',
-                transition: 'all 0.2s ease'
-              }}
-            >
-              Save
-            </button>
-          </div>
+        <div className="modal-footer">
+          <button 
+            type="button" 
+            className="btn btn-secondary" 
+            onClick={handleCancel}
+          >
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            form="employee-type-form" 
+            className="btn btn-primary"
+          >
+            {isEditing ? 'Update' : 'Save'}
+          </button>
         </div>
       </div>
     </div>
@@ -275,121 +199,67 @@ const EmployeeTypeModal: React.FC<EmployeeTypeModalProps> = ({ onClose }) => {
         </div>
         
         <div className="modal-body">
-          <div style={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: 'center', 
-            marginBottom: '20px' 
-          }}>
-            <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '600' }}>Employee Types</h3>
+          <div className="table-header">
+            <h3>Employee Types</h3>
             <button 
+              className="btn btn-primary"
               onClick={handleCreateNew}
-              style={{
-                backgroundColor: '#dc2626',
-                color: 'white',
-                border: 'none',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}
             >
               + Create
             </button>
           </div>
           
           {loading && (
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: '200px' 
-            }}>
+            <div className="loading-container">
               Loading...
             </div>
           )}
           
           {error && (
-            <div style={{ 
-              padding: '12px', 
-              backgroundColor: '#fef2f2', 
-              border: '1px solid #fecaca', 
-              borderRadius: '6px', 
-              color: '#dc2626',
-              marginBottom: '16px'
-            }}>
+            <div className="error-message">
               Error: {error}
             </div>
           )}
           
           {!loading && !error && employeeTypes.length === 0 ? (
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              height: '300px',
-              color: '#64748b'
-            }}>
-              <div style={{ 
-                width: '80px', 
-                height: '80px', 
-                borderRadius: '50%', 
-                backgroundColor: '#f1f5f9', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center', 
-                marginBottom: '16px'
-              }}>
-                <ion-icon name="people-outline" style={{ fontSize: '32px', color: '#94a3b8' }}></ion-icon>
+            <div className="empty-state">
+              <div className="empty-icon">
+                <ion-icon name="people-outline"></ion-icon>
               </div>
               <p>There are no employee types at this moment.</p>
             </div>
           ) : !loading && !error && (
-            <div>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <div className="table-container">
+              <table className="data-table">
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Employee Type</th>
-                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Company</th>
-                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>Actions</th>
+                  <tr>
+                    <th>Employee Type</th>
+                    <th>Company</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {employeeTypes.map(type => (
-                    <tr key={type.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px' }}>{type.employeeType}</td>
-                      <td style={{ padding: '12px' }}>{type.company}</td>
-                      <td style={{ padding: '12px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                    <tr key={type.id}>
+                      <td>{type.employeeType}</td>
+                      <td>{type.company}</td>
+                      <td>
+                        <div className="action-buttons">
                           <button
+                            className="btn btn-sm btn-primary"
                             onClick={() => handleEdit(type)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: '#64748b',
-                              padding: '4px'
-                            }}
                             title="Edit"
                             disabled={loading}
                           >
-                            <ion-icon name="create-outline" style={{ fontSize: '16px' }}></ion-icon>
+                            <ion-icon name="create-outline"></ion-icon>
                           </button>
                           <button
+                            className="btn btn-sm btn-danger"
                             onClick={() => handleDelete(type.id)}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              cursor: 'pointer',
-                              color: '#ef4444',
-                              padding: '4px'
-                            }}
                             title="Delete"
                             disabled={loading}
                           >
-                            <ion-icon name="trash-outline" style={{ fontSize: '16px' }}></ion-icon>
+                            <ion-icon name="trash-outline"></ion-icon>
                           </button>
                         </div>
                       </td>
