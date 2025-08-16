@@ -13,13 +13,23 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Check if we're dealing with FormData
+    const isFormData = options.body instanceof FormData;
+    
     const config: RequestInit = {
-      headers: {
+      headers: isFormData ? {} : {
         'Content-Type': 'application/json',
-        ...options.headers,
       },
       ...options,
     };
+
+    // Merge additional headers if provided
+    if (options.headers && !isFormData) {
+      config.headers = {
+        ...config.headers,
+        ...options.headers,
+      };
+    }
 
     // Add auth token if available
     const token = localStorage.getItem('authToken');
@@ -50,16 +60,20 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
+      headers: isFormData ? {} : undefined, // Let browser set Content-Type for FormData
     });
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: 'PUT',
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
+      headers: isFormData ? {} : undefined, // Let browser set Content-Type for FormData
     });
   }
 
@@ -79,11 +93,11 @@ export const endpoints = {
     me: '/auth/me',
   },
   employees: {
-    list: '/api/v1/employee/employees/',
-    create: '/api/v1/employee/employees/',
-    get: (id: string) => `/api/v1/employee/employees/${id}/`,
-    update: (id: string) => `/api/v1/employee/employees/${id}/`,
-    delete: (id: string) => `/api/v1/employee/employees/${id}/`,
+    list: '/employees',
+    create: '/employees',
+    get: (id: string) => `/employees/${id}`,
+    update: (id: string) => `/employees/${id}`,
+    delete: (id: string) => `/employees/${id}`,
   },
   departments: {
     list: '/departments',
@@ -92,23 +106,5 @@ export const endpoints = {
     update: (id: string) => `/departments/${id}`,
     delete: (id: string) => `/departments/${id}`,
   },
-  attendance: {
-      list: '/api/v1/attendance/attendance/',
-      todayAttendance: '/api/v1/attendance/today-attendance/',
-      offlineEmployees: {
-        count: '/api/v1/attendance/offline-employees/count/',
-        list: '/api/v1/attendance/offline-employees/list/',
-      },
-      hourAccount: {
-        list: '/api/v1/attendance/attendance-hour-account/',
-        create: '/api/v1/attendance/attendance-hour-account/',
-        get: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
-        update: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
-        delete: (id: string) => `/api/v1/attendance/attendance-hour-account/${id}/`,
-      },
-      activity: {
-        list: '/api/v1/attendance/attendance-activity/',
-      },
-    },
   // Add more endpoints as needed
 };
