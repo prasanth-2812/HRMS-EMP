@@ -10,10 +10,20 @@ interface DisciplinaryActionTypeData {
 
 interface DisciplinaryActionTypeModalProps {
   onClose: () => void;
-  editingItem?: DisciplinaryActionTypeData | null;
 }
 
-const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = ({ onClose, editingItem }) => {
+const DisciplinaryActionTypeModal: React.FC<DisciplinaryActionTypeModalProps> = ({ onClose }) => {
+  // State for list view and form management
+  const [actionTypes, setActionTypes] = useState<DisciplinaryActionTypeData[]>([
+    { id: 1, title: 'Warning', type: 'Warning', loginBlock: false, company: 'Tech Corp' },
+    { id: 2, title: 'sdsds', type: 'Warning', loginBlock: false, company: 'Innovation Ltd' }
+  ]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  
   const [formData, setFormData] = useState({
     title: '',
     type: '',
