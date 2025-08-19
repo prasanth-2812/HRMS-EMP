@@ -5,11 +5,12 @@ import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
 import { apiClient } from '../../utils/api';
-// import AddAttendances from './modals/AddAttendances'; // File does not exist
+import AddAttendances from './modals/AddAttendances';
+import ImportAttendances from './modals/ImportAttendances';
 import EditAttendanceRequestModal from '../../components/Modals/EditAttendanceRequestModal';
-// import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo'; // File does not exist
-// import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee'; // File does not exist
-// import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance'; // File does not exist
+import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo';
+import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee';
+import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance';
 import './AttendanceRecords.css';
 
 interface AttendanceRecord {
@@ -39,14 +40,6 @@ interface AttendanceRecord {
   shift_id: number;
   work_type_id: number;
   batch_attendance_id: number;
-  // Extended employee work information fields
-  department?: string;
-  job_position?: string;
-  company?: string;
-  reporting_manager?: string;
-  employee_type?: string;
-  country?: string;
-  batch_title?: string;
 }
 
 interface AttendanceResponse {
@@ -59,8 +52,6 @@ const AttendanceRecords: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [showActions, setShowActions] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
-  const [showEditRequestModal, setShowEditRequestModal] = useState(false);
-  const [editingRequestRecord, setEditingRequestRecord] = useState<AttendanceRecord | null>(null);
   const [activeTab, setActiveTab] = useState<'validate' | 'overtime' | 'validated'>('validate');
   const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [editingRecord, setEditingRecord] = useState<AttendanceRecord | null>(null);
@@ -68,8 +59,6 @@ const AttendanceRecords: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [groupBy, setGroupBy] = useState('none');
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [activeFilterTab, setActiveFilterTab] = useState<'workinfo' | 'employee' | 'advance'>('workinfo');
 
   // API hooks
   const { data: attendanceData, loading, error, refetch } = useApi<AttendanceResponse>('/api/v1/attendance/attendance/');
@@ -145,45 +134,21 @@ const AttendanceRecords: React.FC = () => {
   });
 
   // Group records if groupBy is set
-  const groupedRecords = groupBy === 'none' || groupBy === 'Select' ? { 'All Records': filteredRecords } : 
+  const groupedRecords = groupBy === 'none' ? { 'All Records': filteredRecords } : 
     filteredRecords.reduce((groups, record) => {
       let groupKey = '';
       switch (groupBy) {
-        case 'Employee':
+        case 'employee':
           groupKey = `${record.employee_first_name} ${record.employee_last_name}`;
           break;
-        case 'Batch':
-          groupKey = record.batch_title || 'No Batch';
+        case 'shift':
+          groupKey = record.shift_name;
           break;
-        case 'Attendance Date':
+        case 'work_type':
+          groupKey = record.work_type;
+          break;
+        case 'date':
           groupKey = record.attendance_date;
-          break;
-        case 'Shift':
-          groupKey = record.shift_name || 'No Shift';
-          break;
-        case 'Work Type':
-          groupKey = record.work_type || 'No Work Type';
-          break;
-        case 'Minimum Hour':
-          groupKey = record.minimum_hour || 'No Minimum Hour';
-          break;
-        case 'Country':
-          groupKey = record.country || 'No Country';
-          break;
-        case 'Reporting Manager':
-          groupKey = record.reporting_manager || 'No Reporting Manager';
-          break;
-        case 'Department':
-          groupKey = record.department || 'No Department';
-          break;
-        case 'Job Position':
-          groupKey = record.job_position || 'No Job Position';
-          break;
-        case 'Employment Type':
-          groupKey = record.employee_type || 'No Employment Type';
-          break;
-        case 'Company':
-          groupKey = record.company || 'No Company';
           break;
         default:
           groupKey = 'All Records';
@@ -239,60 +204,6 @@ const AttendanceRecords: React.FC = () => {
     }
   };
 
-  // Handle edit attendance request using PUT API
-  const handleEditAttendanceRequest = async (recordId: number, requestData: {
-    employee_id: number;
-    attendance_date: string;
-    shift_id: number;
-    work_type_id: number;
-    minimum_hour: string;
-  }) => {
-    try {
-      setUpdating(true);
-      const response = await apiClient.put(`/api/v1/attendance/attendance-request/${recordId}`, requestData);
-      
-      // Log the response as requested
-      console.log('Attendance request updated successfully:', (response as any).data);
-      
-      // Update local state with the response data
-      setAttendanceRecords(prev => 
-        prev.map(r => 
-          r.id === recordId 
-            ? { ...r, ...(response as any).data }
-            : r
-        )
-      );
-      
-      // Refresh the data
-      refetch();
-      
-      return (response as any).data;
-    } catch (error) {
-      console.error('Failed to update attendance request:', error);
-      throw error;
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  // Handle opening edit request modal
-  const handleOpenEditRequest = (record: AttendanceRecord) => {
-    setEditingRequestRecord(record);
-    setShowEditRequestModal(true);
-  };
-
-  // Handle closing edit request modal
-  const handleCloseEditRequest = () => {
-    setShowEditRequestModal(false);
-    setEditingRequestRecord(null);
-  };
-
-  // Handle successful edit request
-  const handleEditRequestSuccess = () => {
-    handleCloseEditRequest();
-    refetch();
-  };
-
   // Handle bulk delete
   const handleBulkDelete = async () => {
     if (selectedRecords.length === 0) return;
@@ -330,118 +241,6 @@ const AttendanceRecords: React.FC = () => {
       setSelectedRecords([]);
     } else {
       setSelectedRecords(filteredRecords.map(r => r.id));
-    }
-  };
-
-  // Handle export functionality
-  const handleExport = async () => {
-    try {
-      const dataToExport = filteredRecords.map(record => ({
-        'Employee Name': `${record.employee_first_name} ${record.employee_last_name}`,
-        'Badge ID': record.badge_id || '-',
-        'Attendance Date': record.attendance_date,
-        'Clock In': formatTime(record.attendance_clock_in),
-        'Clock Out': formatTime(record.attendance_clock_out),
-        'Worked Hours': record.attendance_worked_hour,
-        'Minimum Hours': record.minimum_hour,
-        'Shift': record.shift_name || '-',
-        'Work Type': record.work_type || '-',
-        'Validated': record.attendance_validated ? 'Yes' : 'No',
-        'Overtime Approved': record.attendance_overtime_approve ? 'Yes' : 'No'
-      }));
-
-      // Convert to CSV
-      const headers = Object.keys(dataToExport[0] || {});
-      const csvContent = [
-        headers.join(','),
-        ...dataToExport.map(row => headers.map(header => `"${row[header as keyof typeof row]}"`).join(','))
-      ].join('\n');
-
-      // Download CSV file
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.setAttribute('href', url);
-      link.setAttribute('download', `attendance_records_${new Date().toISOString().split('T')[0]}.csv`);
-      link.style.visibility = 'hidden';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    } catch (error) {
-      console.error('Failed to export attendance records:', error);
-      alert('Failed to export attendance records. Please try again.');
-    }
-  };
-
-  // Handle add to batch functionality
-  const handleAddToBatch = async () => {
-    if (selectedRecords.length === 0) {
-      alert('Please select attendance records to add to batch.');
-      return;
-    }
-
-    const batchTitle = prompt('Enter batch title:');
-    if (!batchTitle) return;
-
-    try {
-      setUpdating(true);
-      // Create batch first
-      const batchResponse = await apiClient.post('/api/v1/attendance/batch-attendance/', {
-        title: batchTitle,
-        description: `Batch created with ${selectedRecords.length} attendance records`
-      });
-
-      const batchId = (batchResponse as any).data.id;
-
-      // Update selected records with batch ID
-      const updatePromises = selectedRecords.map(recordId => 
-        apiClient.put(`/api/v1/attendance/attendance/${recordId}`, {
-          batch_attendance_id: batchId
-        })
-      );
-
-      await Promise.all(updatePromises);
-      
-      // Update local state
-      setAttendanceRecords(prev => 
-        prev.map(r => 
-          selectedRecords.includes(r.id) 
-            ? { ...r, batch_attendance_id: batchId }
-            : r
-        )
-      );
-      
-      setSelectedRecords([]);
-      refetch();
-      alert(`Successfully added ${selectedRecords.length} records to batch "${batchTitle}"`);
-    } catch (error) {
-      console.error('Failed to add records to batch:', error);
-      alert('Failed to add records to batch. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  // Handle view batches functionality
-  const handleViewBatches = async () => {
-    try {
-      const response = await apiClient.get('/api/v1/attendance/batch-attendance/');
-      const batches = (response as any).data.results || [];
-      
-      if (batches.length === 0) {
-        alert('No batches found.');
-        return;
-      }
-
-      // Create a simple modal to display batches
-      const batchList = batches.map((batch: any) => 
-        `${batch.title} (ID: ${batch.id}) - ${batch.description || 'No description'}`
-      ).join('\n');
-      
-      alert(`Available Batches:\n\n${batchList}`);
-    } catch (error) {
-      console.error('Failed to fetch batches:', error);
-      alert('Failed to fetch batches. Please try again.');
     }
   };
 
@@ -511,91 +310,94 @@ const AttendanceRecords: React.FC = () => {
             {/* Page Header */}
             <div className="ar-header">
               <div className="ar-header__left">
-                <h1 className="ar-header__title">Attendance Records</h1>
-                <p className="ar-header__subtitle">
-                  Track and manage employee attendance records
-                </p>
+                <h1 className="ar-header__title">Attendances</h1>
               </div>
               <div className="ar-header__actions">
-                <div style={{ position: 'relative' }}>
-                  <button 
-                    className="ar-btn ar-btn--secondary"
-                    onClick={() => setShowActions(!showActions)}
-                  >
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="1"></circle>
-                      <circle cx="19" cy="12" r="1"></circle>
-                      <circle cx="5" cy="12" r="1"></circle>
-                    </svg>
-                    Actions
-                  </button>
-                  {showActions && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '110%',
-                      left: 0,
-                      background: '#fff',
-                      border: '1px solid #e5e7eb',
-                      borderRadius: 6,
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                      zIndex: 10,
-                      minWidth: 160,
-                    }}>
-                      <button
-                        className="ar-btn ar-btn--secondary"
-                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                        onClick={() => { setShowActions(false); setShowImportModal(true); }}
-                        type="button"
-                      >
-                        Import
-                      </button>
-                      <button
-                        className="ar-btn ar-btn--secondary"
-                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                        onClick={() => { setShowActions(false); handleExport(); }}
-                        type="button"
-                      >
-                        Export
-                      </button>
-                      <button
-                        className="ar-btn ar-btn--secondary"
-                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                        onClick={() => { setShowActions(false); handleAddToBatch(); }}
-                        type="button"
-                        disabled={selectedRecords.length === 0}
-                      >
-                        Add to Batch
-                      </button>
-                      <button
-                        className="ar-btn ar-btn--secondary"
-                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                        onClick={() => { setShowActions(false); handleViewBatches(); }}
-                        type="button"
-                      >
-                        Batches
-                      </button>
-                      <button
-                        className="ar-btn ar-btn--secondary"
-                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none', color: '#dc2626' }}
-                        onClick={() => { setShowActions(false); handleBulkDelete(); }}
-                        type="button"
-                        disabled={selectedRecords.length === 0}
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <button className="ar-btn ar-btn--secondary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7,10 12,15 17,10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Export Records
+                </button>
+<<<<<<< HEAD
+                {showActions && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '110%',
+                    left: 0,
+                    background: '#fff',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: 6,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                    zIndex: 10,
+                    minWidth: 160,
+                  }}>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                      onClick={() => { setShowActions(false); setShowImportModal(true); }}
+                      type="button"
+                    >
+                      Import
+                    </button>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                      onClick={() => { setShowActions(false); handleExport(); }}
+                      type="button"
+                    >
+                      Export
+                    </button>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                      onClick={() => { setShowActions(false); handleAddToBatch(); }}
+                      type="button"
+                      disabled={selectedRecords.length === 0}
+                    >
+                      Add to Batch
+                    </button>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                      onClick={() => { setShowActions(false); handleViewBatches(); }}
+                      type="button"
+                    >
+                      Batches
+                    </button>
+                    <button
+                      className="ar-btn ar-btn--secondary"
+                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none', color: '#dc2626' }}
+                      onClick={() => { setShowActions(false); handleBulkDelete(); }}
+                      type="button"
+                      disabled={selectedRecords.length === 0}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
                 <button
                   className="ar-btn ar-btn--primary"
                   onClick={() => setShowModal(true)}
                 >
                   + Create
+=======
+                <button className="ar-btn ar-btn--primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                  </svg>
+                  View Calendar
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
                 </button>
               </div>
             </div>
 
-            {/* Controls */}
+            {/* Search and Filter Controls */}
             <div className="ar-controls">
               <div className="ar-search-field">
                 <svg className="ar-search-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -606,21 +408,25 @@ const AttendanceRecords: React.FC = () => {
                   type="text"
                   placeholder="Search by employee name, ID, or department..."
                   className="ar-search-field__input"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
               <div className="ar-controls__right">
                 <div className="ar-filter">
-                  <button
-                    className="ar-filter__button"
-                    onClick={() => setShowFilterModal(true)}
+                  <svg className="ar-filter__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/>
+                  </svg>
+                  <select
+                    className="ar-filter__select"
+                    value={filterBy}
+                    onChange={(e) => setFilterBy(e.target.value)}
                   >
-                    <svg className="ar-filter__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                      <polygon points="22,3 2,3 10,12.46 10,19 14,21 14,12.46"/>
-                    </svg>
-                    Filter
-                  </button>
+                    <option value="all">Filter</option>
+                    <option value="today">Today</option>
+                    <option value="this_week">This Week</option>
+                    <option value="this_month">This Month</option>
+                    <option value="overtime">Overtime</option>
+                    <option value="holiday">Holiday</option>
+                  </select>
                 </div>
                 <div className="ar-group">
                   <svg className="ar-group__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -632,18 +438,18 @@ const AttendanceRecords: React.FC = () => {
                     onChange={(e) => setGroupBy(e.target.value)}
                   >
                     <option value="none">Select</option>
-                    <option value="Employee">Employee</option>
-                    <option value="Batch">Batch</option>
-                    <option value="Attendance Date">Attendance Date</option>
-                    <option value="Shift">Shift</option>
-                    <option value="Work Type">Work Type</option>
-                    <option value="Minimum Hour">Minimum Hour</option>
-                    <option value="Country">Country</option>
-                    <option value="Reporting Manager">Reporting Manager</option>
-                    <option value="Department">Department</option>
-                    <option value="Job Position">Job Position</option>
-                    <option value="Employment Type">Employment Type</option>
-                    <option value="Company">Company</option>
+                    <option value="employee">Employee</option>
+                    <option value="batch">Batch</option>
+                    <option value="attendance_date">Attendance Date</option>
+                    <option value="shift">Shift</option>
+                    <option value="work_type">Work Type</option>
+                    <option value="minimum_hour">Minimum Hour</option>
+                    <option value="country">Country</option>
+                    <option value="reporting_manager">Reporting Manager</option>
+                    <option value="department">Department</option>
+                    <option value="job_position">Job Position</option>
+                    <option value="employment_type">Employment Type</option>
+                    <option value="company">Company</option>
                   </select>
                 </div>
               </div>
@@ -674,9 +480,12 @@ const AttendanceRecords: React.FC = () => {
             {/* Content */}
             <div className="ar-card">
               <div className="ar-card__content">
-                {loading ? (
-                  <div className="ar-loading">
-                    <p>Loading attendance records...</p>
+                <div className="ar-empty-state">
+                  <div className="ar-empty-state__icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12,6 12,12 16,14"></polyline>
+                    </svg>
                   </div>
                 ) : error ? (
                   <div className="ar-error">
@@ -750,79 +559,79 @@ const AttendanceRecords: React.FC = () => {
                               </tr>
                             )}
                             {records.map((record) => (
-                              <tr key={record.id}>
-                                <td>
-                                  <input
-                                    type="checkbox"
-                                    checked={selectedRecords.includes(record.id)}
-                                    onChange={() => handleSelectRecord(record.id)}
-                                  />
-                                </td>
-                                <td>
-                                  <div className="ar-employee">
-                                    <div className="ar-employee__avatar">
-                                      {record.employee_first_name.charAt(0)}{record.employee_last_name.charAt(0)}
-                                    </div>
-                                    <div className="ar-employee__info">
-                                      <div className="ar-employee__name">
-                                        {record.employee_first_name} {record.employee_last_name}
-                                      </div>
-                                      <div className="ar-employee__id">
-                                        {record.badge_id || `EMP-${record.employee_id}`}
-                                      </div>
-                                    </div>
+                          <tr key={record.id}>
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedRecords.includes(record.id)}
+                                onChange={() => handleSelectRecord(record.id)}
+                              />
+                            </td>
+                            <td>
+                              <div className="ar-employee">
+                                <div className="ar-employee__avatar">
+                                  {record.employee_first_name.charAt(0)}{record.employee_last_name.charAt(0)}
+                                </div>
+                                <div className="ar-employee__info">
+                                  <div className="ar-employee__name">
+                                    {record.employee_first_name} {record.employee_last_name}
                                   </div>
-                                </td>
-                                <td>{record.batch_attendance_id}</td>
-                                <td>{formatDate(record.attendance_date)}</td>
-                                <td>{getDayName(record.attendance_date)}</td>
-                                <td>{formatTime(record.attendance_clock_in)}</td>
-                                <td>{formatDate(record.attendance_clock_in_date)}</td>
-                                <td>{formatTime(record.attendance_clock_out)}</td>
-                                <td>{formatDate(record.attendance_clock_out_date)}</td>
-                                <td>{record.shift_name}</td>
-                                <td>{record.work_type}</td>
-                                <td>{record.minimum_hour}h</td>
-                                <td>{record.attendance_worked_hour}h</td>
-                                <td>{calculatePendingHours(record.attendance_worked_hour, record.minimum_hour)}h</td>
-                                <td>{calculateOvertime(record.attendance_worked_hour, record.minimum_hour)}h</td>
-                                <td>
-                                  <div className="ar-actions">
-                                    {activeTab === 'validate' && !record.attendance_validated && (
-                                      <button
-                                        className="ar-btn ar-btn--success ar-btn--sm"
-                                        onClick={() => handleValidate(record.id)}
-                                        disabled={updating}
-                                        title="Validate"
-                                      >
-                                        {updating ? '...' : '✓'}
-                                      </button>
-                                    )}
-                                    <button
-                                      className="ar-btn ar-btn--secondary ar-btn--sm"
-                                      onClick={() => handleEdit(record)}
-                                      title="Edit"
-                                    >
-                                      ✏️
-                                    </button>
-                                    <button
-                                      className="ar-btn ar-btn--info ar-btn--sm"
-                                      onClick={() => handleOpenEditRequest(record)}
-                                      title="Edit Request"
-                                    >
-                                      📝
-                                    </button>
-                                    <button
-                                      className="ar-btn ar-btn--danger ar-btn--sm"
-                                      onClick={() => handleDelete(record.id)}
-                                      disabled={deleting}
-                                      title="Delete"
-                                    >
-                                      {deleting ? '...' : '🗑️'}
-                                    </button>
+                                  <div className="ar-employee__id">
+                                    {record.badge_id || `EMP-${record.employee_id}`}
                                   </div>
-                                </td>
-                              </tr>
+                                </div>
+                              </div>
+                            </td>
+                            <td>{record.batch_attendance_id}</td>
+                            <td>{formatDate(record.attendance_date)}</td>
+                            <td>{getDayName(record.attendance_date)}</td>
+                            <td>{formatTime(record.attendance_clock_in)}</td>
+                            <td>{formatDate(record.attendance_clock_in_date)}</td>
+                            <td>{formatTime(record.attendance_clock_out)}</td>
+                            <td>{formatDate(record.attendance_clock_out_date)}</td>
+                            <td>{record.shift_name}</td>
+                            <td>{record.work_type}</td>
+                            <td>{record.minimum_hour}h</td>
+                            <td>{record.attendance_worked_hour}h</td>
+                            <td>{calculatePendingHours(record.attendance_worked_hour, record.minimum_hour)}h</td>
+                            <td>{calculateOvertime(record.attendance_worked_hour, record.minimum_hour)}h</td>
+                            <td>
+                              <div className="ar-actions">
+                                {activeTab === 'validate' && !record.attendance_validated && (
+                                  <button
+                                    className="ar-btn ar-btn--success ar-btn--sm"
+                                    onClick={() => handleValidate(record.id)}
+                                    disabled={updating}
+                                    title="Validate"
+                                  >
+                                    {updating ? '...' : '✓'}
+                                  </button>
+                                )}
+                                <button
+                                  className="ar-btn ar-btn--secondary ar-btn--sm"
+                                  onClick={() => handleEdit(record)}
+                                  title="Edit"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  className="ar-btn ar-btn--info ar-btn--sm"
+                                  onClick={() => handleOpenEditRequest(record)}
+                                  title="Edit Request"
+                                >
+                                  📝
+                                </button>
+                                <button
+                                  className="ar-btn ar-btn--danger ar-btn--sm"
+                                  onClick={() => handleDelete(record.id)}
+                                  disabled={deleting}
+                                  title="Delete"
+                                >
+                                  {deleting ? '...' : '🗑️'}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
                             ))}
                           </React.Fragment>
                         ))}
@@ -834,6 +643,7 @@ const AttendanceRecords: React.FC = () => {
             </div>
           </div>
         </div>
+
         <QuickAccess />
 
         {/* AddAttendances Modal */}
@@ -913,30 +723,29 @@ const AttendanceRecords: React.FC = () => {
               
               <div className="ar-filter-modal__content">
                 {activeFilterTab === 'workinfo' && (
-                  <div className="filter-placeholder">
-                    <h3>Work Info Filter</h3>
-                    <p>Work info filter functionality will be implemented here.</p>
-                  </div>
+                  <WorkRecordFilterWorkInfo onFilter={(data) => {
+                    console.log('Work Info Filter:', data);
+                    // TODO: Apply work info filters
+                  }} />
                 )}
                 {activeFilterTab === 'employee' && (
-                  <div className="filter-placeholder">
-                    <h3>Employee Filter</h3>
-                    <p>Employee filter functionality will be implemented here.</p>
-                  </div>
+                  <WorkRecordFilterEmployee />
                 )}
                 {activeFilterTab === 'advance' && (
-                  <div className="filter-placeholder">
-                    <h3>Advanced Filter</h3>
-                    <p>Advanced filter functionality will be implemented here.</p>
-                  </div>
+                  <WorkRecordFilterAdvance onFilter={(data) => {
+                    console.log('Advanced Filter:', data);
+                    // TODO: Apply advanced filters
+                  }} />
                 )}
               </div>
             </div>
           </div>
         )}
+=======
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
       </div>
-     </div>
-   );
+    </div>
+  );
 };
 
 export default AttendanceRecords;

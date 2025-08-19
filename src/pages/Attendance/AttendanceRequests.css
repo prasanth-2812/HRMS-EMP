@@ -439,15 +439,6 @@
   transition: all 0.2s ease;
 }
 
-.areq-action-btn--edit {
-  background-color: #dbeafe;
-  color: #1d4ed8;
-}
-
-.areq-action-btn--edit:hover {
-  background-color: #bfdbfe;
-}
-
 .areq-action-btn--approve {
   background-color: #d1fae5;
   color: #059669;
@@ -482,6 +473,15 @@
 
 .areq-action-btn--overtime:hover {
   background-color: #fde68a;
+}
+
+.areq-action-btn--edit {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.areq-action-btn--edit:hover {
+  background-color: #bae6fd;
 }
 
 .areq-action-btn:disabled {

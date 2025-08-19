@@ -1,0 +1,148 @@
+.ha-modal {
+  background: #fff;
+  border-radius: 9px;
+  max-width: 600px;
+  margin: 35px auto;
+  box-shadow: 0 3px 24px rgba(40,40,60,0.16);
+  padding: 36px 24px 28px 24px;
+  font-family: 'Inter', Arial, sans-serif;
+}
+
+.ha-form {
+  width: 100%;
+}
+
+.ha-title {
+  margin-bottom: 26px;
+  font-size: 1.26rem;
+  font-weight: 700;
+  color: #252525;
+  letter-spacing: 0.5px;
+}
+
+.ha-form-row {
+  display: flex;
+  gap: 2em;
+  margin-bottom: 18px;
+}
+
+.ha-form-field {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.ha-form-field label {
+  color: #373739;
+  font-size: 1rem;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.ha-required {
+  color: #e44a38;
+  margin-left: 2px;
+}
+
+.ha-form-field input,
+.ha-form-field select {
+  border: 1.5px solid #d6d6d8;
+  border-radius: 6px;
+  min-height: 41px;
+  padding: 6px 10px;
+  font-size: 1.05rem;
+  background: #fafdff;
+  outline: none;
+  transition: border-color 0.17s;
+}
+
+.ha-form-field input:focus,
+.ha-form-field select:focus {
+  border-color: #ef4a3b;
+}
+
+.ha-error {
+  color: #dc3434;
+  font-size: 0.90em;
+  margin-top: 2px;
+}
+
+.ha-success-msg {
+  color: #24b76d;
+  background: #eefdef;
+  margin-bottom: 14px;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.ha-info {
+  color: #6b7280;
+  font-size: 0.875rem;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.ha-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.ha-btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ha-btn--secondary {
+  background-color: #f3f4f6;
+  color: #374151;
+  border: 1px solid #d1d5db;
+}
+
+.ha-btn--secondary:hover {
+  background-color: #e5e7eb;
+}
+
+.ha-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.ha-save-btn {
+  background: #ef4a3b;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.07rem;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 34px;
+  cursor: pointer;
+  transition: background 0.18s;
+}
+
+.ha-save-btn:hover {
+  background: #d82a18;
+}
+
+@media (max-width: 600px) {
+  .ha-modal {
+    padding: 14px 5vw;
+    max-width: 99vw;
+  }
+  .ha-form-row {
+    flex-direction: column;
+    gap: 0;
+  }
+}
