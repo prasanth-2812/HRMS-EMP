@@ -7,47 +7,35 @@ import { useApi } from '../../hooks/useApi';
 import { apiClient, endpoints } from '../../utils/api';
 import './AttendanceRequests.css';
 import AttendanceRequestModal from '../../components/QuickAccess/modals/AttendanceRequestModal';
-import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo';
-import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee';
-import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance';
 
 interface AttendanceRequest {
   id: number;
   employee_first_name: string;
   employee_last_name: string;
   badge_id: string | null;
-  employee_profile_url: string | null;
-  is_active?: boolean;
+  employee_profile_url: string;
+  is_active: boolean;
   attendance_date: string;
   attendance_clock_in_date: string | null;
   attendance_clock_in: string | null;
   attendance_clock_out_date: string | null;
   attendance_clock_out: string | null;
-  attendance_worked_hour: string | null;
+  attendance_worked_hour: string;
   minimum_hour: string;
-  at_work_second: number | null;
-  overtime_second: number | null;
-  is_bulk_request?: boolean;
+  at_work_second: number;
+  overtime_second: number;
+  is_bulk_request: boolean;
   request_description: string | null;
-  is_holiday?: boolean;
+  is_holiday: boolean;
   requested_data: string | null;
-  created_by: number | null;
-  modified_by: number | null;
+  created_by: number;
+  modified_by: number;
   employee_id: number;
-  shift_id: number;
-  work_type_id: number;
-  attendance_day: number | null;
+  shift_id: number | null;
+  work_type_id: number | null;
+  attendance_day: number;
   batch_attendance_id: number | null;
   shift_name?: string;
-  // Additional fields for enhanced grouping
-  department?: string;
-  job_position?: string;
-  company?: string;
-  reporting_manager?: string;
-  employee_type?: string;
-  country?: string;
-  batch_title?: string;
-  work_type?: string;
 }
 
 interface AttendanceRequestResponse {
@@ -60,21 +48,17 @@ interface AttendanceRequestResponse {
 const AttendanceRequests: React.FC = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [showModal, setShowModal] = useState(false);
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [activeFilterTab, setActiveFilterTab] = useState<'workinfo' | 'employee' | 'advance'>('workinfo');
+  const [showEditModal, setShowEditModal] = useState(false);
   const [editingRequest, setEditingRequest] = useState<AttendanceRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [groupBy, setGroupBy] = useState('none');
   const [selectedRequests, setSelectedRequests] = useState<number[]>([]);
-  const [activeTab, setActiveTab] = useState('requested');
+  const [activeTab, setActiveTab] = useState('pending');
   const [actionLoading, setActionLoading] = useState<{ [key: number | string]: string }>({});
-  const [updating, setUpdating] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [rejecting, setRejecting] = useState(false);
 
   // Fetch attendance requests from API
-  const { data: requestsData, loading, error, refetch } = useApi<AttendanceRequestResponse>(endpoints.attendance.requests.list);
+  const { data: requestsData, loading, error, refetch } = useApi<AttendanceRequestResponse>(endpoints.attendance.request.list);
 
   const attendanceRequests = useMemo(() => {
     console.log('=== ATTENDANCE REQUESTS DEBUG ===');
@@ -114,6 +98,18 @@ const AttendanceRequests: React.FC = () => {
     return requestsData.results;
   }, [requestsData, loading, error]);
 
+  // Function to handle editing an attendance request
+  const handleEditRequest = (request: AttendanceRequest) => {
+    setEditingRequest(request);
+    setShowEditModal(true);
+  };
+
+  // Function to close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingRequest(null);
+  };
+
   // Helper function to determine status based on validation fields
   const getRequestStatus = (request: AttendanceRequest): 'pending' | 'approved' | 'rejected' => {
     // Based on the backend model, attendance requests that have is_validate_request=true are pending validation
@@ -128,10 +124,13 @@ const AttendanceRequests: React.FC = () => {
     let filtered = attendanceRequests;
 
     // Filter by tab (status)
-    if (activeTab === 'requested') {
+    if (activeTab === 'pending') {
       filtered = filtered.filter(request => getRequestStatus(request) === 'pending');
+    } else if (activeTab === 'approved') {
+      filtered = filtered.filter(request => getRequestStatus(request) === 'approved');
+    } else if (activeTab === 'rejected') {
+      filtered = filtered.filter(request => getRequestStatus(request) === 'rejected');
     }
-    // For 'all' tab, we don't filter by status - show all records
 
     // Search functionality
     if (searchTerm) {
@@ -158,7 +157,7 @@ const AttendanceRequests: React.FC = () => {
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1);
       filtered = filtered.filter(request => new Date(request.attendance_date) >= monthStart);
     } else if (filterBy === 'overtime') {
-      filtered = filtered.filter(request => request.overtime_second !== null && request.overtime_second > 0);
+      filtered = filtered.filter(request => request.overtime_second > 0);
     }
 
     return filtered;
@@ -179,38 +178,14 @@ const AttendanceRequests: React.FC = () => {
         case 'employee':
           groupKey = `${request.employee_first_name} ${request.employee_last_name}`;
           break;
-        case 'batch':
-          groupKey = request.batch_title || 'No Batch';
-          break;
-        case 'attendance_date':
-          groupKey = request.attendance_date;
-          break;
         case 'shift':
           groupKey = request.shift_name || 'No Shift';
           break;
         case 'work_type':
-          groupKey = request.work_type || 'No Work Type';
+          groupKey = 'Work Type'; // Since work type name is not directly available
           break;
-        case 'minimum_hour':
-          groupKey = `${request.minimum_hour} hours`;
-          break;
-        case 'country':
-          groupKey = request.country || 'No Country';
-          break;
-        case 'reporting_manager':
-          groupKey = request.reporting_manager || 'No Manager';
-          break;
-        case 'department':
-          groupKey = request.department || 'No Department';
-          break;
-        case 'job_position':
-          groupKey = request.job_position || 'No Position';
-          break;
-        case 'employment_type':
-          groupKey = request.employee_type || 'No Employment Type';
-          break;
-        case 'company':
-          groupKey = request.company || 'No Company';
+        case 'date':
+          groupKey = request.attendance_date;
           break;
         case 'status':
           const status = getRequestStatus(request);
@@ -233,7 +208,7 @@ const AttendanceRequests: React.FC = () => {
     if (selectedRequests.length === filteredRequests.length) {
       setSelectedRequests([]);
     } else {
-      setSelectedRequests(filteredRequests.map(request => request.id).filter((id): id is number => id !== undefined));
+      setSelectedRequests(filteredRequests.map(request => request.id));
     }
   };
 
@@ -261,34 +236,21 @@ const AttendanceRequests: React.FC = () => {
     batch_attendance_id?: string;
   }) => {
     try {
-       const response = await apiClient.post(endpoints.attendance.requests.create, requestData) as any;
-       console.log('Attendance request created successfully:', response);
+       const response = await apiClient.post('/api/v1/attendance/attendance-request/', requestData) as any;
+       console.log('Attendance request created successfully:', response.data);
        await refetch(); // Refresh the data
-       return response;
+       return response.data;
      } catch (error) {
       console.error('Error creating attendance request:', error);
       throw error;
     }
   };
 
-  // Function to handle edit request
-  const handleEditRequest = (request: AttendanceRequest) => {
-    setEditingRequest(request);
-    setShowModal(true);
-  };
-
   // API action handlers
   const handleApproveRequest = async (requestId: number) => {
     try {
       setActionLoading(prev => ({ ...prev, [requestId]: 'approving' }));
-      // Note: Using the attendance-request PUT endpoint to update the request
-      const request = attendanceRequests.find(r => r.id === requestId);
-      if (request) {
-        await apiClient.put(endpoints.attendance.requests.update(requestId.toString()), {
-          ...request,
-          // Add any approval-specific fields here
-        });
-      }
+      await apiClient.put(`/api/v1/attendance/attendance-request-approve/${requestId}`);
       await refetch(); // Refresh the data
     } catch (error) {
       console.error('Error approving request:', error);
@@ -305,14 +267,7 @@ const AttendanceRequests: React.FC = () => {
   const handleRejectRequest = async (requestId: number) => {
     try {
       setActionLoading(prev => ({ ...prev, [requestId]: 'rejecting' }));
-      // Note: Using the attendance-request PUT endpoint to update the request
-      const request = attendanceRequests.find(r => r.id === requestId);
-      if (request) {
-        await apiClient.put(endpoints.attendance.requests.update(requestId.toString()), {
-          ...request,
-          // Add any rejection-specific fields here
-        });
-      }
+      await apiClient.put(`/api/v1/attendance/attendance-request-cancel/${requestId}`);
       await refetch(); // Refresh the data
     } catch (error) {
       console.error('Error rejecting request:', error);
@@ -329,14 +284,7 @@ const AttendanceRequests: React.FC = () => {
   const handleApproveOvertime = async (requestId: number) => {
     try {
       setActionLoading(prev => ({ ...prev, [requestId]: 'approving_overtime' }));
-      // Note: Using the attendance-request PUT endpoint to update overtime approval
-      const request = attendanceRequests.find(r => r.id === requestId);
-      if (request) {
-        await apiClient.put(endpoints.attendance.requests.update(requestId.toString()), {
-          ...request,
-          // Add overtime approval specific fields here
-        });
-      }
+      await apiClient.put(`/api/v1/attendance/overtime-approve/${requestId}`);
       await refetch(); // Refresh the data
     } catch (error) {
       console.error('Error approving overtime:', error);
@@ -356,16 +304,9 @@ const AttendanceRequests: React.FC = () => {
     try {
       setActionLoading(prev => ({ ...prev, bulk: 'approving' }));
       await Promise.all(
-        selectedRequests.map(id => {
-          const request = attendanceRequests.find(r => r.id === id);
-          if (request) {
-            return apiClient.put(endpoints.attendance.requests.update(id.toString()), {
-              ...request,
-              // Add approval-specific fields here
-            });
-          }
-          return Promise.resolve();
-        })
+        selectedRequests.map(id => 
+          apiClient.put(`/api/v1/attendance/attendance-request-approve/${id}`)
+        )
       );
       setSelectedRequests([]);
       await refetch();
@@ -381,85 +322,15 @@ const AttendanceRequests: React.FC = () => {
     }
   };
 
-  // Handle add to batch functionality
-  const handleAddToBatch = async () => {
-    if (selectedRequests.length === 0) {
-      alert('Please select attendance requests to add to batch.');
-      return;
-    }
-
-    const batchTitle = prompt('Enter batch title:');
-    if (!batchTitle) return;
-
-    try {
-      setUpdating(true);
-      // Create batch first
-      const batchResponse = await apiClient.post('/api/v1/attendance/batch-attendance/', {
-        title: batchTitle,
-        description: `Batch created with ${selectedRequests.length} attendance requests`
-      });
-
-      const batchId = (batchResponse as any).data.id;
-
-      // Update selected requests with batch ID
-      const updatePromises = selectedRequests.map(requestId => 
-        apiClient.put(`/api/v1/attendance/attendance-request/${requestId}`, {
-          batch_attendance_id: batchId
-        })
-      );
-
-      await Promise.all(updatePromises);
-      
-      setSelectedRequests([]);
-      refetch();
-      alert(`Successfully added ${selectedRequests.length} requests to batch "${batchTitle}"`);
-    } catch (error) {
-      console.error('Failed to add requests to batch:', error);
-      alert('Failed to add requests to batch. Please try again.');
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  // Handle view batches functionality
-  const handleViewBatches = async () => {
-    try {
-      const response = await apiClient.get('/api/v1/attendance/batch-attendance/');
-      const batches = (response as any).data.results || [];
-      
-      if (batches.length === 0) {
-        alert('No batches found.');
-        return;
-      }
-
-      // Create a simple modal to display batches
-      const batchList = batches.map((batch: any) => 
-        `${batch.title} (ID: ${batch.id}) - ${batch.description || 'No description'}`
-      ).join('\n');
-      
-      alert(`Available Batches:\n\n${batchList}`);
-    } catch (error) {
-      console.error('Failed to fetch batches:', error);
-      alert('Failed to fetch batches. Please try again.');
-    }
-  };
-
   const handleBulkReject = async () => {
     if (selectedRequests.length === 0) return;
     
     try {
       setActionLoading(prev => ({ ...prev, bulk: 'rejecting' }));
       await Promise.all(
-        selectedRequests.map(id => {
-          const request = attendanceRequests.find(r => r.id === id);
-          if (request) {
-            return apiClient.put(endpoints.attendance.requests.update(id.toString()), {
-              ...request,
-              // Add rejection-specific fields here
-            });
-          }
-          return Promise.resolve();
-        })
+        selectedRequests.map(id => 
+          apiClient.put(`/api/v1/attendance/attendance-request-cancel/${id}`)
+        )
       );
       setSelectedRequests([]);
       await refetch();
@@ -502,21 +373,30 @@ const AttendanceRequests: React.FC = () => {
             {/* Status Tabs */}
             <div className="areq-tabs">
               <button
-                className={`areq-tab ${activeTab === 'requested' ? 'areq-tab--active' : ''}`}
-                onClick={() => setActiveTab('requested')}
+                className={`areq-tab ${activeTab === 'pending' ? 'areq-tab--active' : ''}`}
+                onClick={() => setActiveTab('pending')}
               >
-                Requested Attendances
+                Pending Requests
                 <span className="areq-tab__count">
                   {attendanceRequests.filter(r => getRequestStatus(r) === 'pending').length}
                 </span>
               </button>
               <button
-                className={`areq-tab ${activeTab === 'all' ? 'areq-tab--active' : ''}`}
-                onClick={() => setActiveTab('all')}
+                className={`areq-tab ${activeTab === 'approved' ? 'areq-tab--active' : ''}`}
+                onClick={() => setActiveTab('approved')}
               >
-                All Attendances
+                Approved Requests
                 <span className="areq-tab__count">
-                  {attendanceRequests.length}
+                  {attendanceRequests.filter(r => getRequestStatus(r) === 'approved').length}
+                </span>
+              </button>
+              <button
+                className={`areq-tab ${activeTab === 'rejected' ? 'areq-tab--active' : ''}`}
+                onClick={() => setActiveTab('rejected')}
+              >
+                Rejected Requests
+                <span className="areq-tab__count">
+                  {attendanceRequests.filter(r => getRequestStatus(r) === 'rejected').length}
                 </span>
               </button>
             </div>
@@ -533,64 +413,29 @@ const AttendanceRequests: React.FC = () => {
                 />
               </div>
               <div className="areq-filters">
-                <button
-                  onClick={() => setShowFilterModal(true)}
-                  className="areq-filter__button"
+                <select
+                  value={filterBy}
+                  onChange={(e) => setFilterBy(e.target.value)}
+                  className="areq-filter__select"
                 >
-                  Filter
-                </button>
+                  <option value="all">All Records</option>
+                  <option value="today">Today</option>
+                  <option value="this_week">This Week</option>
+                  <option value="this_month">This Month</option>
+                  <option value="overtime">With Overtime</option>
+                </select>
                 <select
                   value={groupBy}
                   onChange={(e) => setGroupBy(e.target.value)}
                   className="areq-group__select"
                 >
-                  <option value="none">Select</option>
-                  <option value="employee">Employee</option>
-                  <option value="batch">Batch</option>
-                  <option value="attendance_date">Attendance Date</option>
-                  <option value="shift">Shift</option>
-                  <option value="work_type">Work Type</option>
-                  <option value="minimum_hour">Minimum Hour</option>
-                  <option value="country">Country</option>
-                  <option value="reporting_manager">Reporting Manager</option>
-                  <option value="department">Department</option>
-                  <option value="job_position">Job Position</option>
-                  <option value="employment_type">Employment Type</option>
-                  <option value="company">Company</option>
+                  <option value="none">No Grouping</option>
+                  <option value="employee">Group by Employee</option>
+                  <option value="shift">Group by Shift</option>
+                  <option value="work_type">Group by Work Type</option>
+                  <option value="date">Group by Date</option>
+                  <option value="status">Group by Status</option>
                 </select>
-                
-                {/* Actions Dropdown */}
-                <div className="areq-actions-dropdown">
-                  <select
-                    onChange={(e) => {
-                      const action = e.target.value;
-                      if (action === 'add_to_batch') {
-                        handleAddToBatch();
-                      } else if (action === 'view_batches') {
-                        handleViewBatches();
-                      } else if (action === 'bulk_approve') {
-                        handleBulkApprove();
-                      } else if (action === 'bulk_reject') {
-                        handleBulkReject();
-                      }
-                      e.target.value = ''; // Reset selection
-                    }}
-                    className="areq-actions__select"
-                    disabled={updating || approving || rejecting}
-                  >
-                    <option value="">Actions</option>
-                    <option value="add_to_batch" disabled={selectedRequests.length === 0}>
-                      Add to Batch
-                    </option>
-                    <option value="view_batches">Batches</option>
-                    <option value="bulk_approve" disabled={selectedRequests.length === 0}>
-                      Bulk Approve
-                    </option>
-                    <option value="bulk_reject" disabled={selectedRequests.length === 0}>
-                      Bulk Reject
-                    </option>
-                  </select>
-                </div>
               </div>
             </div>
 
@@ -660,26 +505,29 @@ const AttendanceRequests: React.FC = () => {
                   )}
 
                   {/* Table */}
-                  <div className="areq-table-container areq-table-container--compact">
-                    <table className="areq-table areq-table--compact">
+                  <div className="areq-table-container">
+                    <table className="areq-table">
                       <thead>
                         <tr>
-                          <th className="areq-th--checkbox">
+                          <th>
                             <input
                               type="checkbox"
                               checked={selectedRequests.length === filteredRequests.length && filteredRequests.length > 0}
                               onChange={handleSelectAll}
                             />
                           </th>
-                          <th className="areq-th--employee">Employee</th>
-                          <th className="areq-th--date">Date</th>
-                          <th className="areq-th--shift">Shift</th>
-                          <th className="areq-th--time">Clock In/Out</th>
-                          <th className="areq-th--hours">Hours</th>
-                          <th className="areq-th--overtime">OT</th>
-                          <th className="areq-th--status">Status</th>
-                          <th className="areq-th--reason">Reason</th>
-                          <th className="areq-th--actions">Actions</th>
+                          <th>Employee</th>
+                          <th>Badge ID</th>
+                          <th>Date</th>
+                          <th>Shift</th>
+                          <th>Work Type</th>
+                          <th>Clock In</th>
+                          <th>Clock Out</th>
+                          <th>Worked Hours</th>
+                          <th>Overtime</th>
+                          <th>Status</th>
+                          <th>Reason</th>
+                          <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -687,82 +535,84 @@ const AttendanceRequests: React.FC = () => {
                           <React.Fragment key={groupName}>
                             {groupBy !== 'none' && (
                               <tr className="areq-group-header">
-                                <td colSpan={10}>
+                                <td colSpan={13}>
                                   <strong>{groupName}</strong> ({requests.length} records)
                                 </td>
                               </tr>
                             )}
                             {requests.map((request) => (
                               <tr key={request.id} className="areq-table-row">
-                                <td className="areq-td--checkbox">
+                                <td>
                                   <input
                                     type="checkbox"
-                                    checked={request.id ? selectedRequests.includes(request.id) : false}
-                                    onChange={() => request.id && handleSelectRequest(request.id)}
+                                    checked={selectedRequests.includes(request.id)}
+                                    onChange={() => handleSelectRequest(request.id)}
                                   />
                                 </td>
-                                <td className="areq-td--employee">
-                                  <div className="areq-employee areq-employee--compact">
+                                <td>
+                                  <div className="areq-employee">
                                     <div className="areq-employee__name">
                                       {request.employee_first_name} {request.employee_last_name}
                                     </div>
-                                    <div className="areq-employee__badge">
-                                      {request.badge_id || '-'}
-                                    </div>
                                   </div>
                                 </td>
-                                <td className="areq-td--date">{new Date(request.attendance_date).toLocaleDateString()}</td>
-                                <td className="areq-td--shift">{request.shift_name || '-'}</td>
-                                <td className="areq-td--time">
-                                  <div className="areq-time-range">
-                                    <span>{request.attendance_clock_in || '-'}</span>
-                                    <span>-</span>
-                                    <span>{request.attendance_clock_out || '-'}</span>
-                                  </div>
-                                </td>
-                                <td className="areq-td--hours">{request.attendance_worked_hour || '-'}</td>
-                                <td className="areq-td--overtime">{request.overtime_second && request.overtime_second > 0 ? `${Math.floor(request.overtime_second / 3600)}:${Math.floor((request.overtime_second % 3600) / 60).toString().padStart(2, '0')}` : '0:00'}</td>
-                                <td className="areq-td--status">
-                                  <span className={`areq-status areq-status--${getRequestStatus(request)} areq-status--compact`}>
+                                <td>{request.badge_id || '-'}</td>
+                                <td>{new Date(request.attendance_date).toLocaleDateString()}</td>
+                                <td>{request.shift_name || '-'}</td>
+                                <td>-</td>
+                                <td>{request.attendance_clock_in || '-'}</td>
+                                <td>{request.attendance_clock_out || '-'}</td>
+                                <td>{request.attendance_worked_hour || '-'}</td>
+                                <td>{request.overtime_second > 0 ? `${Math.floor(request.overtime_second / 3600)}:${Math.floor((request.overtime_second % 3600) / 60).toString().padStart(2, '0')}` : '0:00'}</td>
+                                <td>
+                                  <span className={`areq-status areq-status--${getRequestStatus(request)}`}>
                                     {getRequestStatus(request).charAt(0).toUpperCase() + getRequestStatus(request).slice(1)}
                                   </span>
                                 </td>
-                                <td className="areq-td--reason">
-                                  <div className="areq-reason areq-reason--compact" title={request.request_description || ''}>
-                                    {request.request_description ? (request.request_description.length > 20 ? `${request.request_description.substring(0, 20)}...` : request.request_description) : '-'}
+                                <td>
+                                  <div className="areq-reason" title={request.request_description || ''}>
+                                    {request.request_description ? (request.request_description.length > 30 ? `${request.request_description.substring(0, 30)}...` : request.request_description) : '-'}
                                   </div>
                                 </td>
-                                <td className="areq-td--actions">
-                                  <div className="areq-actions areq-actions--compact">
+                                <td>
+                                  <div className="areq-actions">
                                     {getRequestStatus(request) === 'pending' && (
                                       <>
                                         <button 
-                                          className="areq-action-btn areq-action-btn--edit" 
-                                          title="Edit"
-                                          onClick={() => handleEditRequest(request)}
+                                          className="areq-action-btn areq-action-btn--approve" 
+                                          title="Approve"
+                                          onClick={() => handleApproveRequest(request.id)}
+                                          disabled={actionLoading[request.id] === 'approving'}
                                         >
-                                          ✏️
+                                          {actionLoading[request.id] === 'approving' ? '⏳' : '✓'}
                                         </button>
                                         <button 
                                           className="areq-action-btn areq-action-btn--reject" 
                                           title="Reject"
-                                          onClick={() => request.id && handleRejectRequest(request.id)}
-                                          disabled={request.id ? actionLoading[request.id] === 'rejecting' : true}
+                                          onClick={() => handleRejectRequest(request.id)}
+                                          disabled={actionLoading[request.id] === 'rejecting'}
                                         >
                                           {actionLoading[request.id] === 'rejecting' ? '⏳' : '✗'}
                                         </button>
-                                        {request.overtime_second !== null && request.overtime_second > 0 && (
+                                        {request.overtime_second > 0 && (
                                           <button 
                                             className="areq-action-btn areq-action-btn--overtime" 
                                             title="Approve Overtime"
-                                            onClick={() => request.id && handleApproveOvertime(request.id)}
-                                            disabled={request.id ? actionLoading[request.id] === 'approving_overtime' : true}
+                                            onClick={() => handleApproveOvertime(request.id)}
+                                            disabled={actionLoading[request.id] === 'approving_overtime'}
                                           >
                                             {actionLoading[request.id] === 'approving_overtime' ? '⏳' : '⏰'}
                                           </button>
                                         )}
                                       </>
                                     )}
+                                    <button 
+                                      className="areq-action-btn areq-action-btn--edit" 
+                                      title="Edit Request"
+                                      onClick={() => handleEditRequest(request)}
+                                    >
+                                      ✏️
+                                    </button>
                                     <button className="areq-action-btn areq-action-btn--view" title="View Details">
                                       👁
                                     </button>
@@ -787,112 +637,39 @@ const AttendanceRequests: React.FC = () => {
             <div className="areq-modal">
               <AttendanceRequestModal 
                 isOpen={showModal} 
-                onClose={() => {
-                  setShowModal(false);
-                  setEditingRequest(null);
-                }}
+                onClose={() => setShowModal(false)}
                 onRefresh={refetch}
                 onSuccess={(message) => {
                   console.log('Attendance request result:', message);
                   // You can add a toast notification here if needed
                 }}
-                editingRequest={editingRequest}
               />
             </div>
           </div>
         )}
 
-        {/* Filter Modal */}
-        {showFilterModal && (
-          <div className="areq-modal-overlay" onClick={() => setShowFilterModal(false)}>
-            <div className="areq-modal" onClick={(e) => e.stopPropagation()}>
-              <div className="areq-modal__header">
-                <h3>Filter Attendance Requests</h3>
-                <button 
-                  className="areq-modal__close"
-                  onClick={() => setShowFilterModal(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="areq-modal__content">
-                <div className="areq-filter-section">
-                  <h4>Time Period</h4>
-                  <div className="areq-filter-options">
-                    <label>
-                      <input
-                        type="radio"
-                        name="timeFilter"
-                        value="all"
-                        checked={filterBy === 'all'}
-                        onChange={(e) => setFilterBy(e.target.value)}
-                      />
-                      All Records
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="timeFilter"
-                        value="today"
-                        checked={filterBy === 'today'}
-                        onChange={(e) => setFilterBy(e.target.value)}
-                      />
-                      Today
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="timeFilter"
-                        value="this_week"
-                        checked={filterBy === 'this_week'}
-                        onChange={(e) => setFilterBy(e.target.value)}
-                      />
-                      This Week
-                    </label>
-                    <label>
-                      <input
-                        type="radio"
-                        name="timeFilter"
-                        value="this_month"
-                        checked={filterBy === 'this_month'}
-                        onChange={(e) => setFilterBy(e.target.value)}
-                      />
-                      This Month
-                    </label>
-                  </div>
-                </div>
-                
-                <div className="areq-filter-section">
-                  <h4>Additional Filters</h4>
-                  <div className="areq-filter-options">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={filterBy === 'overtime'}
-                        onChange={(e) => setFilterBy(e.target.checked ? 'overtime' : 'all')}
-                      />
-                      With Overtime
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="areq-modal__footer">
-                <button 
-                  className="areq-btn areq-btn--secondary"
-                  onClick={() => {
-                    setFilterBy('all');
-                    setShowFilterModal(false);
-                  }}
-                >
-                  Clear Filters
-                </button>
-                <button 
-                  className="areq-btn areq-btn--primary"
-                  onClick={() => setShowFilterModal(false)}
-                >
-                  Apply Filters
-                </button>
-              </div>
+        {/* Edit Attendance Request Modal */}
+        {showEditModal && editingRequest && (
+          <div className="areq-modal-overlay">
+            <div className="areq-modal">
+              <AttendanceRequestModal 
+                isOpen={showEditModal} 
+                onClose={handleCloseEditModal}
+                onRefresh={refetch}
+                editMode={true}
+                attendanceRequestId={editingRequest.id.toString()}
+                initialData={{
+                  employee_id: editingRequest.employee_id,
+                  attendance_date: editingRequest.attendance_date,
+                  shift_id: editingRequest.shift_id || 1,
+                  work_type_id: editingRequest.work_type_id || 1,
+                  minimum_hour: editingRequest.minimum_hour
+                }}
+                onSuccess={(message) => {
+                  console.log('Attendance request edit result:', message);
+                  // You can add a toast notification here if needed
+                }}
+              />
             </div>
           </div>
         )}

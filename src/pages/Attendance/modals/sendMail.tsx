@@ -1,16 +1,10 @@
 import React, { useState } from 'react';
-import { usePost } from '../../../hooks/useApi';
-import { endpoints } from '../../../utils/api';
 import './sendMail.css';
 
 interface SendMailProps {
   open: boolean;
   onClose: () => void;
-  employee: { name: string; avatar: string; id: number };
-}
-
-interface MailSendResponse {
-  message: string;
+  employee: { name: string; avatar: string };
 }
 
 const templates = ['----', 'Leave Reminder', 'Attendance Warning', 'General Notice'];
@@ -23,12 +17,6 @@ const SendMail: React.FC<SendMailProps> = ({ open, onClose, employee }) => {
   const [templateAttachment, setTemplateAttachment] = useState(templates[0]);
   const [attachments, setAttachments] = useState<FileList | null>(null);
   const [tab, setTab] = useState<'write' | 'preview'>('write');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitMessage, setSubmitMessage] = useState('');
-  const [submitError, setSubmitError] = useState('');
-
-  // API hook for sending mail
-  const { post, loading: apiLoading, error: apiError } = usePost<MailSendResponse>(endpoints.attendance.offlineEmployeeMailSend);
 
   const [errors, setErrors] = useState({
     alsoSendTo: '',
@@ -55,54 +43,17 @@ const SendMail: React.FC<SendMailProps> = ({ open, onClose, employee }) => {
     return Object.values(newErrors).every((err) => err === '');
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+const handleSubmit = (e: React.FormEvent) => {
+  e.preventDefault();
 
-    if (!validateForm()) {
-      setSubmitError('Please fill all the fields properly.');
-      return;
-    }
+  if (!validateForm()) {
+    alert('Please fill all the fields properly.');
+    return;
+  }
 
-    setIsSubmitting(true);
-    setSubmitError('');
-    setSubmitMessage('');
-
-    try {
-      // Create FormData object as the API expects form data, not JSON
-      const formData = new FormData();
-      formData.append('employee_id', employee.id.toString());
-      formData.append('subject', subject.trim());
-      formData.append('body', body.trim());
-      
-      // Add attachments if any
-      if (attachments) {
-        for (let i = 0; i < attachments.length; i++) {
-          formData.append('other_attachments', attachments[i]);
-        }
-      }
-
-      const response = await post(formData);
-
-      if (response) {
-        setSubmitMessage(response.message || 'Mail sent successfully!');
-        
-        // Close modal after a short delay to show success message
-        setTimeout(() => {
-          onClose();
-        }, 2000);
-      } else {
-        setSubmitError(apiError || 'Failed to send mail. Please try again.');
-      }
-    } catch (error: any) {
-      setSubmitError(
-        error?.response?.data?.message || 
-        error?.message || 
-        'Failed to send mail. Please try again.'
-      );
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  alert('Mail sent!');
+  onClose();
+};
 
 
   return (
@@ -212,24 +163,11 @@ const handleSubmit = async (e: React.FormEvent) => {
             onChange={(e) => setAttachments(e.target.files)}
           />
 
-          {/* Success/Error Messages */}
-          {submitMessage && (
-            <div className="sendmail-success-message">
-              {submitMessage}
-            </div>
-          )}
-          {submitError && (
-            <div className="sendmail-error-message">
-              {submitError}
-            </div>
-          )}
-
           <button
-            type="submit"
             className="sendmail-submit"
-            disabled={isSubmitting || apiLoading}
+            type="submit"
           >
-            {(isSubmitting || apiLoading) ? 'Sending...' : 'Send Mail'}
+            Send Mail
           </button>
         </form>
       </div>

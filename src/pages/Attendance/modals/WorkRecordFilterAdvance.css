@@ -1,0 +1,91 @@
+.wrfa-form {
+  width: 100%;
+  background: #fff;
+  border-radius: 7px;
+  padding: 0;
+}
+
+.wrfa-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 1.28em;
+  row-gap: 12px;
+  margin-bottom: 0;
+}
+
+.wrfa-col {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 6px;
+}
+
+.wrfa-col label {
+  font-size: .98rem;
+  color: #28292b;
+  margin-bottom: 5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+.wrfa-col input[type="date"],
+.wrfa-col select {
+  padding: 8px 8px;
+  border: 1.2px solid #d4d4d7;
+  border-radius: 5px;
+  background: #fafbfd;
+  font-size: 1rem;
+  min-height: 36px;
+  transition: border-color 0.13s;
+  outline: none;
+}
+
+.wrfa-col input[type="date"]:focus,
+.wrfa-col select:focus {
+  border-color: #ef4a3b;
+  background: #fcf3ef;
+}
+
+.wrfa-error {
+  color: #e3361b;
+  font-size: .92em;
+  margin-top: 3px;
+  min-height: 17px;
+}
+
+.wrfa-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 13px 0 12px 0;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 1.08rem;
+  background: #ef4a3b;
+  color: #fff;
+  border: none;
+  box-shadow: 0 1px 6px rgba(239,74,59,0.07);
+  transition: background 0.15s;
+  cursor: pointer;
+  letter-spacing: 0.01em;
+}
+.wrfa-btn:hover {
+  background: #db220d;
+}
+
+.wrfa-success {
+  margin-top: 12px;
+  color: #21946e;
+  background: #e4f7ee;
+  padding: 8px 10px;
+  border-radius: 4px;
+  text-align: center;
+  font-size: 1.01rem;
+}
+
+/* Responsive: Stack fields on mobile */
+@media (max-width: 700px) {
+  .wrfa-grid {
+    grid-template-columns: 1fr;
+    row-gap: 0;
+    gap: 0;
+  }
+}
