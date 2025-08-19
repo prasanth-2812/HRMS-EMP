@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
-
-interface JobPosition {
-  id: string;
-  title: string;
-  department: string;
-  description: string;
-  isActive: boolean;
-}
+import React, { useState, useEffect } from 'react';
+import { 
+  JobPosition, 
+  Department,
+  getJobPositions, 
+  createJobPosition, 
+  updateJobPosition, 
+  deleteJobPosition,
+  getDepartments
+} from '../../../services/baseService';
 
 interface JobPositionsModalProps {
   onClose: () => void;
@@ -14,218 +15,317 @@ interface JobPositionsModalProps {
 
 const JobPositionsModal: React.FC<JobPositionsModalProps> = ({ onClose }) => {
   const [positions, setPositions] = useState<JobPosition[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    department: '',
-    description: '',
-    isActive: true
+    job_position: '',
+    department_id: ''
   });
-  const [isEditing, setIsEditing] = useState<string | null>(null);
+  const [isEditing, setIsEditing] = useState<number | null>(null);
 
-  const departments = ['HR', 'IT', 'Finance', 'Marketing', 'Operations'];
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchJobPositions();
+    fetchDepartments();
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+  const fetchJobPositions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getJobPositions();
+      setPositions(response.results);
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error fetching job positions:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await getDepartments();
+      setDepartments(response.results);
+    } catch (err: any) {
+      console.error('Error fetching departments:', err);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing) {
-      setPositions(prev => prev.map(pos => 
-        pos.id === isEditing ? { ...pos, ...formData } : pos
-      ));
+    try {
+      setLoading(true);
+      setError(null);
+      
+      if (isEditing) {
+        await updateJobPosition(isEditing, {
+          ...formData,
+          department_id: parseInt(formData.department_id)
+        });
+        showNotification('Job position updated successfully!');
+      } else {
+        await createJobPosition({
+          ...formData,
+          department_id: parseInt(formData.department_id)
+        });
+        showNotification('Job position created successfully!');
+      }
+      
+      // Reset form and refresh list
+      setFormData({ job_position: '', department_id: '' });
+      setShowCreateForm(false);
       setIsEditing(null);
-    } else {
-      const newPosition: JobPosition = {
-        id: Date.now().toString(),
-        ...formData
-      };
-      setPositions(prev => [...prev, newPosition]);
+      await fetchJobPositions();
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error saving job position:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setFormData({ title: '', department: '', description: '', isActive: true });
   };
 
   const handleEdit = (position: JobPosition) => {
     setFormData({
-      title: position.title,
-      department: position.department,
-      description: position.description,
-      isActive: position.isActive
+      job_position: position.job_position,
+      department_id: position.department_id?.toString() || ''
     });
-    setIsEditing(position.id);
+    setIsEditing(position.id!);
+    setShowCreateForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    setPositions(prev => prev.filter(pos => pos.id !== id));
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this job position?')) {
+      try {
+        setLoading(true);
+        setError(null);
+        await deleteJobPosition(id);
+        showNotification('Job position deleted successfully!');
+        await fetchJobPositions();
+      } catch (err: any) {
+        setError(err.message);
+        console.error('Error deleting job position:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
   };
+
+  const showNotification = (message: string) => {
+    // Simple notification - you can replace with your toast system
+    alert(message);
+  };
+
+  const handleCreateNew = () => {
+    setIsEditing(null);
+    setFormData({
+      job_position: '',
+      department_id: ''
+    });
+    setError(null);
+    setShowCreateForm(true);
+  };
+
+  const handleCancel = () => {
+    setIsEditing(null);
+    setFormData({
+      job_position: '',
+      department_id: ''
+    });
+    setError(null);
+    setShowCreateForm(false);
+  };
+
+  if (showCreateForm) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>{isEditing ? 'Edit Job Position' : 'Create Job Position'}</h2>
+            <button className="modal-close" onClick={onClose}>
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+          
+          <div className="modal-body">
+            {error && (
+              <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>
+                {error}
+              </div>
+            )}
+            <form onSubmit={handleSubmit}>
+              <div className="form-group">
+                <label htmlFor="job_position">Job Position:</label>
+                <input
+                  type="text"
+                  id="job_position"
+                  name="job_position"
+                  value={formData.job_position}
+                  onChange={handleInputChange}
+                  placeholder="Job Position"
+                  disabled={loading}
+                  required
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="department_id">Department:</label>
+                <select
+                  id="department_id"
+                  name="department_id"
+                  value={formData.department_id}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                  required
+                >
+                  <option value="">Select Department</option>
+                  {departments.map(dept => (
+                    <option key={dept.id} value={dept.id}>{dept.department}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={handleCancel} disabled={loading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Job Positions</h2>
-          <p>Manage job positions in your organization</p>
+          <h2>Job Position</h2>
+          <button className="btn btn-primary" onClick={handleCreateNew} style={{ marginRight: '10px' }}>
+            + Create
+          </button>
           <button className="modal-close" onClick={onClose}>
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
         
         <div className="modal-body">
-          <form onSubmit={handleSubmit} style={{ marginBottom: '24px' }}>
-            <div className="form-group">
-              <label htmlFor="title">Position Title</label>
-              <input
-                type="text"
-                id="title"
-                name="title"
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Enter position title"
-                required
-              />
+          {loading ? (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '300px',
+              color: '#64748b'
+            }}>
+              <p>Loading job positions...</p>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="department">Department</label>
-              <select
-                id="department"
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Department</option>
-                {departments.map(dept => (
-                  <option key={dept} value={dept}>{dept}</option>
-                ))}
-              </select>
+          ) : error ? (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '300px',
+              color: '#ef4444'
+            }}>
+              <p>Error: {error}</p>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Enter position description"
-                rows={3}
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Status</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span>Active</span>
+          ) : positions.length === 0 ? (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '300px',
+              color: '#64748b'
+            }}>
+              <div style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '50%', 
+                backgroundColor: '#f1f5f9', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                marginBottom: '16px'
+              }}>
+                <ion-icon name="briefcase-outline" style={{ fontSize: '32px', color: '#94a3b8' }}></ion-icon>
               </div>
+              <p>There is no job position at this moment.</p>
             </div>
-
-            <div className="form-actions">
-              {isEditing && (
-                <button type="button" className="btn btn-secondary" onClick={() => {
-                  setIsEditing(null);
-                  setFormData({ title: '', department: '', description: '', isActive: true });
-                }}>
-                  Cancel Edit
-                </button>
-              )}
-              <button type="submit" className="btn btn-primary">
-                {isEditing ? 'Update Position' : 'Add Position'}
-              </button>
+          ) : (
+            <div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Department</th>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Job Position</th>
+                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {positions.map(position => {
+                    const department = departments.find(d => d.id === position.department_id);
+                    return (
+                      <tr key={position.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <td style={{ padding: '12px' }}>{department?.department || 'Unknown'}</td>
+                        <td style={{ padding: '12px' }}>{position.job_position}</td>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                            <button
+                              onClick={() => handleEdit(position)}
+                              disabled={loading}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                color: loading ? '#94a3b8' : '#64748b',
+                                padding: '4px'
+                              }}
+                              title="Edit"
+                            >
+                              <ion-icon name="create-outline"></ion-icon>
+                            </button>
+                            <button
+                              onClick={() => handleDelete(position.id!)}
+                              disabled={loading}
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                cursor: loading ? 'not-allowed' : 'pointer',
+                                color: loading ? '#94a3b8' : '#ef4444',
+                                padding: '4px'
+                              }}
+                            title="Delete"
+                          >
+                            <ion-icon name="trash-outline"></ion-icon>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
-          </form>
-
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Existing Positions</h3>
-            
-            {positions.length === 0 ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '24px' }}>
-                No positions found. Add your first position above.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {positions.map(position => (
-                  <div
-                    key={position.id}
-                    style={{
-                      padding: '16px',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      backgroundColor: position.isActive ? '#ffffff' : '#f8fafc'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600' }}>
-                          {position.title}
-                          <span style={{ 
-                            marginLeft: '8px', 
-                            padding: '2px 8px', 
-                            backgroundColor: '#dbeafe', 
-                            color: '#1e40af', 
-                            borderRadius: '4px', 
-                            fontSize: '12px' 
-                          }}>
-                            {position.department}
-                          </span>
-                        </h4>
-                        {position.description && (
-                          <p style={{ margin: '0', fontSize: '13px', color: '#64748b' }}>
-                            {position.description}
-                          </p>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => handleEdit(position)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#3b82f6',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(position.id)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>

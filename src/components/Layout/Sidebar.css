@@ -214,32 +214,3 @@
        you'd manage isCollapsed state in App.tsx or use global CSS classes
        based on screen size. For now, assume it's manually toggled. */
 }
-
-/* Layout spacing for main content next to the fixed sidebar */
-.ha-main-content,
-.ad-main-content {
-  margin-left: 280px; /* match .oh-sidebar default width */
-  padding: 1rem;      /* breathing room from edges */
-  transition: margin-left 0.3s ease-in-out;
-}
-
-/* When sidebar is collapsed */
-.ha-main-content--collapsed,
-.ad-main-content--collapsed {
-  margin-left: 80px; /* match .oh-sidebar.collapsed width */
-}
-
-/* Ensure content spans full height behind fixed sidebar */
-.ha-main-content,
-.ad-main-content {
-  min-height: 100vh;
-  box-sizing: border-box;
-}
-
-/* Optional: on small screens, keep compact gutter */
-@media (max-width: 768px) {
-  .ha-main-content,
-  .ad-main-content {
-    margin-left: 80px;
-  }
-}

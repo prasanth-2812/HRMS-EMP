@@ -1,6 +1,10 @@
+<<<<<<< HEAD
 import React, { useState, useEffect } from 'react';
 import { apiClient, endpoints } from '../../../utils/api';
 import { getAllEmployees } from '../../../services/employeeService';
+=======
+import React, { useState } from 'react';
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
 import '../QuickAccess.css';
 
 interface AttendanceRequest {
@@ -37,6 +41,7 @@ interface AttendanceRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (message: string) => void;
+<<<<<<< HEAD
   onRefresh?: () => void;
   editingRequest?: AttendanceRequest | null;
 }
@@ -126,41 +131,48 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       setLoadingEmployees(false);
     }
   };
+=======
+}
+
+const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    attendanceDate: '',
+    shiftId: '',
+    clockInTime: '',
+    clockOutTime: '',
+    minimumHour: '',
+    description: ''
+  });
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
 
   if (!isOpen) return null;
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     // Basic validation
-    if (!formData.employee_id) {
-      if (onSuccess) {
-        onSuccess('Please select an employee');
-      }
-      return;
-    }
-    
-    if (!formData.attendance_date.trim()) {
+    if (!formData.attendanceDate.trim()) {
       if (onSuccess) {
         onSuccess('Please select an attendance date');
       }
       return;
     }
     
-    if (!formData.shift_id) {
+    if (!formData.shiftId.trim()) {
       if (onSuccess) {
         onSuccess('Please select a shift');
       }
       return;
     }
     
-    if (!formData.minimum_hour.trim()) {
+    if (!formData.clockInTime.trim() || !formData.clockOutTime.trim()) {
       if (onSuccess) {
-        onSuccess('Please enter minimum hours');
+        onSuccess('Please provide both clock in and clock out times');
       }
       return;
     }
     
+<<<<<<< HEAD
     // Optional validation for worked hours
     // if (!formData.attendance_worked_hour.trim()) {
     //   if (onSuccess) {
@@ -209,20 +221,28 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
         minimum_hour: '00:00',
         request_description: '',
         batch_attendance_id: ''
+=======
+    // Simulate API call
+    setTimeout(() => {
+      // Reset form
+      setFormData({
+        attendanceDate: '',
+        shiftId: '',
+        clockInTime: '',
+        clockOutTime: '',
+        minimumHour: '',
+        description: ''
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
       });
       
       // Close modal
       onClose();
       
-      // Refresh the parent component data
-      if (onRefresh) {
-        onRefresh();
-      }
-      
       // Show success notification
       if (onSuccess) {
         onSuccess(`Attendance request ${isEditMode ? 'updated' : 'submitted'} successfully!`);
       }
+<<<<<<< HEAD
     } catch (error: any) {
       console.error('Error creating attendance request:', error);
       const errorMessage = error.response?.data?.message || error.message || `Failed to ${isEditMode ? 'update' : 'submit'} attendance request. Please try again.`;
@@ -232,13 +252,15 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
     } finally {
       setLoading(false);
     }
+=======
+    }, 500);
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
     setFormData({
       ...formData,
-      [name]: value
+      [e.target.name]: e.target.value
     });
   };
 
@@ -246,105 +268,58 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
     <div className="oh-modal-overlay" onClick={onClose}>
       <div className="oh-create-attendance-modal" onClick={(e) => e.stopPropagation()}>
         <div className="oh-modal-header">
+<<<<<<< HEAD
           <h2 className="oh-modal-title">{isEditMode ? 'Edit Attendance Request' : 'New Attendances Request'}</h2>
+=======
+          <h2 className="oh-modal-title">Attendance Request</h2>
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
           <button 
             className="oh-modal-close" 
             aria-label="Close"
             onClick={onClose}
           >
-            ✕
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         </div>
 
         <div className="oh-modal-body">
           <form onSubmit={handleSubmit}>
             <div className="oh-form-grid">
-              {/* Row 1: Employee and Create Bulk */}
-               <div className="oh-form-group">
-                 <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
-                 <select
-                   id="employee_id"
-                   name="employee_id"
-                   value={formData.employee_id}
-                   onChange={handleChange}
-                   required
-                   className="oh-form-input"
-                   disabled={loadingEmployees}
-                 >
-                   <option value="">{loadingEmployees ? 'Loading employees...' : 'Select Employee'}</option>
-                   {employees.map((employee) => (
-                     <option key={employee.id} value={employee.id}>
-                       {employee.firstName} {employee.lastName} ({employee.employeeId})
-                     </option>
-                   ))}
-                 </select>
-               </div>
-
               <div className="oh-form-group">
-                <label className="oh-form-label">Create Bulk</label>
-                <div className="oh-toggle-container">
-                  <input
-                    type="checkbox"
-                    id="create_bulk"
-                    name="create_bulk"
-                    checked={formData.create_bulk}
-                    onChange={(e) => setFormData({...formData, create_bulk: e.target.checked})}
-                    className="oh-toggle-input"
-                  />
-                  <label htmlFor="create_bulk" className="oh-toggle-label"></label>
-                </div>
-              </div>
-
-              {/* Row 2: Attendance Date and Shift */}
-              <div className="oh-form-group">
-                <label className="oh-form-label">Attendance date <span className="oh-required">*</span></label>
+                <label className="oh-form-label">Attendance Date <span className="oh-required">*</span></label>
                 <input
                   type="date"
-                  id="attendance_date"
-                  name="attendance_date"
-                  value={formData.attendance_date}
+                  id="attendanceDate"
+                  name="attendanceDate"
+                  value={formData.attendanceDate}
                   onChange={handleChange}
                   required
                   className="oh-form-input"
-                  placeholder="dd-mm-yyyy"
                 />
               </div>
 
               <div className="oh-form-group">
                 <label className="oh-form-label">Shift <span className="oh-required">*</span></label>
                 <select
-                  id="shift_id"
-                  name="shift_id"
-                  value={formData.shift_id}
+                  id="shiftId"
+                  name="shiftId"
+                  value={formData.shiftId}
                   onChange={handleChange}
                   required
                   className="oh-form-input"
                 >
-                  <option value="">---Choose Shift---</option>
-                  <option value="1">Morning Shift</option>
-                  <option value="2">Evening Shift</option>
-                  <option value="3">Night Shift</option>
-                </select>
-              </div>
-
-              {/* Row 3: Work Type and Check-in Date */}
-              <div className="oh-form-group">
-                <label className="oh-form-label">Work Type</label>
-                <select
-                  id="work_type_id"
-                  name="work_type_id"
-                  value={formData.work_type_id}
-                  onChange={handleChange}
-                  className="oh-form-input"
-                >
-                  <option value="">---Choose Work Type---</option>
-                  <option value="1">Regular Work</option>
-                  <option value="2">Remote Work</option>
-                  <option value="3">Field Work</option>
+                  <option value="">Select Shift</option>
+                  <option value="morning">Morning Shift (9:00 AM - 6:00 PM)</option>
+                  <option value="evening">Evening Shift (2:00 PM - 11:00 PM)</option>
+                  <option value="night">Night Shift (11:00 PM - 8:00 AM)</option>
                 </select>
               </div>
 
               <div className="oh-form-group">
+<<<<<<< HEAD
                 <label className="oh-form-label">Check-in Date <span className="oh-required">*</span></label>
                 <input
                   type="date"
@@ -419,26 +394,62 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                   id="minimum_hour"
                   name="minimum_hour"
                   value={formData.minimum_hour}
+=======
+                <label className="oh-form-label">Clock In Time <span className="oh-required">*</span></label>
+                <input
+                  type="time"
+                  id="clockInTime"
+                  name="clockInTime"
+                  value={formData.clockInTime}
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
                   onChange={handleChange}
                   required
                   className="oh-form-input"
-                  placeholder="00:00"
                 />
               </div>
 
-              {/* Request Description - Full Width */}
+              <div className="oh-form-group">
+                <label className="oh-form-label">Clock Out Time <span className="oh-required">*</span></label>
+                <input
+                  type="time"
+                  id="clockOutTime"
+                  name="clockOutTime"
+                  value={formData.clockOutTime}
+                  onChange={handleChange}
+                  required
+                  className="oh-form-input"
+                />
+              </div>
+
+              <div className="oh-form-group">
+                <label className="oh-form-label">Minimum Hours</label>
+                <input
+                  type="number"
+                  id="minimumHour"
+                  name="minimumHour"
+                  value={formData.minimumHour}
+                  onChange={handleChange}
+                  step="0.5"
+                  min="0"
+                  max="24"
+                  className="oh-form-input"
+                  placeholder="Enter minimum hours"
+                />
+              </div>
+
               <div className="oh-form-group oh-form-group--full-width">
-                <label className="oh-form-label">Request Description <span className="oh-required">*</span></label>
+                <label className="oh-form-label">Description</label>
                 <textarea
-                  id="request_description"
-                  name="request_description"
-                  value={formData.request_description}
+                  id="description"
+                  name="description"
+                  value={formData.description}
                   onChange={handleChange}
                   rows={4}
                   className="oh-form-textarea"
-                  placeholder="Request Description"
+                  placeholder="Enter reason for attendance request..."
                 />
               </div>
+<<<<<<< HEAD
 
               {/* Batch Attendance */}
               <div className="oh-form-group">
@@ -456,14 +467,21 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                   <option value="batch3">Batch 3</option>
                 </select>
               </div>
+=======
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
             </div>
 
             <div className="oh-modal-footer">
               <button type="button" className="oh-btn oh-btn--secondary" onClick={onClose}>
                 Cancel
               </button>
+<<<<<<< HEAD
               <button type="submit" className="oh-btn oh-btn--primary" disabled={loading}>
                 {loading ? (isEditMode ? 'Updating...' : 'Requesting...') : (isEditMode ? 'Update' : 'Request')}
+=======
+              <button type="submit" className="oh-btn oh-btn--primary">
+                Submit Request
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
               </button>
             </div>
           </form>

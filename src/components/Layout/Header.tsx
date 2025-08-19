@@ -26,18 +26,6 @@ interface Notification {
   type: 'info' | 'warning' | 'success' | 'error';
 }
 
-interface CheckInResponse {
-  status: boolean;
-  duration: string;
-  clock_in_time: string;
-}
-
-interface CheckOutResponse {
-  status: boolean;
-  message?: string;
-  total_duration?: string;
-}
-
 interface Company {
   id: string;
   name: string;
@@ -73,8 +61,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
   const [checkInTime, setCheckInTime] = useState<Date | null>(null);
-  const [workDuration, setWorkDuration] = useState('00:00');
-  const [timerStartTime, setTimerStartTime] = useState<Date | null>(null);
+  const [workDuration, setWorkDuration] = useState('00:00:00');
 
   // API calls
   const { data: userProfile, loading: userLoading, error: userError, refetch: refetchUser } = useApi<UserProfile>('/auth/me');
@@ -139,16 +126,17 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       const now = new Date();
       setCurrentTime(now);
       
-      if (isCheckedIn && timerStartTime) {
-        const diff = now.getTime() - timerStartTime.getTime();
-        const minutes = Math.floor(diff / (1000 * 60));
+      if (isCheckedIn && checkInTime) {
+        const diff = now.getTime() - checkInTime.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((diff % (1000 * 60)) / 1000);
-        setWorkDuration(`${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+        setWorkDuration(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isCheckedIn, timerStartTime]);
+  }, [isCheckedIn, checkInTime]);
 
   // Effects
   useEffect(() => {
@@ -156,37 +144,6 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       setIsCheckedIn(attendanceStatus.isCheckedIn);
     }
   }, [attendanceStatus]);
-
-  // Fetch current check-in status on component mount
-  useEffect(() => {
-    const fetchCheckInStatus = async () => {
-      try {
-        const response = await fetch('/api/v1/attendance/checking-in', {
-           method: 'GET',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-           }
-         });
-        
-        if (response.ok) {
-          const data: CheckInResponse = await response.json();
-          if (data.status) {
-            setIsCheckedIn(true);
-            // Parse duration and set timer start time accordingly
-            const [hours, minutes, seconds] = data.duration.split(':').map(Number);
-            const totalSeconds = hours * 3600 + minutes * 60 + seconds;
-            const startTime = new Date(Date.now() - totalSeconds * 1000);
-            setTimerStartTime(startTime);
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching check-in status:', error);
-      }
-    };
-
-    fetchCheckInStatus();
-  }, []);
 
   useEffect(() => {
     if (companies && companies.length > 0 && !currentCompany) {
@@ -202,43 +159,27 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
   const handleCheckInOut = async () => {
     setAttendanceLoading(true);
     try {
-      if (!isCheckedIn) {
-        // Checking in - call the check-in API
-        const response = await fetch('/api/v1/attendance/checking-in', {
-           method: 'GET',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-           }
-         });
-        
-        if (response.ok) {
-          const data = await response.json();
-          setIsCheckedIn(true);
-          // Start timer immediately
-          setTimerStartTime(new Date());
-          setWorkDuration('00:00');
+      // API call to check in/out
+      const response = await fetch('/api/attendance/toggle', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-      } else {
-        // Checking out - call check-out API
-        const response = await fetch('/api/v1/attendance/checking-out', {
-           method: 'GET',
-           headers: {
-             'Content-Type': 'application/json',
-             'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-           }
-         });
+      });
+      
+      if (response.ok) {
+        const newCheckedInStatus = !isCheckedIn;
+        setIsCheckedIn(newCheckedInStatus);
         
-        if (response.ok) {
-          const data: CheckOutResponse = await response.json();
-          setIsCheckedIn(false);
-          setTimerStartTime(null);
-          setWorkDuration('00:00');
-          
-          // Optionally show a success message with total duration
-          if (data.total_duration) {
-            console.log(`Successfully checked out. Total duration: ${data.total_duration}`);
-          }
+        if (newCheckedInStatus) {
+          // Checking in - set the check-in time
+          setCheckInTime(new Date());
+          setWorkDuration('00:00:00');
+        } else {
+          // Checking out - reset timer
+          setCheckInTime(null);
+          setWorkDuration('00:00:00');
         }
       }
     } catch (error) {
@@ -267,7 +208,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       await fetch(`/api/notifications/${notificationId}/read`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       refetchNotifications();
@@ -281,7 +222,7 @@ const Header: React.FC<HeaderProps> = ({ toggleSidebar }) => {
       await fetch('/api/notifications/mark-all-read', {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
       refetchNotifications();

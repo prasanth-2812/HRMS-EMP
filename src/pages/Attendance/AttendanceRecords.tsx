@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
 import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
+<<<<<<< HEAD
 import { useApi } from '../../hooks/useApi';
 import { apiClient } from '../../utils/api';
 import AddAttendances from './modals/AddAttendances';
@@ -499,6 +500,12 @@ const AttendanceRecords: React.FC = () => {
     refetch();
     handleCloseModal();
   };
+=======
+import './AttendanceRecords.css';
+
+const AttendanceRecords: React.FC = () => {
+  const { isCollapsed, toggleSidebar } = useSidebar();
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
 
   return (
     <div className="attendance-records-page">
@@ -512,16 +519,21 @@ const AttendanceRecords: React.FC = () => {
             {/* Page Header */}
             <div className="ar-header">
               <div className="ar-header__left">
-                <h1 className="ar-header__title">Attendances</h1>
+                <h1 className="ar-header__title">Attendance Records</h1>
+                <p className="ar-header__subtitle">
+                  Track and manage employee attendance records
+                </p>
               </div>
-              <div className="ar-header__actions" style={{ position: 'relative' }}>
-                <button
-                  className="ar-btn ar-btn--secondary"
-                  onClick={() => setShowActions((prev) => !prev)}
-                  type="button"
-                >
-                  Actions
+              <div className="ar-header__actions">
+                <button className="ar-btn ar-btn--secondary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7,10 12,15 17,10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Export Records
                 </button>
+<<<<<<< HEAD
                 {showActions && (
                   <div style={{
                     position: 'absolute',
@@ -583,60 +595,34 @@ const AttendanceRecords: React.FC = () => {
                   onClick={() => setShowModal(true)}
                 >
                   + Create
-                </button>
-              </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="ar-tabs">
-              <div className="ar-tabs__nav">
-                <button
-                  className={`ar-tabs__tab ${activeTab === 'validate' ? 'ar-tabs__tab--active' : ''}`}
-                  onClick={() => setActiveTab('validate')}
-                >
-                  Attendance To Validate
-                  <span className="ar-tabs__count">
-                    {attendanceRecords.filter(r => !r.attendance_validated).length}
-                  </span>
-                </button>
-                <button
-                  className={`ar-tabs__tab ${activeTab === 'overtime' ? 'ar-tabs__tab--active' : ''}`}
-                  onClick={() => setActiveTab('overtime')}
-                >
-                  OT Attendances
-                  <span className="ar-tabs__count">
-                    {attendanceRecords.filter(r => r.attendance_overtime_approve && r.attendance_validated).length}
-                  </span>
-                </button>
-                <button
-                  className={`ar-tabs__tab ${activeTab === 'validated' ? 'ar-tabs__tab--active' : ''}`}
-                  onClick={() => setActiveTab('validated')}
-                >
-                  Validated Attendances
-                  <span className="ar-tabs__count">
-                    {attendanceRecords.filter(r => r.attendance_validated).length}
-                  </span>
-                </button>
-              </div>
-            </div>
-
-            {/* Search and Filter Controls */}
-            <div className="ar-controls">
-              <div className="ar-controls__left">
-                <div className="ar-search">
-                  <svg className="ar-search__icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <circle cx="11" cy="11" r="8"/>
-                    <path d="m21 21-4.35-4.35"/>
+=======
+                <button className="ar-btn ar-btn--primary">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
                   </svg>
-                  <input
-                    type="text"
-                    className="ar-search__input"
-                    placeholder="Search..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
+                  View Calendar
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
+                </button>
               </div>
+            </div>
+
+            {/* Controls */}
+            <div className="ar-controls">
+              <div className="ar-search-field">
+                <svg className="ar-search-field__icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by employee name, ID, or department..."
+                  className="ar-search-field__input"
+                />
+              </div>
+<<<<<<< HEAD
               <div className="ar-controls__right">
                 <div className="ar-filter">
                   <button
@@ -673,17 +659,43 @@ const AttendanceRecords: React.FC = () => {
                     <option value="company">Company</option>
                   </select>
                 </div>
+=======
+              <div className="ar-filters">
+                <select className="ar-select">
+                  <option>All Departments</option>
+                  <option>Engineering</option>
+                  <option>HR</option>
+                  <option>Sales</option>
+                  <option>Marketing</option>
+                </select>
+                <select className="ar-select">
+                  <option>All Status</option>
+                  <option>Present</option>
+                  <option>Absent</option>
+                  <option>Late</option>
+                  <option>Early Leave</option>
+                </select>
+                <select className="ar-select">
+                  <option>This Month</option>
+                  <option>Last Month</option>
+                  <option>This Quarter</option>
+                  <option>Custom Range</option>
+                </select>
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
               </div>
             </div>
 
             {/* Content */}
             <div className="ar-card">
               <div className="ar-card__content">
-                {loading ? (
-                  <div className="ar-loading">
-                    <div className="ar-loading__spinner"></div>
-                    <p>Loading attendance records...</p>
+                <div className="ar-empty-state">
+                  <div className="ar-empty-state__icon">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                      <circle cx="12" cy="12" r="10"></circle>
+                      <polyline points="12,6 12,12 16,14"></polyline>
+                    </svg>
                   </div>
+<<<<<<< HEAD
                 ) : error ? (
                   <div className="ar-error">
                     <p>Error loading attendance records: {error}</p>
@@ -836,12 +848,19 @@ const AttendanceRecords: React.FC = () => {
                     </table>
                   </div>
                 )}
+=======
+                  <h2 className="ar-empty-state__title">No Attendance Records</h2>
+                  <p className="ar-empty-state__message">
+                    Start tracking attendance records to see them here
+                  </p>
+                </div>
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
               </div>
             </div>
           </div>
         </div>
-
         <QuickAccess />
+<<<<<<< HEAD
 
         {/* AddAttendances Modal */}
         {showModal && (
@@ -934,6 +953,8 @@ const AttendanceRecords: React.FC = () => {
             </div>
           </div>
         )}
+=======
+>>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
       </div>
      </div>
    );

@@ -1,256 +1,331 @@
-import React, { useState } from 'react';
-
-interface Department {
-  id: string;
-  name: string;
-  description: string;
-  manager: string;
-  isActive: boolean;
-}
+import React, { useState, useEffect } from 'react';
+import { 
+  Department, 
+  Company,
+  getDepartments, 
+  getCompanies,
+  createDepartment, 
+  updateDepartment, 
+  deleteDepartment 
+} from '../../../services/baseService';
 
 interface DepartmentModalProps {
   onClose: () => void;
 }
 
 const DepartmentModal: React.FC<DepartmentModalProps> = ({ onClose }) => {
-  const [departments, setDepartments] = useState<Department[]>([
-    {
-      id: '1',
-      name: 'HR',
-      description: 'Human Resources Department',
-      manager: 'John Doe',
-      isActive: true
-    }
-  ]);
-
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [companies, setCompanies] = useState<Company[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showCreateForm, setShowCreateForm] = useState(false);
   const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    manager: '',
-    isActive: true
+    department: '',
+    company_id: ''
   });
+  const [isEditing, setIsEditing] = useState<number | null>(null);
 
-  const [isEditing, setIsEditing] = useState<string | null>(null);
+  // Fetch departments and companies on component mount
+  useEffect(() => {
+    fetchDepartments();
+    fetchCompanies();
+  }, []);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+  const fetchDepartments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await getDepartments();
+      setDepartments(response.results);
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error fetching departments:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCompanies = async () => {
+    try {
+      const response = await getCompanies();
+      setCompanies(response.results);
+    } catch (err: any) {
+      console.error('Error fetching companies:', err);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
+      [name]: value
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isEditing) {
-      setDepartments(prev => prev.map(dept => 
-        dept.id === isEditing 
-          ? { ...dept, ...formData }
-          : dept
-      ));
-      setIsEditing(null);
-    } else {
-      const newDepartment: Department = {
-        id: Date.now().toString(),
-        ...formData
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const submitData = {
+        department: formData.department,
+        ...(formData.company_id && { company_id: [parseInt(formData.company_id)] })
       };
-      setDepartments(prev => [...prev, newDepartment]);
+      
+      if (isEditing) {
+        await updateDepartment(isEditing, submitData);
+        showNotification('Department updated successfully!');
+      } else {
+        await createDepartment(submitData);
+        showNotification('Department created successfully!');
+      }
+      
+      // Reset form and refresh list
+      setFormData({ department: '', company_id: '' });
+      setShowCreateForm(false);
+      setIsEditing(null);
+      await fetchDepartments();
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Error saving department:', err);
+    } finally {
+      setLoading(false);
     }
-
-    setFormData({
-      name: '',
-      description: '',
-      manager: '',
-      isActive: true
-    });
   };
 
   const handleEdit = (department: Department) => {
     setFormData({
-      name: department.name,
-      description: department.description,
-      manager: department.manager,
-      isActive: department.isActive
+      department: department.department,
+      company_id: department.company_id ? department.company_id[0]?.toString() || '' : ''
     });
-    setIsEditing(department.id);
+    setIsEditing(department.id!);
+    setShowCreateForm(true);
   };
 
-  const handleDelete = (id: string) => {
-    setDepartments(prev => prev.filter(dept => dept.id !== id));
+  const handleDelete = async (id: number) => {
+    if (window.confirm('Are you sure you want to delete this department?')) {
+      try {
+        setLoading(true);
+        setError(null);
+        await deleteDepartment(id);
+        showNotification('Department deleted successfully!');
+        await fetchDepartments();
+      } catch (err: any) {
+        setError(err.message);
+        console.error('Error deleting department:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
   };
 
-  const cancelEdit = () => {
+  const showNotification = (message: string) => {
+    // Simple notification - you can replace with your toast system
+    alert(message);
+  };
+
+  const handleCreateNew = () => {
     setIsEditing(null);
-    setFormData({
-      name: '',
-      description: '',
-      manager: '',
-      isActive: true
-    });
+    setFormData({ department: '', company_id: '' });
+    setShowCreateForm(true);
   };
+
+  const handleCancel = () => {
+    setIsEditing(null);
+    setFormData({ department: '', company_id: '' });
+    setShowCreateForm(false);
+    setError(null);
+  };
+
+  if (showCreateForm) {
+    return (
+      <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-header">
+            <h2>{isEditing ? 'Edit Department' : 'Create Department'}</h2>
+            <button className="modal-close" onClick={onClose}>
+              <ion-icon name="close-outline"></ion-icon>
+            </button>
+          </div>
+          
+          <div className="modal-body">
+            <form onSubmit={handleSubmit}>
+              {error && (
+                <div style={{ 
+                  padding: '12px', 
+                  backgroundColor: '#fef2f2', 
+                  border: '1px solid #fecaca', 
+                  borderRadius: '6px', 
+                  color: '#dc2626',
+                  marginBottom: '16px',
+                  fontSize: '14px'
+                }}>
+                  {error}
+                </div>
+              )}
+              
+              <div className="form-group">
+                <label htmlFor="department">Department:</label>
+                <input
+                  type="text"
+                  id="department"
+                  name="department"
+                  value={formData.department}
+                  onChange={handleInputChange}
+                  placeholder="Department"
+                  required
+                  disabled={loading}
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="company_id">Company:</label>
+                <select
+                  id="company_id"
+                  name="company_id"
+                  value={formData.company_id}
+                  onChange={handleInputChange}
+                  disabled={loading}
+                >
+                  <option value="">Select Company (Optional)</option>
+                  {companies.map(company => (
+                    <option key={company.id} value={company.id}>
+                      {company.company}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-actions">
+                <button type="button" className="btn btn-secondary" onClick={handleCancel} disabled={loading}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={loading}>
+                  {loading ? 'Saving...' : (isEditing ? 'Update' : 'Create')}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Department Management</h2>
-          <p>Manage organizational departments</p>
+          <h2>Department</h2>
+          <button className="btn btn-primary" onClick={handleCreateNew} style={{ marginRight: '10px' }}>
+            + Create
+          </button>
           <button className="modal-close" onClick={onClose}>
             <ion-icon name="close-outline"></ion-icon>
           </button>
         </div>
         
         <div className="modal-body">
-          <form onSubmit={handleSubmit} style={{ marginBottom: '24px' }}>
-            <div className="form-group">
-              <label htmlFor="name">Department Name</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                placeholder="Enter department name"
-                required
-              />
+          {loading && (
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '200px',
+              color: '#64748b'
+            }}>
+              <div>Loading departments...</div>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="description">Description</label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                placeholder="Enter department description"
-                rows={3}
-              />
+          )}
+          
+          {error && (
+            <div style={{ 
+              padding: '16px', 
+              backgroundColor: '#fef2f2', 
+              border: '1px solid #fecaca', 
+              borderRadius: '8px', 
+              color: '#dc2626',
+              marginBottom: '16px'
+            }}>
+              Error: {error}
             </div>
-
-            <div className="form-group">
-              <label htmlFor="manager">Department Manager</label>
-              <input
-                type="text"
-                id="manager"
-                name="manager"
-                value={formData.manager}
-                onChange={handleInputChange}
-                placeholder="Enter manager name"
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Status</label>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginTop: '8px' }}>
-                <label className="toggle-switch">
-                  <input
-                    type="checkbox"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                  <span className="toggle-slider"></span>
-                </label>
-                <span>Active</span>
+          )}
+          
+          {!loading && !error && departments.length === 0 ? (
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              justifyContent: 'center', 
+              alignItems: 'center', 
+              height: '300px',
+              color: '#64748b'
+            }}>
+              <div style={{ 
+                width: '80px', 
+                height: '80px', 
+                borderRadius: '50%', 
+                backgroundColor: '#f1f5f9', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                marginBottom: '16px'
+              }}>
+                <ion-icon name="people-outline" style={{ fontSize: '32px', color: '#94a3b8' }}></ion-icon>
               </div>
+              <p>There is no department at this moment.</p>
             </div>
-
-            <div className="form-actions">
-              {isEditing && (
-                <button type="button" className="btn btn-secondary" onClick={cancelEdit}>
-                  Cancel Edit
-                </button>
-              )}
-              <button type="submit" className="btn btn-primary">
-                {isEditing ? 'Update Department' : 'Add Department'}
-              </button>
+          ) : !loading && !error && (
+            <div>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                    <th style={{ padding: '12px', textAlign: 'left', fontWeight: '600' }}>Department Name</th>
+                    <th style={{ padding: '12px', textAlign: 'center', fontWeight: '600' }}>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {departments.map(department => (
+                    <tr key={department.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px' }}>{department.department}</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+                          <button
+                            onClick={() => handleEdit(department)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#64748b',
+                              padding: '4px'
+                            }}
+                            title="Edit"
+                            disabled={loading}
+                          >
+                            <ion-icon name="create-outline" style={{ fontSize: '16px' }}></ion-icon>
+                          </button>
+                          <button
+                            onClick={() => handleDelete(department.id!)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              cursor: 'pointer',
+                              color: '#ef4444',
+                              padding: '4px'
+                            }}
+                            title="Delete"
+                            disabled={loading}
+                          >
+                            <ion-icon name="trash-outline" style={{ fontSize: '16px' }}></ion-icon>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </form>
-
-          <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '24px' }}>
-            <h3 style={{ marginBottom: '16px', fontSize: '16px', fontWeight: '600' }}>Existing Departments</h3>
-            
-            {departments.length === 0 ? (
-              <p style={{ color: '#64748b', textAlign: 'center', padding: '24px' }}>
-                No departments found. Add your first department above.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {departments.map(department => (
-                  <div
-                    key={department.id}
-                    style={{
-                      padding: '16px',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '8px',
-                      backgroundColor: department.isActive ? '#ffffff' : '#f8fafc'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: '600' }}>
-                          {department.name}
-                          {!department.isActive && (
-                            <span style={{ 
-                              marginLeft: '8px', 
-                              padding: '2px 8px', 
-                              backgroundColor: '#fef3c7', 
-                              color: '#92400e', 
-                              borderRadius: '4px', 
-                              fontSize: '12px' 
-                            }}>
-                              Inactive
-                            </span>
-                          )}
-                        </h4>
-                        {department.description && (
-                          <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b' }}>
-                            {department.description}
-                          </p>
-                        )}
-                        {department.manager && (
-                          <p style={{ margin: '0', fontSize: '13px', color: '#475569' }}>
-                            Manager: {department.manager}
-                          </p>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => handleEdit(department)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#3b82f6',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(department.id)}
-                          style={{
-                            padding: '6px 12px',
-                            backgroundColor: '#ef4444',
-                            color: '#ffffff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          )}
         </div>
       </div>
     </div>
