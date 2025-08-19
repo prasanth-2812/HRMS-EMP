@@ -31,6 +31,12 @@ const Policies: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { isCollapsed, toggleSidebar } = useSidebar();
+  
+  // Notification state
+  const [notification, setNotification] = useState<{
+    type: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
 
   // Create form state matching backend structure
   const [createForm, setCreateForm] = useState({
@@ -68,6 +74,22 @@ const Policies: React.FC = () => {
   useEffect(() => {
     fetchPolicies();
   }, [fetchPolicies]);
+
+  // Notification helper function
+  const showNotification = (type: 'success' | 'error' | 'info', message: string) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  // Auto-hide notifications
+  useEffect(() => {
+    if (notification) {
+      const timer = setTimeout(() => {
+        setNotification(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [notification]);
 
   // Form handling functions
   const handleFormChange = (field: string, value: string | boolean | number[]) => {
@@ -109,9 +131,12 @@ const Policies: React.FC = () => {
       await fetchPolicies(); // Refresh the list
       setShowCreateModal(false);
       resetForm();
+      showNotification('success', 'Policy created successfully');
     } catch (err: any) {
       console.error('Error creating policy:', err);
-      setError(err.message || 'Failed to create policy');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to create policy';
+      setError(errorMessage);
+      showNotification('error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -124,9 +149,12 @@ const Policies: React.FC = () => {
       await updatePolicy(id, data);
       await fetchPolicies(); // Refresh the list
       setEditingPolicy(null);
+      showNotification('success', 'Policy updated successfully');
     } catch (err: any) {
       console.error('Error updating policy:', err);
-      setError(err.message || 'Failed to update policy');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to update policy';
+      setError(errorMessage);
+      showNotification('error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -142,9 +170,12 @@ const Policies: React.FC = () => {
       setError(null);
       await deletePolicy(id);
       await fetchPolicies(); // Refresh the list
+      showNotification('success', 'Policy deleted successfully');
     } catch (err: any) {
       console.error('Error deleting policy:', err);
-      setError(err.message || 'Failed to delete policy');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to delete policy';
+      setError(errorMessage);
+      showNotification('error', errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -1139,6 +1170,46 @@ const Policies: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification */}
+      {notification && (
+        <div className={`oh-notification oh-notification-${notification.type}`}>
+          <div className="oh-notification-content">
+            <div className="oh-notification-icon">
+              {notification.type === 'success' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <polyline points="9,11 12,14 22,4"></polyline>
+                  <path d="m21,4 0,7 -5,0"></path>
+                </svg>
+              )}
+              {notification.type === 'error' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="15" y1="9" x2="9" y2="15"></line>
+                  <line x1="9" y1="9" x2="15" y2="15"></line>
+                </svg>
+              )}
+              {notification.type === 'info' && (
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <path d="M12 16v-4"></path>
+                  <path d="M12 8h.01"></path>
+                </svg>
+              )}
+            </div>
+            <div className="oh-notification-message">{notification.message}</div>
+            <button
+              className="oh-notification-close"
+              onClick={() => setNotification(null)}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
           </div>
         </div>
       )}

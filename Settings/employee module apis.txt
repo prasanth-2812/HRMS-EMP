@@ -1,0 +1,653 @@
+ 1. BASE
+       Request : GET        
+     End Point: /api/v1/base/shift-requests/
+
+Response Body : 
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "employee_first_name": "Rajini",
+            "employee_last_name": "Narikenabilli",
+            "shift_name": "Day-Shift",
+            "previous_shift_name": null,
+            "created_at": "2025-07-31T21:45:31.419412+05:30",
+            "is_active": true,
+            "requested_date": "2025-07-01",
+            "reallocate_approved": false,
+            "reallocate_canceled": false,
+            "requested_till": "2025-07-31",
+            "description": "Requesting assignment to the Night Shift for the month of July 2025 due to personal preference and better productivity during evening hours.",
+            "is_permanent_shift": false,
+            "approved": true,
+            "canceled": false,
+            "shift_changed": false,
+            "created_by": 1,
+            "modified_by": 1,
+            "employee_id": 1,
+            "shift_id": 1,
+            "previous_shift_id": null,
+            "reallocate_to": null
+        }
+    ]
+}
+
+
+
+2. BASE
+       Request : POST      
+     End Point:  /api/v1/base/shift-requests/
+
+Request Body:
+{
+    "shift_id": 1,
+    "is_permanent_shift": true
+}
+Response Body:
+{
+    "id": 5,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "shift_name": "Day-Shift",
+    "previous_shift_name": null,
+    "created_at": "2025-08-12T12:23:48.247180+05:30",
+    "is_active": true,
+    "requested_date": "2025-08-12",
+    "reallocate_approved": false,
+    "reallocate_canceled": false,
+    "requested_till": null,
+    "description": null,
+    "is_permanent_shift": true,
+    "approved": false,
+    "canceled": false,
+    "shift_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "shift_id": 1,
+    "previous_shift_id": null,
+    "reallocate_to": null
+}
+
+3. BASE
+       Request : GET        
+     End Point: /api/v1/base/shift-requests/{pk}/
+   Response Body:
+
+{
+    "id": 1,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "shift_name": "Day-Shift",
+    "previous_shift_name": null,
+    "created_at": "2025-07-31T21:45:31.419412+05:30",
+    "is_active": true,
+    "requested_date": "2025-07-01",
+    "reallocate_approved": false,
+    "reallocate_canceled": false,
+    "requested_till": "2025-07-31",
+    "description": "Requesting assignment to the Night Shift for the month of July 2025 due to personal preference and better productivity during evening hours.",
+    "is_permanent_shift": false,
+    "approved": true,
+    "canceled": false,
+    "shift_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "shift_id": 1,
+    "previous_shift_id": null,
+    "reallocate_to": null
+}
+
+4. BASE
+       Request : PUT      
+     End Point:  /api/v1/base/shift-requests/{pk}/
+Request Body:
+
+
+{
+
+
+  "shift_id": 1,
+  "requested_date": "2025-09-01",
+  "requested_till": "2025-12-31",
+  "is_permanent_shift": false,
+  "description": "Final updated shift request: September to December 2025"
+ 
+}
+
+
+Response Body:
+
+{
+    "id": 6,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "shift_name": "Day-Shift",
+    "previous_shift_name": null,
+    "created_at": "2025-08-12T12:40:12.456320+05:30",
+    "is_active": true,
+    "requested_date": "2025-09-01",
+    "reallocate_approved": false,
+    "reallocate_canceled": false,
+    "requested_till": "2025-12-31",
+    "description": "Final updated shift request: September to December 2025",
+    "is_permanent_shift": false,
+    "approved": false,
+    "canceled": false,
+    "shift_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "shift_id": 1,
+    "previous_shift_id": null,
+    "reallocate_to": null
+}
+5.BASE
+       Request : DELETE    
+     End Point: /api/v1/base/shift-requests/{pk}/
+
+6.BASE
+       Request : GET 
+     End Point: /api/v1/base/worktype-requests/
+
+Response Body:
+
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "employee_first_name": "Rajini",
+            "employee_last_name": "Narikenabilli",
+            "work_type_name": "Full-time",
+            "previous_work_type_name": null,
+            "created_at": "2025-07-31T21:20:52.781775+05:30",
+            "is_active": true,
+            "requested_date": "2025-07-31",
+            "requested_till": "2025-07-31",
+            "description": "Requesting remote work for the day due to personal commitments. All assigned tasks will be completed on schedule.",
+            "is_permanent_work_type": false,
+            "approved": true,
+            "canceled": false,
+            "work_type_changed": false,
+            "created_by": 1,
+            "modified_by": 1,
+            "employee_id": 1,
+            "work_type_id": 1,
+            "previous_work_type_id": null
+        }
+    ]
+}
+7.BASE
+       Request : GET 
+     End Point: /api/v1/base/worktype-requests/{pk}/
+
+Response Body:
+
+{
+    "id": 1,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "work_type_name": "Full-time",
+    "previous_work_type_name": null,
+    "created_at": "2025-07-31T21:20:52.781775+05:30",
+    "is_active": true,
+    "requested_date": "2025-07-31",
+    "requested_till": "2025-07-31",
+    "description": "Requesting remote work for the day due to personal commitments. All assigned tasks will be completed on schedule.",
+    "is_permanent_work_type": false,
+    "approved": true,
+    "canceled": false,
+    "work_type_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "work_type_id": 1,
+    "previous_work_type_id": null
+}
+
+
+
+8.BASE
+       Request : POST
+     End Point: /api/v1/base/worktype-requests/
+
+  Request Body:
+{
+    "employee_id": 1,
+    "work_type_id": 1,
+    "requested_date": "2025-07-31",
+    "requested_till": "2025-07-31",
+    "is_permanent_work_type": false
+}
+Response Body:
+ {
+    "id": 3,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "work_type_name": "Full-time",
+    "previous_work_type_name": null,
+    "created_at": "2025-08-12T14:44:14.052592+05:30",
+    "is_active": true,
+    "requested_date": "2025-07-31",
+    "requested_till": "2025-07-31",
+    "description": null,
+    "is_permanent_work_type": false,
+    "approved": false,
+    "canceled": false,
+    "work_type_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "work_type_id": 1,
+    "previous_work_type_id": null
+}
+
+
+9.BASE
+       Request : PUT
+     End Point: /api/v1/base/worktype-requests/{pk}/
+
+Request Body:
+{
+    "employee_id": 1,
+    "work_type_id": 2,
+    "requested_date": "2025-08-03",
+    "requested_till": "2025-08-12",
+    "is_permanent_work_type": false
+}
+Response Body:
+{
+    "id": 3,
+    "employee_first_name": "Rajini",
+    "employee_last_name": "Narikenabilli",
+    "work_type_name": "Part-time",
+    "previous_work_type_name": null,
+    "created_at": "2025-08-12T14:44:14.052592+05:30",
+    "is_active": true,
+    "requested_date": "2025-08-03",
+    "requested_till": "2025-08-12",
+    "description": null,
+    "is_permanent_work_type": false,
+    "approved": false,
+    "canceled": false,
+    "work_type_changed": false,
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "work_type_id": 2,
+    "previous_work_type_id": null
+}
+
+
+
+ 10.BASE
+       Request : DELETE
+     End Point: /api/v1/base/worktype-requests/{pk}/
+ 
+ 11.BASE
+       Request : GET
+     End Point: /api/v1/base/rotating-shift-assigns/
+
+Response Body:
+{
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "current_shift_name": "Day-Shift",
+            "next_shift_name": "Weekly Rotation",
+            "rotating_shift_name": "Narikenabilli Rajini",
+            "created_at": "2025-07-31T21:56:27.033781+05:30",
+            "is_active": true,
+            "start_date": "2025-07-31",
+            "next_change_date": "2025-08-07",
+            "based_on": "after",
+            "rotate_after_day": 7,
+            "rotate_every_weekend": "monday",
+            "rotate_every": "1",
+            "additional_data": {
+                "next_shift_index": 1
+            },
+            "created_by": 1,
+            "modified_by": 1,
+            "employee_id": 1,
+            "rotating_shift_id": 1,
+            "current_shift": 1,
+            "next_shift": 5,
+            "rotate": "Rotate after 7 days"
+        }
+    ]
+}
+
+ 
+ 12.BASE
+       Request : GET
+     End Point: /api/v1/base/rotating-shift-assigns/{pk}/
+
+ Response Body:
+{
+    "id": 1,
+    "current_shift_name": "Day-Shift",
+    "next_shift_name": "Weekly Rotation",
+    "rotating_shift_name": "Narikenabilli Rajini",
+    "created_at": "2025-07-31T21:56:27.033781+05:30",
+    "is_active": true,
+    "start_date": "2025-07-31",
+    "next_change_date": "2025-08-07",
+    "based_on": "after",
+    "rotate_after_day": 7,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {
+        "next_shift_index": 1
+    },
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "rotating_shift_id": 1,
+    "current_shift": 1,
+    "next_shift": 5,
+    "rotate": "Rotate after 7 days"
+}
+
+13.BASE
+       Request : POST
+     End Point:   /api/v1/base/rotating-shift-assigns/
+
+Request Body:
+{
+   "based_on": "after",
+   "employee_id": 3,
+   "rotating_shift_id": 1
+}
+Response Body:
+{
+    "id": 4,
+    "current_shift_name": null,
+    "next_shift_name": null,
+    "rotating_shift_name": "Narikenabilli Rajini",
+    "created_at": "2025-08-13T10:09:31.688493+05:30",
+    "is_active": true,
+    "start_date": "2025-08-13",
+    "next_change_date": null,
+    "based_on": "after",
+    "rotate_after_day": 7,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {},
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 3,
+    "rotating_shift_id": 1,
+    "current_shift": null,
+    "next_shift": null,
+    "rotate": "Rotate after 7 days"
+}
+
+14.BASE
+       Request : PUT
+     End Point:   /api/v1/base/rotating-shift-assigns/{pk}/
+
+Request Body:
+{
+   "based_on": "after",
+   "employee_id": 2,
+   "rotating_shift_id": 2
+}
+Response Body:
+{
+    "id": 2,
+    "current_shift_name": null,
+    "next_shift_name": null,
+    "rotating_shift_name": "Uday J",
+    "created_at": "2025-08-13T09:41:34.540827+05:30",
+    "is_active": true,
+    "start_date": "2025-08-13",
+    "next_change_date": null,
+    "based_on": "after",
+    "rotate_after_day": 7,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {},
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 2,
+    "rotating_shift_id": 2,
+    "current_shift": null,
+    "next_shift": null,
+    "rotate": "Rotate after 7 days"
+}
+
+
+15.BASE
+       Request : DELETE
+     End Point:   /api/v1/base/rotating-shift-assigns/{pk}/
+
+16.BASE
+       Request : GET
+     End Point:  /api/v1/base/rotating-worktype-assigns/
+
+   Response Body:
+   {
+    "count": 1,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "rotating_work_type_name": "Narikenabilli Rajini",
+            "current_work_type_name": null,
+            "next_work_type_name": "On-site",
+            "created_at": "2025-07-31T21:32:02.058374+05:30",
+            "is_active": true,
+            "start_date": "2025-07-31",
+            "next_change_date": "2025-08-04",
+            "based_on": "weekly",
+            "rotate_after_day": 5,
+            "rotate_every_weekend": "monday",
+            "rotate_every": "1",
+            "additional_data": {
+                "next_work_type_index": 1
+            },
+            "created_by": 1,
+            "modified_by": 1,
+            "employee_id": 1,
+            "rotating_work_type_id": 1,
+            "current_work_type": null,
+            "next_work_type": 7
+        }
+    ]
+}
+17.BASE
+       Request : GET
+     End Point:  GET /api/v1/base/rotating-worktype-assigns/{pk}/
+    
+    Response Body:
+
+    {
+    "id": 1,
+    "rotating_work_type_name": "Narikenabilli Rajini",
+    "current_work_type_name": null,
+    "next_work_type_name": "On-site",
+    "created_at": "2025-07-31T21:32:02.058374+05:30",
+    "is_active": true,
+    "start_date": "2025-07-31",
+    "next_change_date": "2025-08-04",
+    "based_on": "weekly",
+    "rotate_after_day": 5,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {
+        "next_work_type_index": 1
+    },
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "rotating_work_type_id": 1,
+    "current_work_type": null,
+    "next_work_type": 7
+}
+
+18.BASE
+       Request : POST
+     End Point:   /api/v1/base/rotating-worktype-assigns/
+
+Request Body:
+
+{
+    "based_on": "weekly",
+    "rotating_work_type_id": 1
+}
+Response Body:
+{
+    "id": 2,
+    "rotating_work_type_name": "Narikenabilli Rajini",
+    "current_work_type_name": null,
+    "next_work_type_name": null,
+    "created_at": "2025-08-13T10:59:22.352139+05:30",
+    "is_active": true,
+    "start_date": "2025-08-13",
+    "next_change_date": null,
+    "based_on": "weekly",
+    "rotate_after_day": 7,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {},
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": null,
+    "rotating_work_type_id": 1,
+    "current_work_type": null,
+    "next_work_type": null
+}
+
+
+19.BASE
+       Request : PUT
+     End Point:   /api/v1/base/rotating-worktype-assigns/{pk}/
+
+Request Body:
+{
+    "based_on": "weekly",
+    "rotating_work_type_id": 1
+}
+Response Body:
+{
+    "id": 1,
+    "rotating_work_type_name": "Narikenabilli Rajini",
+    "current_work_type_name": null,
+    "next_work_type_name": "On-site",
+    "created_at": "2025-07-31T21:32:02.058374+05:30",
+    "is_active": true,
+    "start_date": "2025-07-31",
+    "next_change_date": "2025-08-04",
+    "based_on": "weekly",
+    "rotate_after_day": 5,
+    "rotate_every_weekend": "monday",
+    "rotate_every": "1",
+    "additional_data": {
+        "next_work_type_index": 1
+    },
+    "created_by": 1,
+    "modified_by": 1,
+    "employee_id": 1,
+    "rotating_work_type_id": 1,
+    "current_work_type": null,
+    "next_work_type": 7
+}
+20.BASE
+       Request : DELETE
+     End Point:   /api/v1/base/rotating-worktype-assigns/{pk}/
+
+
+
+21.BASE
+       Request : GET
+     End Point: /api/v1/base/job-positions/
+
+   Response Body:
+   {
+    "count": 6,
+    "next": null,
+    "previous": null,
+    "results": [
+        {
+            "id": 1,
+            "created_at": "2025-07-31T22:57:43.170248+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "Softwate",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 1,
+            "company_id": []
+        },
+        {
+            "id": 2,
+            "created_at": "2025-07-31T22:58:14.999310+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "Backend Developer",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 4,
+            "company_id": []
+        },
+        {
+            "id": 3,
+            "created_at": "2025-07-31T22:58:33.453766+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "HR Executive",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 1,
+            "company_id": []
+        },
+        {
+            "id": 4,
+            "created_at": "2025-07-31T22:58:48.712045+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "Sales Executive",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 3,
+            "company_id": []
+        },
+        {
+            "id": 5,
+            "created_at": "2025-07-31T22:59:08.378821+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "Business Analyst",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 2,
+            "company_id": []
+        },
+        {
+            "id": 7,
+            "created_at": "2025-08-11T19:44:21.988469+05:30",
+            "is_active": true,
+            "title": "Unknown",
+            "job_position": "HR Executive",
+            "created_by": 1,
+            "modified_by": 1,
+            "department_id": 5,
+            "company_id": []
+        }
+    ]
+}
+
+
+

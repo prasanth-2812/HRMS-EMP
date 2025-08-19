@@ -475,12 +475,39 @@
   color: #dc2626;
 }
 
+/* Select All Button */
+.oh-select-all-container {
+  margin-bottom: 16px;
+}
+
+.oh-select-all-btn {
+  background: #f8f9fa;
+  border: 1px solid #e5e7eb;
+  color: #16a34a;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.oh-select-all-btn:hover {
+  background: #e5f3e8;
+  border-color: #16a34a;
+}
+
 /* List View */
-.oh-employees-content.list .oh-employees-table {
+.oh-employees-content.list .oh-employees-table-container {
   background: white;
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  overflow-x: auto;
+  min-width: 100%;
+}
+
+.oh-employees-table {
+  min-width: 1400px; /* Ensure minimum width for all columns */
 }
 
 .oh-employees-table table {
@@ -490,7 +517,7 @@
 
 .oh-employees-table th {
   background: #f8f9fa;
-  padding: 16px 20px;
+  padding: 12px 16px;
   text-align: left;
   font-size: 12px;
   font-weight: 600;
@@ -498,22 +525,129 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .oh-employees-table td {
-  padding: 16px 20px;
+  padding: 12px 16px;
   border-bottom: 1px solid #f1f5f9;
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .oh-employees-table tbody tr:hover {
   background: #f8f9fa;
 }
 
-.oh-table-employee {
+/* Checkbox Column */
+.oh-checkbox-column {
+  width: 40px;
+  text-align: center;
+}
+
+.oh-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* Sortable Headers */
+.oh-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.oh-header-content {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 6px;
+}
+
+.oh-sortable:hover {
+  background: #e9ecef;
+}
+
+.oh-sortable svg {
+  opacity: 0.5;
+  transition: opacity 0.2s;
+}
+
+.oh-sortable:hover svg {
+  opacity: 1;
+}
+
+/* Table Actions */
+.oh-table-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.oh-action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: #f8f9fa;
+  color: #6b7280;
+}
+
+.oh-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.oh-export-btn {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.oh-export-btn:hover {
+  background: #bfdbfe;
+}
+
+.oh-mail-btn {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.oh-mail-btn:hover {
+  background: #fde68a;
+}
+
+.oh-edit-btn {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.oh-edit-btn:hover {
+  background: #bbf7d0;
+}
+
+.oh-archive-btn {
+  background: #f3e8ff;
+  color: #9333ea;
+}
+
+.oh-archive-btn:hover {
+  background: #e9d5ff;
+}
+
+.oh-delete-btn {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.oh-delete-btn:hover {
+  background: #fecaca;
 }
 
 .oh-employee-details .oh-employee-name {
@@ -559,6 +693,8 @@
   display: flex;
   justify-content: center;
 }
+
+
 
 /* Pagination */
 .oh-pagination {

@@ -5,6 +5,7 @@ import Header from '../../../components/Layout/Header';
 import QuickAccess from '../../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../../contexts/SidebarContext';
 import apiClient from '../../../services/authService';
+import * as ExcelJS from 'exceljs';
 import './EmployeeProfile.css';
 
 // Remove mock data and use fetched data
@@ -121,6 +122,7 @@ const EmployeeProfile: React.FC = () => {
   const [pendingTab, setPendingTab] = useState<string>('');
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
 
   // Map API response keys to UI fields
   function mapApiToProfileData(apiData: any): EmployeeProfileData {
@@ -328,6 +330,130 @@ const EmployeeProfile: React.FC = () => {
       })
       .finally(() => setIsLoading(false));
   }, [id]);
+
+  // Handle Reset Password
+  const handleResetPassword = async () => {
+    if (!personalFormData?.email) {
+      showNotificationMessage('No email found for this employee.', 'error');
+      return;
+    }
+
+    setIsResettingPassword(true);
+    try {
+      const token = localStorage.getItem('access');
+      await apiClient.post(
+        `/api/auth/reset-password/${personalFormData.id}/`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      showNotificationMessage('Password reset link sent successfully.', 'success');
+    } catch (error: any) {
+      let msg = 'Failed to send password reset link.';
+      if (error.response?.data?.message) {
+        msg = error.response.data.message;
+      }
+      showNotificationMessage(msg, 'error');
+    } finally {
+      setIsResettingPassword(false);
+    }
+  };
+
+  // Handle Export to Excel
+  const handleExportToExcel = async () => {
+    if (!personalFormData) return;
+
+    try {
+      const workbook = new ExcelJS.Workbook();
+      const worksheet = workbook.addWorksheet('Employee Data');
+
+      // Add headers
+      worksheet.addRow(['Field', 'Value']);
+      
+      // Personal Information
+      worksheet.addRow(['=== PERSONAL INFORMATION ===', '']);
+      worksheet.addRow(['Employee ID', personalFormData.employeeId]);
+      worksheet.addRow(['First Name', personalFormData.firstName]);
+      worksheet.addRow(['Last Name', personalFormData.lastName]);
+      worksheet.addRow(['Email', personalFormData.email]);
+      worksheet.addRow(['Phone', personalFormData.phone]);
+      worksheet.addRow(['Date of Birth', personalFormData.dateOfBirth]);
+      worksheet.addRow(['Gender', personalFormData.gender]);
+      worksheet.addRow(['Address', personalFormData.address]);
+      worksheet.addRow(['Country', personalFormData.country]);
+      worksheet.addRow(['State', personalFormData.state]);
+      worksheet.addRow(['City', personalFormData.city]);
+      worksheet.addRow(['Qualification', personalFormData.qualification]);
+      worksheet.addRow(['Experience', personalFormData.experience]);
+      worksheet.addRow(['Marital Status', personalFormData.maritalStatus]);
+      worksheet.addRow(['Children', personalFormData.children]);
+      worksheet.addRow(['Emergency Contact', personalFormData.emergencyContact]);
+      worksheet.addRow(['Emergency Contact Name', personalFormData.emergencyContactName]);
+      worksheet.addRow(['Emergency Contact Relation', personalFormData.emergencyContactRelation]);
+
+      // Work Information
+      if (workFormData) {
+        worksheet.addRow(['', '']);
+        worksheet.addRow(['=== WORK INFORMATION ===', '']);
+        worksheet.addRow(['Location', workFormData.location || 'Not specified']);
+        worksheet.addRow(['Work Email', workFormData.email || 'Not specified']);
+        worksheet.addRow(['Work Mobile', workFormData.mobile || 'Not specified']);
+        worksheet.addRow(['Date of Joining', workFormData.date_joining || 'Not specified']);
+        worksheet.addRow(['Contract End Date', workFormData.contract_end_date || 'Not specified']);
+        worksheet.addRow(['Basic Salary', workFormData.basic_salary]);
+        worksheet.addRow(['Salary per Hour', workFormData.salary_hour]);
+        worksheet.addRow(['Experience (Years)', workFormData.experience]);
+        worksheet.addRow(['Tags', workFormData.tags.join(', ')]);
+      }
+
+      // Bank Information
+      if (bankFormData) {
+        worksheet.addRow(['', '']);
+        worksheet.addRow(['=== BANK INFORMATION ===', '']);
+        worksheet.addRow(['Bank Name', bankFormData.bankName]);
+        worksheet.addRow(['Account Number', bankFormData.accountNumber]);
+        worksheet.addRow(['Branch', bankFormData.branch]);
+        worksheet.addRow(['Bank Address', bankFormData.address]);
+        worksheet.addRow(['Bank Country', bankFormData.country]);
+        worksheet.addRow(['Bank State', bankFormData.state]);
+        worksheet.addRow(['Bank City', bankFormData.city]);
+        worksheet.addRow(['Bank Code #1', bankFormData.anyOtherCode1]);
+        worksheet.addRow(['Bank Code #2', bankFormData.anyOtherCode2]);
+      }
+
+      // Contract Information
+      if (contractFormData) {
+        worksheet.addRow(['', '']);
+        worksheet.addRow(['=== CONTRACT DETAILS ===', '']);
+        worksheet.addRow(['Contract', contractFormData.contract || 'Not specified']);
+        worksheet.addRow(['Contract Start Date', contractFormData.contract_start_date || 'Not specified']);
+        worksheet.addRow(['Contract End Date', contractFormData.contract_end_date || 'Not specified']);
+        worksheet.addRow(['Wage Type', contractFormData.wage_type || 'Not specified']);
+        worksheet.addRow(['Pay Frequency', contractFormData.pay_frequency || 'Not specified']);
+        worksheet.addRow(['Basic Salary', contractFormData.basic_salary]);
+        worksheet.addRow(['Notice Period', contractFormData.notice_period]);
+      }
+
+      // Style the headers
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getColumn(1).width = 30;
+      worksheet.getColumn(2).width = 40;
+
+      // Generate buffer and download
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${personalFormData.firstName}_${personalFormData.lastName}_Employee_Data.xlsx`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      
+      showNotificationMessage('Employee data exported successfully!', 'success');
+    } catch (error) {
+      console.error('Export error:', error);
+      showNotificationMessage('Failed to export employee data.', 'error');
+    }
+  };
 
   const hasUnsavedChanges = () => {
     return isEditingPersonal || isEditingWork || isEditingBank || isEditingContract;
@@ -2718,6 +2844,131 @@ const EmployeeProfile: React.FC = () => {
             </div>
           </div>
         );
+      case 'allowance-deduction':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Allowances</h3>
+                  <button className="oh-profile-add-btn">+</button>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No allowances configured.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Deductions</h3>
+                  <button className="oh-profile-add-btn">+</button>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No deductions configured.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'penalty-account':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Penalty Records</h3>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No penalty records found.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'history':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Employment History</h3>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No employment history available.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'groups-permissions':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>User Groups</h3>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No groups assigned.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Permissions</h3>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No specific permissions assigned.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'note':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Employee Notes</h3>
+                  <button className="oh-profile-add-btn">+</button>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No notes available.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 'mail-log':
+        return (
+          <div className="oh-profile-content">
+            <div className="oh-profile-cards-grid">
+              <div className="oh-profile-card">
+                <div className="oh-profile-card-header">
+                  <h3>Email History</h3>
+                </div>
+                <div className="oh-profile-card-body">
+                  <div className="oh-profile-empty-state">
+                    <p>No email history available.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       default:
         return null;
     }
@@ -2752,6 +3003,31 @@ const EmployeeProfile: React.FC = () => {
                 )}
               </div>
               <div className="oh-profile-actions">
+                <button 
+                  className="oh-profile-reset-btn"
+                  onClick={handleResetPassword}
+                  disabled={isResettingPassword}
+                  title="Send Password Reset Link"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 4v6h6"></path>
+                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                  </svg>
+                  {isResettingPassword ? 'Sending...' : 'Reset Password'}
+                </button>
+                <button 
+                  className="oh-profile-export-btn"
+                  onClick={handleExportToExcel}
+                  title="Export Employee Data to Excel"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14,2 14,8 20,8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="21"></line>
+                    <line x1="8" y1="13" x2="16" y2="21"></line>
+                  </svg>
+                  Export Data
+                </button>
                 <button 
                   className="oh-profile-edit-btn"
                   onClick={() => handleTabEdit('about')}
@@ -2856,6 +3132,12 @@ const EmployeeProfile: React.FC = () => {
               Penalty Account
             </button>
             <button 
+              className={`oh-profile-tab ${activeTab === 'history' ? 'active' : ''}`}
+              onClick={() => setActiveTab('history')}
+            >
+              History
+            </button>
+            <button 
               className={`oh-profile-tab ${activeTab === 'assets' ? 'active' : ''}`}
               onClick={() => setActiveTab('assets')}
             >
@@ -2866,6 +3148,18 @@ const EmployeeProfile: React.FC = () => {
               onClick={() => setActiveTab('performance')}
             >
               Performance
+            </button>
+            <button 
+              className={`oh-profile-tab ${activeTab === 'groups-permissions' ? 'active' : ''}`}
+              onClick={() => setActiveTab('groups-permissions')}
+            >
+              Groups & Permissions
+            </button>
+            <button 
+              className={`oh-profile-tab ${activeTab === 'note' ? 'active' : ''}`}
+              onClick={() => setActiveTab('note')}
+            >
+              Note
             </button>
             <button 
               className={`oh-profile-tab ${activeTab === 'documents' ? 'active' : ''}`}
@@ -2887,6 +3181,12 @@ const EmployeeProfile: React.FC = () => {
                   </svg>
                 </span>
               )}
+            </button>
+            <button 
+              className={`oh-profile-tab ${activeTab === 'mail-log' ? 'active' : ''}`}
+              onClick={() => setActiveTab('mail-log')}
+            >
+              Mail Log
             </button>
             <button 
               className={`oh-profile-tab ${activeTab === 'bonus-points' ? 'active' : ''}`}

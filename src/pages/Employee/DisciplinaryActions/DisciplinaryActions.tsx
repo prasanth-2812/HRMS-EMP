@@ -17,6 +17,8 @@ import './DisciplinaryActions.css';
 interface Employee {
   id: string;
   name: string;
+  firstName: string;
+  lastName: string;
   avatar: string;
   badgeId: string;
   department: string;
@@ -91,7 +93,7 @@ const DisciplinaryActions: React.FC = () => {
     unit_in: 'days' as 'days' | 'hours',
     days: 1,
     hours: '00:00',
-    start_date: '',
+    start_date: new Date().toISOString().split('T')[0],
     attachment: null as File | null,
     // Legacy fields for UI compatibility
     employee: '',
@@ -111,6 +113,8 @@ const DisciplinaryActions: React.FC = () => {
   const transformEmployeeData = (employee: any): Employee => ({
     id: employee.id?.toString() || '',
     name: `${employee.firstName || employee.employee_first_name || ''} ${employee.lastName || employee.employee_last_name || ''}`.trim(),
+    firstName: employee.firstName || employee.employee_first_name || '',
+    lastName: employee.lastName || employee.employee_last_name || '',
     avatar: employee.avatar || employee.employee_profile || '',
     badgeId: employee.employeeId || employee.badge_id || '',
     department: employee.department || employee.department_name || '',
@@ -121,19 +125,41 @@ const DisciplinaryActions: React.FC = () => {
     const employee = employeesList.find(emp => apiAction.employee_id.includes(parseInt(emp.id))) || {
       id: apiAction.employee_id[0]?.toString() || '',
       name: 'Unknown Employee',
+      firstName: '',
+      lastName: '',
       avatar: '',
       badgeId: '',
       department: '',
       position: ''
     };
 
+    // Map action type based on action ID or use default
+    const actionTypeMapping: { [key: number]: string } = {
+      1: 'verbal_warning',
+      2: 'written_warning', 
+      3: 'suspension',
+      4: 'termination',
+      5: 'performance_improvement'
+    };
+    
+    const actionType = actionTypeMapping[apiAction.action] || 'written_warning';
+    
+    // Determine severity based on action type
+    const severityMapping: { [key: string]: string } = {
+      'verbal_warning': 'minor',
+      'written_warning': 'moderate',
+      'suspension': 'severe',
+      'termination': 'critical',
+      'performance_improvement': 'moderate'
+    };
+
     return {
       id: apiAction.id.toString(),
       employee,
-      actionType: 'written_warning', // Default mapping - should be enhanced with action type lookup
-      reason: 'Policy Violation', // Default - could be derived from action type
+      actionType: actionType as any,
+      reason: 'Policy Violation',
       description: apiAction.description,
-      severity: 'moderate', // Default - could be derived from action type
+      severity: severityMapping[actionType] as any || 'moderate',
       actionDate: apiAction.start_date,
       effectiveDate: apiAction.start_date,
       expiryDate: undefined,
@@ -156,16 +182,60 @@ const DisciplinaryActions: React.FC = () => {
     };
   };
 
-  const transformDisciplinaryActionToAPI = (formData: any) => ({
-    description: formData.description,
-    unit_in: formData.unit_in,
-    days: formData.days,
-    hours: formData.hours,
-    start_date: formData.start_date,
-    attachment: formData.attachment,
-    action: formData.action,
-    employee_id: formData.employee_id
-  });
+  const transformDisciplinaryActionToAPI = async (formData: any) => {
+    // Convert file to base64 if present
+    let attachmentData = null;
+    if (formData.attachment && formData.attachment instanceof File) {
+      try {
+        attachmentData = await fileToBase64(formData.attachment);
+      } catch (error) {
+        console.error('Error converting file to base64:', error);
+        throw new Error('Failed to process file attachment');
+      }
+    }
+    
+    // Always use JSON payload
+    return {
+      description: formData.description,
+      action: formData.action,
+      employee_id: formData.employee_id,
+      unit_in: formData.unit_in,
+      days: formData.days,
+      hours: formData.hours,
+      start_date: formData.start_date,
+      attachment: attachmentData
+    };
+  };
+
+  // Helper function to convert file to base64
+  const fileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          resolve(reader.result);
+        } else {
+          reject(new Error('Failed to read file'));
+        }
+      };
+      reader.onerror = error => reject(error);
+    });
+  };
+
+  // Error handling helper
+  const handleApiError = (error: any, defaultMessage: string) => {
+    if (error.message?.includes('401') || error.message?.includes('403')) {
+      setError('Access denied. Please check your permissions.');
+      // Could redirect to login here if needed
+    } else if (error.message?.includes('400')) {
+      setError('Invalid request. Please check your input and try again.');
+    } else if (error.message?.includes('500')) {
+      setError('Server error occurred. Please try again later.');
+    } else {
+      setError(defaultMessage);
+    }
+  };
 
   // API functions
   const fetchDisciplinaryActions = async () => {
@@ -186,7 +256,7 @@ const DisciplinaryActions: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching disciplinary actions:', error);
-      setError('Failed to load disciplinary actions. Please try again.');
+      handleApiError(error, 'Failed to load disciplinary actions. Please try again.');
     } finally {
       setIsDataLoading(false);
     }
@@ -200,6 +270,7 @@ const DisciplinaryActions: React.FC = () => {
       }
     } catch (error) {
       console.error('Error fetching action types:', error);
+      handleApiError(error, 'Failed to load action types.');
     }
   };
 
@@ -250,6 +321,7 @@ const DisciplinaryActions: React.FC = () => {
   };
 
   const resetForm = () => {
+    const today = new Date().toISOString().split('T')[0];
     setCreateForm({
       employee_id: [],
       action: 0,
@@ -257,7 +329,7 @@ const DisciplinaryActions: React.FC = () => {
       unit_in: 'days',
       days: 1,
       hours: '00:00',
-      start_date: '',
+      start_date: today,
       attachment: null,
       // Legacy fields for UI compatibility
       employee: '',
@@ -275,15 +347,15 @@ const DisciplinaryActions: React.FC = () => {
   };
 
   const handleCreateAction = async () => {
-    if (!createForm.description || !createForm.start_date || createForm.employee_id.length === 0) {
-      setError('Please fill in all required fields');
+    if (!createForm.description || !createForm.start_date || createForm.employee_id.length === 0 || !createForm.action) {
+      setError('Please fill in all required fields: Employee, Action Type, Description, and Start Date');
       return;
     }
 
     setIsLoading(true);
     setError(null);
     try {
-      const payload = transformDisciplinaryActionToAPI(createForm);
+      const payload = await transformDisciplinaryActionToAPI(createForm);
       
       if (editingAction) {
         // Update existing action
@@ -303,7 +375,7 @@ const DisciplinaryActions: React.FC = () => {
       setShowCreateModal(false);
     } catch (error) {
       console.error('Error saving disciplinary action:', error);
-      setError('Failed to save disciplinary action. Please try again.');
+      handleApiError(error, 'Failed to save disciplinary action. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -340,27 +412,27 @@ const DisciplinaryActions: React.FC = () => {
       setShowCreateModal(true);
     } catch (error) {
       console.error('Error fetching disciplinary action:', error);
-      setError('Failed to load disciplinary action details');
+      handleApiError(error, 'Failed to load disciplinary action details');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleDeleteAction = async (actionId: string) => {
-    if (!window.confirm('Are you sure you want to delete this disciplinary action?')) {
+    if (!window.confirm('Are you sure you want to delete this disciplinary action? This action cannot be undone.')) {
       return;
     }
 
     try {
       setIsLoading(true);
       await deleteDisciplinaryAction(actionId);
-      setSuccessMessage('Disciplinary action deleted successfully');
+      setSuccessMessage('Disciplinary action deleted.');
       
       // Refresh data
       await fetchDisciplinaryActions();
     } catch (error) {
       console.error('Error deleting disciplinary action:', error);
-      setError('Failed to delete disciplinary action. Please try again.');
+      handleApiError(error, 'Failed to delete disciplinary action. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -632,67 +704,79 @@ const DisciplinaryActions: React.FC = () => {
                     <table className="oh-table">
                       <thead>
                         <tr>
-                          <th>Action ID</th>
                           <th>Employee</th>
+                          <th>Action Taken</th>
+                          <th>Login Block</th>
+                          <th>Action Date</th>
+                          <th>Attachments</th>
                           <th>Description</th>
-                          <th>Unit</th>
-                          <th>Duration</th>
-                          <th>Start Date</th>
-                          <th>Status</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filteredActions.map((action) => (
-                          <tr key={action.id}>
-                            <td>
-                              <span className="oh-action-id">DA-{action.id}</span>
-                            </td>
-                            <td>
-                              <div className="oh-employee-info">
-                                <div className="oh-employee-avatar">
-                                  {action.employee.name.charAt(0)}
+                        {filteredActions.map((action) => {
+                          const actionType = actionTypes.find(type => type.id === action.action);
+                          const employee = employees.find(emp => action.employee_id.includes(parseInt(emp.id)));
+                          
+                          return (
+                            <tr key={action.id}>
+                              <td>
+                                {employee ? (
+                                  <div className="employee-info">
+                                    <div className="employee-avatar">
+                                      {employee.firstName?.[0]}{employee.lastName?.[0]}
+                                    </div>
+                                    <span>{employee.firstName} {employee.lastName}</span>
+                                    <button className="close-btn">×</button>
+                                  </div>
+                                ) : (
+                                  'Unknown Employee'
+                                )}
+                              </td>
+                              <td>{actionType?.title || 'Unknown Action'}</td>
+                              <td>{actionType?.block_option ? 'Yes' : 'No'}</td>
+                              <td>
+                                {action.start_date ? 
+                                  new Date(action.start_date).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  }).replace(',', '') : 'N/A'}
+                              </td>
+                              <td>
+                                {action.attachment ? 
+                                  action.attachment.split('/').pop() : 
+                                  'No file has been uploaded.'}
+                              </td>
+                              <td>{action.description}</td>
+                              <td>
+                                <div className="action-buttons">
+                                  <button 
+                                    className="btn-icon edit"
+                                    onClick={() => handleEditAction(action.id)}
+                                    title="Edit"
+                                  >
+                                    ✏️
+                                  </button>
+                                  <button 
+                                    className="btn-icon view"
+                                    onClick={() => handleEditAction(action.id)}
+                                    title="View"
+                                  >
+                                    📄
+                                  </button>
+                                  <button 
+                                    className="btn-icon delete"
+                                    onClick={() => handleDeleteAction(action.id)}
+                                    title="Delete"
+                                  >
+                                    🗑️
+                                  </button>
                                 </div>
-                                <div className="oh-employee-details">
-                                  <div className="oh-employee-name">{action.employee.name}</div>
-                                  <div className="oh-employee-badge">{action.employee.badgeId}</div>
-                                  <div className="oh-employee-dept">{action.employee.department}</div>
-                                </div>
-                              </div>
-                            </td>
-                            <td>
-                              <div className="oh-reason-info">
-                                <div className="oh-reason-desc">{action.description.substring(0, 80)}...</div>
-                              </div>
-                            </td>
-                            <td>
-                              <span className="oh-unit-badge">{action.unit_in}</span>
-                            </td>
-                            <td>
-                              {action.unit_in === 'days' ? `${action.days} days` : action.hours}
-                            </td>
-                            <td>{formatDate(action.start_date)}</td>
-                            <td>{getStatusBadge(action.status)}</td>
-                            <td>
-                              <div className="oh-actions">
-                                <button 
-                                  className="oh-btn oh-btn--sm oh-btn--ghost"
-                                  onClick={() => handleEditAction(action.id)}
-                                  disabled={isLoading}
-                                >
-                                  Edit
-                                </button>
-                                <button 
-                                  className="oh-btn oh-btn--sm oh-btn--danger"
-                                  onClick={() => handleDeleteAction(action.id)}
-                                  disabled={isLoading}
-                                >
-                                  Delete
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                              </td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
@@ -718,27 +802,24 @@ const DisciplinaryActions: React.FC = () => {
         </div>
       </div>
 
-      {/* Create Disciplinary Action Modal */}
+      {/* Take An Action Modal */}
       {showCreateModal && (
         <div className="oh-modal-overlay">
           <div className="oh-create-rotating-modal">
             <div className="oh-modal-header">
-              <h2 className="oh-modal-title">Take Disciplinary Action</h2>
+              <h2 className="oh-modal-title">Take An Action.</h2>
               <button 
                 className="oh-modal-close"
                 onClick={() => setShowCreateModal(false)}
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <line x1="18" y1="6" x2="6" y2="18"></line>
-                  <line x1="6" y1="6" x2="18" y2="18"></line>
-                </svg>
+                ×
               </button>
             </div>
             
             <div className="oh-modal-body">
               <div className="oh-form-grid">
-                <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-label">Employee <span className="oh-required">*</span></label>
+                <div className="oh-form-group">
+                  <label className="oh-form-label">Employees <span className="oh-required">*</span></label>
                   <select 
                     className="oh-form-input"
                     value={createForm.employee_id.length > 0 ? createForm.employee_id[0] : ''}
@@ -747,65 +828,41 @@ const DisciplinaryActions: React.FC = () => {
                     <option value="">Select employee</option>
                     {employees.map(emp => (
                       <option key={emp.id} value={emp.id}>
-                        {emp.name} - {emp.badgeId} - {emp.department}
+                        {emp.firstName} {emp.lastName}
                       </option>
                     ))}
                   </select>
                 </div>
 
                 <div className="oh-form-group">
-                  <label className="oh-form-label">Action Type <span className="oh-required">*</span></label>
+                  <label className="oh-form-label">Action <span className="oh-required">*</span></label>
                   <select 
                     className="oh-form-input"
                     value={createForm.action}
                     onChange={(e) => handleFormChange('action', parseInt(e.target.value))}
                   >
-                    <option value="">Select action type</option>
+                    <option value="">---Choose Action---</option>
                     {actionTypes.map(type => (
                       <option key={type.id} value={type.id}>
-                        {type.name}
+                        {type.title}
                       </option>
                     ))}
                   </select>
                 </div>
-                
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Unit <span className="oh-required">*</span></label>
-                  <select 
-                    className="oh-form-input"
-                    value={createForm.unit_in}
-                    onChange={(e) => handleFormChange('unit_in', e.target.value)}
-                  >
-                    <option value="">Select unit</option>
-                    <option value="days">Days</option>
-                    <option value="hours">Hours</option>
-                  </select>
-                </div>
 
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Days</label>
-                  <input 
-                    type="number"
-                    className="oh-form-input"
-                    placeholder="Number of days"
-                    value={createForm.days}
-                    onChange={(e) => handleFormChange('days', parseInt(e.target.value) || 1)}
-                    min="0"
+                <div className="oh-form-group oh-form-group--full-width">
+                  <label className="oh-form-label">Description <span className="oh-required">*</span></label>
+                  <textarea 
+                    className="oh-form-textarea"
+                    rows={3}
+                    placeholder="Description"
+                    value={createForm.description}
+                    onChange={(e) => handleFormChange('description', e.target.value)}
                   />
                 </div>
 
                 <div className="oh-form-group">
-                  <label className="oh-form-label">Hours</label>
-                  <input 
-                    type="time"
-                    className="oh-form-input"
-                    value={createForm.hours}
-                    onChange={(e) => handleFormChange('hours', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Start Date <span className="oh-required">*</span></label>
+                  <label className="oh-form-label">Start date <span className="oh-required">*</span></label>
                   <input 
                     type="date"
                     className="oh-form-input"
@@ -815,98 +872,40 @@ const DisciplinaryActions: React.FC = () => {
                 </div>
 
                 <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-label">Description <span className="oh-required">*</span></label>
-                  <textarea 
-                    className="oh-form-textarea"
-                    rows={3}
-                    placeholder="Detailed description of the incident..."
-                    value={createForm.description}
-                    onChange={(e) => handleFormChange('description', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group oh-form-group--full-width">
                   <label className="oh-form-label">Attachment</label>
-                  <input 
-                    type="file"
-                    className="oh-form-input"
-                    onChange={(e) => handleFormChange('attachment', e.target.files?.[0] || null)}
-                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                  />
-                </div>
-
-                {/* Legacy fields for UI compatibility */}
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Severity</label>
-                  <select 
-                    className="oh-form-input"
-                    value={createForm.severity}
-                    onChange={(e) => handleFormChange('severity', e.target.value)}
-                  >
-                    <option value="">Select severity</option>
-                    <option value="minor">Minor</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="severe">Severe</option>
-                    <option value="critical">Critical</option>
-                  </select>
-                </div>
-
-                <div className="oh-form-group">
-                  <label className="oh-form-label">Reason</label>
-                  <input 
-                    type="text"
-                    className="oh-form-input"
-                    placeholder="Enter reason for disciplinary action"
-                    value={createForm.reason}
-                    onChange={(e) => handleFormChange('reason', e.target.value)}
-                  />
-                </div>
-
-                <div className="oh-form-group oh-form-group--full-width">
-                  <label className="oh-form-checkbox">
+                  <div className="file-input-wrapper">
                     <input 
-                      type="checkbox"
-                      checked={createForm.followUpRequired}
-                      onChange={(e) => handleFormChange('followUpRequired', e.target.checked)}
+                      type="file"
+                      id="attachment-input"
+                      className="oh-form-input file-input"
+                      onChange={(e) => handleFormChange('attachment', e.target.files?.[0] || null)}
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      style={{display: 'none'}}
                     />
-                    <span className="oh-form-checkbox__checkmark"></span>
-                    Follow-up required
-                  </label>
-                </div>
-
-                {createForm.followUpRequired && (
-                  <div className="oh-form-group oh-form-group--full-width">
-                    <label className="oh-form-label">Follow-up Date</label>
-                    <input 
-                      type="date"
-                      className="oh-form-input"
-                      value={createForm.followUpDate}
-                      onChange={(e) => handleFormChange('followUpDate', e.target.value)}
-                    />
+                    <label htmlFor="attachment-input" className="file-input-label">
+                      Choose File
+                    </label>
+                    <span className="file-input-text">
+                      {createForm.attachment ? createForm.attachment.name : 'No file chosen'}
+                    </span>
                   </div>
-                )}
+                </div>
               </div>
             </div>
 
             <div className="oh-modal-footer">
               <button 
-                className="oh-btn oh-btn--secondary"
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </button>
-              <button 
-                className="oh-btn oh-btn--primary"
+                className="oh-btn oh-btn--danger save-btn"
                 onClick={handleCreateAction}
                 disabled={isLoading || createForm.employee_id.length === 0 || !createForm.action || !createForm.description || !createForm.start_date}
               >
                 {isLoading ? (
                   <>
                     <div className="oh-spinner"></div>
-                    Creating...
+                    Saving...
                   </>
                 ) : (
-                  'Create Action'
+                  'Save'
                 )}
               </button>
             </div>

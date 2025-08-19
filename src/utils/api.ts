@@ -13,19 +13,12 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-<<<<<<< HEAD
-    // Set up headers - merge provided headers with defaults
-    const config: RequestInit = {
-      headers: {
-        ...(options.headers || {}),
-=======
     // Check if we're dealing with FormData
     const isFormData = options.body instanceof FormData;
     
     const config: RequestInit = {
       headers: isFormData ? {} : {
         'Content-Type': 'application/json',
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
       },
       ...options,
     };
@@ -68,26 +61,11 @@ class ApiClient {
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
     const isFormData = data instanceof FormData;
-<<<<<<< HEAD
-    const options: RequestInit = {
-      method: 'POST',
-      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
-    };
-    
-    // For FormData, don't set headers to let browser set Content-Type automatically
-    // For JSON data, let the request method handle default headers
-    if (!isFormData) {
-      options.headers = { 'Content-Type': 'application/json' };
-    }
-    
-    return this.request<T>(endpoint, options);
-=======
     return this.request<T>(endpoint, {
       method: 'POST',
       body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
       headers: isFormData ? {} : undefined, // Let browser set Content-Type for FormData
     });
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
@@ -128,7 +106,6 @@ export const endpoints = {
     update: (id: string) => `/departments/${id}`,
     delete: (id: string) => `/departments/${id}`,
   },
-<<<<<<< HEAD
   attendance: {
       list: '/api/v1/attendance/attendance/',
       todayAttendance: '/api/v1/attendance/today-attendance/',
@@ -162,7 +139,5 @@ export const endpoints = {
       },
       offlineEmployeeMailSend: '/api/v1/attendance/offline-employee-mail-send',
     },
-=======
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
   // Add more endpoints as needed
 };

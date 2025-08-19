@@ -1,17 +1,15 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Layout/Sidebar';
 import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
-<<<<<<< HEAD
 import { useApi } from '../../hooks/useApi';
 import { apiClient } from '../../utils/api';
-import AddAttendances from './modals/AddAttendances';
-import ImportAttendances from './modals/ImportAttendances';
+// import AddAttendances from './modals/AddAttendances'; // File does not exist
 import EditAttendanceRequestModal from '../../components/Modals/EditAttendanceRequestModal';
-import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo';
-import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee';
-import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance';
+// import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo'; // File does not exist
+// import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee'; // File does not exist
+// import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance'; // File does not exist
 import './AttendanceRecords.css';
 
 interface AttendanceRecord {
@@ -500,12 +498,6 @@ const AttendanceRecords: React.FC = () => {
     refetch();
     handleCloseModal();
   };
-=======
-import './AttendanceRecords.css';
-
-const AttendanceRecords: React.FC = () => {
-  const { isCollapsed, toggleSidebar } = useSidebar();
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
 
   return (
     <div className="attendance-records-page">
@@ -525,86 +517,80 @@ const AttendanceRecords: React.FC = () => {
                 </p>
               </div>
               <div className="ar-header__actions">
-                <button className="ar-btn ar-btn--secondary">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7,10 12,15 17,10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                  </svg>
-                  Export Records
-                </button>
-<<<<<<< HEAD
-                {showActions && (
-                  <div style={{
-                    position: 'absolute',
-                    top: '110%',
-                    left: 0,
-                    background: '#fff',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: 6,
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
-                    zIndex: 10,
-                    minWidth: 160,
-                  }}>
-                    <button
-                      className="ar-btn ar-btn--secondary"
-                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                      onClick={() => { setShowActions(false); setShowImportModal(true); }}
-                      type="button"
-                    >
-                      Import
-                    </button>
-                    <button
-                      className="ar-btn ar-btn--secondary"
-                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                      onClick={() => { setShowActions(false); handleExport(); }}
-                      type="button"
-                    >
-                      Export
-                    </button>
-                    <button
-                      className="ar-btn ar-btn--secondary"
-                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                      onClick={() => { setShowActions(false); handleAddToBatch(); }}
-                      type="button"
-                      disabled={selectedRecords.length === 0}
-                    >
-                      Add to Batch
-                    </button>
-                    <button
-                      className="ar-btn ar-btn--secondary"
-                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
-                      onClick={() => { setShowActions(false); handleViewBatches(); }}
-                      type="button"
-                    >
-                      Batches
-                    </button>
-                    <button
-                      className="ar-btn ar-btn--secondary"
-                      style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none', color: '#dc2626' }}
-                      onClick={() => { setShowActions(false); handleBulkDelete(); }}
-                      type="button"
-                      disabled={selectedRecords.length === 0}
-                    >
-                      Delete
-                    </button>
-                  </div>
-                )}
+                <div style={{ position: 'relative' }}>
+                  <button 
+                    className="ar-btn ar-btn--secondary"
+                    onClick={() => setShowActions(!showActions)}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <circle cx="12" cy="12" r="1"></circle>
+                      <circle cx="19" cy="12" r="1"></circle>
+                      <circle cx="5" cy="12" r="1"></circle>
+                    </svg>
+                    Actions
+                  </button>
+                  {showActions && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '110%',
+                      left: 0,
+                      background: '#fff',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: 6,
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.08)',
+                      zIndex: 10,
+                      minWidth: 160,
+                    }}>
+                      <button
+                        className="ar-btn ar-btn--secondary"
+                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                        onClick={() => { setShowActions(false); setShowImportModal(true); }}
+                        type="button"
+                      >
+                        Import
+                      </button>
+                      <button
+                        className="ar-btn ar-btn--secondary"
+                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                        onClick={() => { setShowActions(false); handleExport(); }}
+                        type="button"
+                      >
+                        Export
+                      </button>
+                      <button
+                        className="ar-btn ar-btn--secondary"
+                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                        onClick={() => { setShowActions(false); handleAddToBatch(); }}
+                        type="button"
+                        disabled={selectedRecords.length === 0}
+                      >
+                        Add to Batch
+                      </button>
+                      <button
+                        className="ar-btn ar-btn--secondary"
+                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none' }}
+                        onClick={() => { setShowActions(false); handleViewBatches(); }}
+                        type="button"
+                      >
+                        Batches
+                      </button>
+                      <button
+                        className="ar-btn ar-btn--secondary"
+                        style={{ width: '100%', border: 'none', borderRadius: 0, textAlign: 'left', padding: '10px 16px', background: 'none', boxShadow: 'none', color: '#dc2626' }}
+                        onClick={() => { setShowActions(false); handleBulkDelete(); }}
+                        type="button"
+                        disabled={selectedRecords.length === 0}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <button
                   className="ar-btn ar-btn--primary"
                   onClick={() => setShowModal(true)}
                 >
                   + Create
-=======
-                <button className="ar-btn ar-btn--primary">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                    <line x1="16" y1="2" x2="16" y2="6"></line>
-                    <line x1="8" y1="2" x2="8" y2="6"></line>
-                    <line x1="3" y1="10" x2="21" y2="10"></line>
-                  </svg>
-                  View Calendar
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
                 </button>
               </div>
             </div>
@@ -620,9 +606,10 @@ const AttendanceRecords: React.FC = () => {
                   type="text"
                   placeholder="Search by employee name, ID, or department..."
                   className="ar-search-field__input"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-<<<<<<< HEAD
               <div className="ar-controls__right">
                 <div className="ar-filter">
                   <button
@@ -645,57 +632,52 @@ const AttendanceRecords: React.FC = () => {
                     onChange={(e) => setGroupBy(e.target.value)}
                   >
                     <option value="none">Select</option>
-                    <option value="employee">Employee</option>
-                    <option value="batch">Batch</option>
-                    <option value="attendance_date">Attendance Date</option>
-                    <option value="shift">Shift</option>
-                    <option value="work_type">Work Type</option>
-                    <option value="minimum_hour">Minimum Hour</option>
-                    <option value="country">Country</option>
-                    <option value="reporting_manager">Reporting Manager</option>
-                    <option value="department">Department</option>
-                    <option value="job_position">Job Position</option>
-                    <option value="employment_type">Employment Type</option>
-                    <option value="company">Company</option>
+                    <option value="Employee">Employee</option>
+                    <option value="Batch">Batch</option>
+                    <option value="Attendance Date">Attendance Date</option>
+                    <option value="Shift">Shift</option>
+                    <option value="Work Type">Work Type</option>
+                    <option value="Minimum Hour">Minimum Hour</option>
+                    <option value="Country">Country</option>
+                    <option value="Reporting Manager">Reporting Manager</option>
+                    <option value="Department">Department</option>
+                    <option value="Job Position">Job Position</option>
+                    <option value="Employment Type">Employment Type</option>
+                    <option value="Company">Company</option>
                   </select>
                 </div>
-=======
-              <div className="ar-filters">
-                <select className="ar-select">
-                  <option>All Departments</option>
-                  <option>Engineering</option>
-                  <option>HR</option>
-                  <option>Sales</option>
-                  <option>Marketing</option>
-                </select>
-                <select className="ar-select">
-                  <option>All Status</option>
-                  <option>Present</option>
-                  <option>Absent</option>
-                  <option>Late</option>
-                  <option>Early Leave</option>
-                </select>
-                <select className="ar-select">
-                  <option>This Month</option>
-                  <option>Last Month</option>
-                  <option>This Quarter</option>
-                  <option>Custom Range</option>
-                </select>
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
               </div>
+            </div>
+
+            {/* Tabs */}
+            <div className="ar-tabs">
+              <button
+                className={`ar-tab ${activeTab === 'validate' ? 'ar-tab--active' : ''}`}
+                onClick={() => setActiveTab('validate')}
+              >
+                Validate ({filteredRecords.filter(r => !r.attendance_validated).length})
+              </button>
+              <button
+                className={`ar-tab ${activeTab === 'overtime' ? 'ar-tab--active' : ''}`}
+                onClick={() => setActiveTab('overtime')}
+              >
+                Overtime ({filteredRecords.filter(r => r.attendance_overtime_approve && r.attendance_validated).length})
+              </button>
+              <button
+                className={`ar-tab ${activeTab === 'validated' ? 'ar-tab--active' : ''}`}
+                onClick={() => setActiveTab('validated')}
+              >
+                Validated ({filteredRecords.filter(r => r.attendance_validated).length})
+              </button>
             </div>
 
             {/* Content */}
             <div className="ar-card">
               <div className="ar-card__content">
-                <div className="ar-empty-state">
-                  <div className="ar-empty-state__icon">
-                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                      <circle cx="12" cy="12" r="10"></circle>
-                      <polyline points="12,6 12,12 16,14"></polyline>
-                    </svg>
+                {loading ? (
+                  <div className="ar-loading">
+                    <p>Loading attendance records...</p>
                   </div>
-<<<<<<< HEAD
                 ) : error ? (
                   <div className="ar-error">
                     <p>Error loading attendance records: {error}</p>
@@ -762,85 +744,85 @@ const AttendanceRecords: React.FC = () => {
                           <React.Fragment key={groupName}>
                             {groupBy !== 'none' && (
                               <tr className="ar-group-header">
-                                <td colSpan={15} className="ar-group-title">
+                                <td colSpan={16} className="ar-group-title">
                                   <strong>{groupName}</strong> ({records.length} records)
                                 </td>
                               </tr>
                             )}
                             {records.map((record) => (
-                          <tr key={record.id}>
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={selectedRecords.includes(record.id)}
-                                onChange={() => handleSelectRecord(record.id)}
-                              />
-                            </td>
-                            <td>
-                              <div className="ar-employee">
-                                <div className="ar-employee__avatar">
-                                  {record.employee_first_name.charAt(0)}{record.employee_last_name.charAt(0)}
-                                </div>
-                                <div className="ar-employee__info">
-                                  <div className="ar-employee__name">
-                                    {record.employee_first_name} {record.employee_last_name}
+                              <tr key={record.id}>
+                                <td>
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedRecords.includes(record.id)}
+                                    onChange={() => handleSelectRecord(record.id)}
+                                  />
+                                </td>
+                                <td>
+                                  <div className="ar-employee">
+                                    <div className="ar-employee__avatar">
+                                      {record.employee_first_name.charAt(0)}{record.employee_last_name.charAt(0)}
+                                    </div>
+                                    <div className="ar-employee__info">
+                                      <div className="ar-employee__name">
+                                        {record.employee_first_name} {record.employee_last_name}
+                                      </div>
+                                      <div className="ar-employee__id">
+                                        {record.badge_id || `EMP-${record.employee_id}`}
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="ar-employee__id">
-                                    {record.badge_id || `EMP-${record.employee_id}`}
+                                </td>
+                                <td>{record.batch_attendance_id}</td>
+                                <td>{formatDate(record.attendance_date)}</td>
+                                <td>{getDayName(record.attendance_date)}</td>
+                                <td>{formatTime(record.attendance_clock_in)}</td>
+                                <td>{formatDate(record.attendance_clock_in_date)}</td>
+                                <td>{formatTime(record.attendance_clock_out)}</td>
+                                <td>{formatDate(record.attendance_clock_out_date)}</td>
+                                <td>{record.shift_name}</td>
+                                <td>{record.work_type}</td>
+                                <td>{record.minimum_hour}h</td>
+                                <td>{record.attendance_worked_hour}h</td>
+                                <td>{calculatePendingHours(record.attendance_worked_hour, record.minimum_hour)}h</td>
+                                <td>{calculateOvertime(record.attendance_worked_hour, record.minimum_hour)}h</td>
+                                <td>
+                                  <div className="ar-actions">
+                                    {activeTab === 'validate' && !record.attendance_validated && (
+                                      <button
+                                        className="ar-btn ar-btn--success ar-btn--sm"
+                                        onClick={() => handleValidate(record.id)}
+                                        disabled={updating}
+                                        title="Validate"
+                                      >
+                                        {updating ? '...' : '✓'}
+                                      </button>
+                                    )}
+                                    <button
+                                      className="ar-btn ar-btn--secondary ar-btn--sm"
+                                      onClick={() => handleEdit(record)}
+                                      title="Edit"
+                                    >
+                                      ✏️
+                                    </button>
+                                    <button
+                                      className="ar-btn ar-btn--info ar-btn--sm"
+                                      onClick={() => handleOpenEditRequest(record)}
+                                      title="Edit Request"
+                                    >
+                                      📝
+                                    </button>
+                                    <button
+                                      className="ar-btn ar-btn--danger ar-btn--sm"
+                                      onClick={() => handleDelete(record.id)}
+                                      disabled={deleting}
+                                      title="Delete"
+                                    >
+                                      {deleting ? '...' : '🗑️'}
+                                    </button>
                                   </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td>{record.batch_attendance_id}</td>
-                            <td>{formatDate(record.attendance_date)}</td>
-                            <td>{getDayName(record.attendance_date)}</td>
-                            <td>{formatTime(record.attendance_clock_in)}</td>
-                            <td>{formatDate(record.attendance_clock_in_date)}</td>
-                            <td>{formatTime(record.attendance_clock_out)}</td>
-                            <td>{formatDate(record.attendance_clock_out_date)}</td>
-                            <td>{record.shift_name}</td>
-                            <td>{record.work_type}</td>
-                            <td>{record.minimum_hour}h</td>
-                            <td>{record.attendance_worked_hour}h</td>
-                            <td>{calculatePendingHours(record.attendance_worked_hour, record.minimum_hour)}h</td>
-                            <td>{calculateOvertime(record.attendance_worked_hour, record.minimum_hour)}h</td>
-                            <td>
-                              <div className="ar-actions">
-                                {activeTab === 'validate' && !record.attendance_validated && (
-                                  <button
-                                    className="ar-btn ar-btn--success ar-btn--sm"
-                                    onClick={() => handleValidate(record.id)}
-                                    disabled={updating}
-                                    title="Validate"
-                                  >
-                                    {updating ? '...' : '✓'}
-                                  </button>
-                                )}
-                                <button
-                                  className="ar-btn ar-btn--secondary ar-btn--sm"
-                                  onClick={() => handleEdit(record)}
-                                  title="Edit"
-                                >
-                                  ✏️
-                                </button>
-                                <button
-                                  className="ar-btn ar-btn--info ar-btn--sm"
-                                  onClick={() => handleOpenEditRequest(record)}
-                                  title="Edit Request"
-                                >
-                                  📝
-                                </button>
-                                <button
-                                  className="ar-btn ar-btn--danger ar-btn--sm"
-                                  onClick={() => handleDelete(record.id)}
-                                  disabled={deleting}
-                                  title="Delete"
-                                >
-                                  {deleting ? '...' : '🗑️'}
-                                </button>
-                              </div>
-                            </td>
-                          </tr>
+                                </td>
+                              </tr>
                             ))}
                           </React.Fragment>
                         ))}
@@ -848,39 +830,35 @@ const AttendanceRecords: React.FC = () => {
                     </table>
                   </div>
                 )}
-=======
-                  <h2 className="ar-empty-state__title">No Attendance Records</h2>
-                  <p className="ar-empty-state__message">
-                    Start tracking attendance records to see them here
-                  </p>
-                </div>
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
               </div>
             </div>
           </div>
         </div>
         <QuickAccess />
-<<<<<<< HEAD
 
         {/* AddAttendances Modal */}
         {showModal && (
           <div className="ar-modal-overlay">
             <div className="ar-modal">
               <button className="ar-modal-close-btn" onClick={handleCloseModal}>&times;</button>
-              <AddAttendances 
-                onClose={handleCloseModal} 
-                onSuccess={handleAttendanceSuccess}
-                editingRecord={editingRecord}
-              />
+              <div className="ar-modal-content">
+                <h2>Add Attendance</h2>
+                <p>Add attendance functionality will be implemented here.</p>
+                <button onClick={handleCloseModal} className="ar-btn ar-btn--primary">Close</button>
+              </div>
             </div>
           </div>
         )}
+        
         {/* ImportAttendances Modal */}
         {showImportModal && (
           <div className="ar-modal-overlay">
             <div className="ar-modal">
               <button className="ar-modal-close-btn" onClick={() => setShowImportModal(false)}>&times;</button>
-              <ImportAttendances />
+              <div className="ar-modal-content">
+                <h2>Import Attendances</h2>
+                <p>Import functionality will be implemented here.</p>
+              </div>
             </div>
           </div>
         )}
@@ -935,26 +913,27 @@ const AttendanceRecords: React.FC = () => {
               
               <div className="ar-filter-modal__content">
                 {activeFilterTab === 'workinfo' && (
-                  <WorkRecordFilterWorkInfo onFilter={(data) => {
-                    console.log('Work Info Filter:', data);
-                    // TODO: Apply work info filters
-                  }} />
+                  <div className="filter-placeholder">
+                    <h3>Work Info Filter</h3>
+                    <p>Work info filter functionality will be implemented here.</p>
+                  </div>
                 )}
                 {activeFilterTab === 'employee' && (
-                  <WorkRecordFilterEmployee />
+                  <div className="filter-placeholder">
+                    <h3>Employee Filter</h3>
+                    <p>Employee filter functionality will be implemented here.</p>
+                  </div>
                 )}
                 {activeFilterTab === 'advance' && (
-                  <WorkRecordFilterAdvance onFilter={(data) => {
-                    console.log('Advanced Filter:', data);
-                    // TODO: Apply advanced filters
-                  }} />
+                  <div className="filter-placeholder">
+                    <h3>Advanced Filter</h3>
+                    <p>Advanced filter functionality will be implemented here.</p>
+                  </div>
                 )}
               </div>
             </div>
           </div>
         )}
-=======
->>>>>>> f8f708cfbdf8646b4eea459de903b9beb7be9c1e
       </div>
      </div>
    );

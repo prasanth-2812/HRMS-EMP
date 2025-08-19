@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 // Corrected import paths: changed '../../' to '../../../'
 import Sidebar from '../../../components/Layout/Sidebar';
 import Header from '../../../components/Layout/Header';
@@ -10,7 +10,8 @@ import './EmployeeList.css';
 // Corrected import paths: changed '../../' to '../../../'
 
 import EmployeeCreateForm from '../../../components/employee/EmployeeCreateForm';
-import { getAllEmployees, createEmployee } from '../../../services/employeeService';
+import { getAllEmployees, createEmployee, deleteEmployee, archiveEmployee, getEmployeeById } from '../../../services/employeeService';
+import ConfirmModal from '../../../components/Modals/ConfirmModal';
 
 interface Employee {
   id: string;
@@ -38,6 +39,15 @@ interface Employee {
   emergencyContact?: string;
   emergencyContactName?: string;
   emergencyContactRelation?: string;
+  // Additional fields for the table
+  badgeId?: string;
+  shift?: string;
+  workType?: string;
+  jobRole?: string;
+  reportingManager?: string;
+  company?: string;
+  workEmail?: string;
+  dateOfJoining?: string;
 }
 
 interface CreateEmployeeForm {
@@ -62,6 +72,7 @@ interface CreateEmployeeForm {
 }
 
 const EmployeeList: React.FC = () => {
+  const navigate = useNavigate();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
@@ -76,6 +87,13 @@ const EmployeeList: React.FC = () => {
   } | null>(null);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const [errorEmployees, setErrorEmployees] = useState<string | null>(null);
+  const [confirmModal, setConfirmModal] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    type?: 'danger' | 'warning' | 'info';
+  }>({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
 
   const [createForm, setCreateForm] = useState<CreateEmployeeForm>({
     badgeId: '',
@@ -183,19 +201,86 @@ const EmployeeList: React.FC = () => {
   // Handle employee actions
   const handleEditEmployee = (employee: Employee) => {
     setActiveDropdown(null);
-    showNotification('info', `Edit functionality for ${employee.firstName} ${employee.lastName} will be implemented`);
-  };
-
-  const handleArchiveEmployee = (employee: Employee) => {
-    setActiveDropdown(null);
-    showNotification('info', `${employee.firstName} ${employee.lastName} has been archived`);
+    // Navigate to profile page
+    navigate(`/employee/profile/${employee.id}`);
   };
 
   const handleDeleteEmployee = (employee: Employee) => {
     setActiveDropdown(null);
-    if (window.confirm(`Are you sure you want to delete ${employee.firstName} ${employee.lastName}?`)) {
-      setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
-      showNotification('success', `${employee.firstName} ${employee.lastName} has been deleted`);
+    setConfirmModal({
+      isOpen: true,
+      title: 'Delete Employee',
+      message: `Are you sure you want to delete ${employee.firstName} ${employee.lastName}? This action cannot be undone.`,
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          await deleteEmployee(employee.id);
+          setEmployees(prev => prev.filter(emp => emp.id !== employee.id));
+          showNotification('success', `Employee ${employee.firstName} ${employee.lastName} deleted successfully!`);
+        } catch (error: any) {
+          console.error('Error deleting employee:', error);
+          showNotification('error', 'Failed to delete employee. Please try again.');
+        }
+        setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
+      }
+    });
+  };
+
+  const handleArchiveEmployee = (employee: Employee) => {
+    setActiveDropdown(null);
+    const isActive = employee.status === 'online';
+    const action = isActive ? 'archive' : 'unarchive';
+    const actionText = isActive ? 'Archive' : 'Unarchive';
+    
+    setConfirmModal({
+      isOpen: true,
+      title: `${actionText} Employee`,
+      message: `Are you sure you want to ${action} ${employee.firstName} ${employee.lastName}?`,
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          await archiveEmployee(employee.id, !isActive);
+          setEmployees(prev => prev.map(emp => 
+            emp.id === employee.id 
+              ? { ...emp, status: isActive ? 'offline' : 'online' }
+              : emp
+          ));
+          showNotification('success', `Employee ${employee.firstName} ${employee.lastName} ${action}d successfully!`);
+        } catch (error: any) {
+          console.error(`Error ${action}ing employee:`, error);
+          showNotification('error', `Failed to ${action} employee. Please try again.`);
+        }
+        setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' });
+      }
+    });
+  };
+
+  const handleSendMail = (employee: Employee) => {
+    const workEmail = employee.workEmail || employee.email;
+    if (workEmail) {
+      window.location.href = `mailto:${workEmail}`;
+    } else {
+      showNotification('error', 'No work email available for this employee.');
+    }
+  };
+
+  const handleExportEmployee = async (employee: Employee) => {
+    try {
+      const employeeData = await getEmployeeById(employee.id);
+      const dataStr = JSON.stringify(employeeData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(dataBlob);
+      link.download = `employee_${employee.id}_export.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showNotification('success', `Employee data exported successfully!`);
+    } catch (error: any) {
+      console.error('Error exporting employee data:', error);
+      showNotification('error', 'Failed to export employee data. Please try again.');
     }
   };
 
@@ -431,6 +516,15 @@ const EmployeeList: React.FC = () => {
             </div>
           </div>
 
+          {/* Select All Button - Only show in list view */}
+          {viewMode === 'list' && !loadingEmployees && !errorEmployees && (
+            <div className="oh-select-all-container">
+              <button className="oh-btn oh-btn-outline oh-select-all-btn">
+                Select All Employees
+              </button>
+            </div>
+          )}
+
           {/* Employee Cards/List */}
           {loadingEmployees ? (
             <div className="text-center py-10 text-gray-500">Loading employees...</div>
@@ -521,117 +615,124 @@ const EmployeeList: React.FC = () => {
                   ))}
                 </div>
               ) : (
-                <div className="oh-employees-table">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Employee</th>
-                        <th>Email</th>
-                        <th>Phone</th>
-                        <th>Badge Id</th>
-                        <th>Job Position</th>
-                        <th>Department</th>
-                        <th>Shift</th>
-                        <th>Work Type</th>
-                        <th>Job Role</th>
-                        <th>Reporting Manager</th>
-                        <th>Company</th>
-                        <th>Work Email</th>
-                        <th>Date of Joining</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedEmployees.map((employee) => (
-                        <tr key={employee.id}>
-                          <td>
-                            <div className="oh-table-employee">
-                              <div className="oh-employee-avatar small">
-                                <img
-                                  src={`https://ui-avatars.com/api/?name=${employee.firstName}+${employee.lastName}&background=007bff&color=fff`}
-                                  alt={`${employee.firstName} ${employee.lastName}`}
-                                />
-                                <span className={`oh-status-indicator ${employee.status}`}></span>
-                              </div>
-                              <div className="oh-employee-details">
-                                <div className="oh-employee-name">
-                                  <Link to={`/employee/profile/${employee.id}`}>
-                                    {employee.firstName} {employee.lastName}
-                                  </Link>
+                <div className="oh-employees-table-container">
+                  <div className="oh-employees-table">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th className="oh-checkbox-column">
+                            <input type="checkbox" className="oh-checkbox" />
+                          </th>
+                          <th className="oh-sortable">
+                            <div className="oh-header-content">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M8 6l4-4 4 4"></path>
+                                <path d="M8 18l4 4 4-4"></path>
+                              </svg>
+                              Employee
+                            </div>
+                          </th>
+                          <th>Email</th>
+                          <th>Phone</th>
+                          <th className="oh-sortable">
+                            <div className="oh-header-content">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M8 6l4-4 4 4"></path>
+                                <path d="M8 18l4 4 4-4"></path>
+                              </svg>
+                              Badge Id
+                            </div>
+                          </th>
+                          <th>Job Position</th>
+                          <th>Department</th>
+                          <th>Shift</th>
+                          <th>Work Type</th>
+                          <th>Job Role</th>
+                          <th>Reporting Manager</th>
+                          <th>Company</th>
+                          <th>Work Email</th>
+                          <th>Date of Joining</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {paginatedEmployees.map((employee) => (
+                          <tr key={employee.id}>
+                            <td className="oh-checkbox-column">
+                              <input type="checkbox" className="oh-checkbox" />
+                            </td>
+                            <td>
+                              <div className="oh-table-employee">
+                                <div className="oh-employee-avatar small">
+                                  <img
+                                    src={`https://ui-avatars.com/api/?name=${employee.firstName}+${employee.lastName}&background=007bff&color=fff`}
+                                    alt={`${employee.firstName} ${employee.lastName}`}
+                                  />
+                                  <span className={`oh-status-indicator ${employee.status}`}></span>
+                                </div>
+                                <div className="oh-employee-details">
+                                  <div className="oh-employee-name">
+                                    <Link to={`/employee/profile/${employee.id}`}>
+                                      {employee.firstName} {employee.lastName}
+                                    </Link>
+                                  </div>
+                                  <div className="oh-employee-id">({employee.employeeId || 'N/A'})</div>
                                 </div>
                               </div>
-                            </div>
-                          </td>
-                          <td>{employee.email || '-'}</td>
-                          <td>{employee.phone || '-'}</td>
-                          <td>{employee.employeeId || '-'}</td>
-                          <td>{employee.position || '-'}</td>
-                          <td>{employee.department || '-'}</td>
-                          <td>-</td> {/* Shift not in Employee type */}
-                          <td>-</td> {/* Work Type not in Employee type */}
-                          <td>-</td> {/* Job Role not in Employee type */}
-                          <td>-</td> {/* Manager not in local Employee type */}
-                          <td>-</td> {/* Company not in Employee type */}
-                          <td>-</td> {/* Work Email not in Employee type */}
-                          <td>{employee.hireDate ? new Date(employee.hireDate).toLocaleDateString() : '-'}</td>
-                          <td>
-                            <div className="oh-table-actions">
-                              <div className="oh-dropdown-container">
-                                <button
-                                  className="oh-action-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleDropdown(employee.id);
-                                  }}
-                                >
-                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="5" r="1"></circle>
-                                    <circle cx="12" cy="19" r="1"></circle>
+                            </td>
+                            <td>{employee.email || '-'}</td>
+                            <td>{employee.phone || '-'}</td>
+                            <td>{employee.badgeId || employee.employeeId || '-'}</td>
+                            <td>{employee.position || 'None'}</td>
+                            <td>{employee.department || 'None'}</td>
+                            <td>{employee.shift || '-'}</td>
+                            <td>{employee.workType || '-'}</td>
+                            <td>{employee.jobRole || '-'}</td>
+                            <td>{employee.reportingManager || '-'}</td>
+                            <td>{employee.company || '-'}</td>
+                            <td>{employee.workEmail || '-'}</td>
+                            <td>{employee.dateOfJoining || employee.hireDate ? new Date(employee.dateOfJoining || employee.hireDate).toLocaleDateString() : '-'}</td>
+                            <td>
+                              <div className="oh-table-actions">
+                                <button className="oh-action-btn oh-export-btn" title="Export Individual Data" onClick={() => handleExportEmployee(employee)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7,10 12,15 17,10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
                                   </svg>
                                 </button>
-                                {activeDropdown === employee.id && (
-                                  <div className="oh-dropdown-menu">
-                                    <button
-                                      className="oh-dropdown-item"
-                                      onClick={() => handleEditEmployee(employee)}
-                                    >
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                                      </svg>
-                                      Edit
-                                    </button>
-                                    <button
-                                      className="oh-dropdown-item"
-                                      onClick={() => handleArchiveEmployee(employee)}
-                                    >
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="21,8 21,21 3,21 3,8"></polyline>
-                                        <rect x="1" y="3" width="22" height="5"></rect>
-                                        <line x1="10" y1="12" x2="14" y2="12"></line>
-                                      </svg>
-                                      Archive
-                                    </button>
-                                    <button
-                                      className="oh-dropdown-item oh-dropdown-item-danger"
-                                      onClick={() => handleDeleteEmployee(employee)}
-                                    >
-                                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <polyline points="3,6 5,6 21,6"></polyline>
-                                        <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
-                                      </svg>
-                                      Delete
-                                    </button>
-                                  </div>
-                                )}
+                                <button className="oh-action-btn oh-mail-btn" title="Send Mail" onClick={() => handleSendMail(employee)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                                    <polyline points="22,6 12,13 2,6"></polyline>
+                                  </svg>
+                                </button>
+                                <button className="oh-action-btn oh-edit-btn" title="Edit" onClick={() => handleEditEmployee(employee)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                                  </svg>
+                                </button>
+                                <button className="oh-action-btn oh-archive-btn" title="Archive" onClick={() => handleArchiveEmployee(employee)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="21,8 21,21 3,21 3,8"></polyline>
+                                    <rect x="1" y="3" width="22" height="5"></rect>
+                                    <line x1="10" y1="12" x2="14" y2="12"></line>
+                                  </svg>
+                                </button>
+                                <button className="oh-action-btn oh-delete-btn" title="Delete" onClick={() => handleDeleteEmployee(employee)}>
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="3,6 5,6 21,6"></polyline>
+                                    <path d="M19,6v14a2,2,0,0,1-2,2H7a2,2,0,0,1-2-2V6m3,0V4a2,2,0,0,1,2-2h4a2,2,0,0,1,2,2V6"></path>
+                                  </svg>
+                                </button>
                               </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -700,7 +801,15 @@ const EmployeeList: React.FC = () => {
         </div>
       )}
 
-  {/* ...existing code... */}
+      {/* Confirm Modal */}
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        title={confirmModal.title}
+        message={confirmModal.message}
+        onConfirm={confirmModal.onConfirm}
+        onCancel={() => setConfirmModal({ isOpen: false, title: '', message: '', onConfirm: () => {}, type: 'danger' })}
+        type={confirmModal.type}
+      />
     </div>
   );
 };
