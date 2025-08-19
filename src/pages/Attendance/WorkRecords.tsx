@@ -10,7 +10,7 @@ import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
 import { endpoints } from '../../utils/api';
-import { EmployeeResponse } from '../../types/hourAccount';
+import { EmployeeResponse, Employee } from '../../types/hourAccount';
 import './WorkRecords.css';
 
 interface AttendanceRecord {
@@ -129,7 +129,7 @@ const WorkRecords: React.FC = () => {
   // Export table data as Excel file
   const handleExport = () => {
     const headers = ['Employee', ...days.map(day => day.toString())];
-    const rows = employees.map(employee => {
+    const rows = employees.map((employee: Employee) => {
       const employeeName = `${employee.employee_first_name} ${employee.employee_last_name}`;
       const attendanceRow = days.map(day => {
         const status = getAttendanceStatus(employee.id, day);
@@ -215,7 +215,7 @@ const WorkRecords: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {employees.map(employee => (
+                  {employees.map((employee: Employee) => (
                     <tr key={employee.id}>
                       <td className="wr-employee-cell">
                         <div className="wr-employee-info">

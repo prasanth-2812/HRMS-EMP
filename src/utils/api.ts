@@ -13,19 +13,13 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
-<<<<<<< HEAD
     // Check if we're dealing with FormData
     const isFormData = options.body instanceof FormData;
     
     const config: RequestInit = {
       headers: isFormData ? {} : {
         'Content-Type': 'application/json',
-=======
-    // Set up headers - merge provided headers with defaults
-    const config: RequestInit = {
-      headers: {
         ...(options.headers || {}),
->>>>>>> e40fc566738fdd37d2699ea20f279c110f0d7dbf
       },
       ...options,
     };
@@ -60,26 +54,11 @@ class ApiClient {
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
     const isFormData = data instanceof FormData;
-<<<<<<< HEAD
     return this.request<T>(endpoint, {
       method: 'POST',
       body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
       headers: isFormData ? {} : undefined, // Let browser set Content-Type for FormData
     });
-=======
-    const options: RequestInit = {
-      method: 'POST',
-      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
-    };
-    
-    // For FormData, don't set headers to let browser set Content-Type automatically
-    // For JSON data, let the request method handle default headers
-    if (!isFormData) {
-      options.headers = { 'Content-Type': 'application/json' };
-    }
-    
-    return this.request<T>(endpoint, options);
->>>>>>> e40fc566738fdd37d2699ea20f279c110f0d7dbf
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {

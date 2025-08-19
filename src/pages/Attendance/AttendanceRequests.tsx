@@ -7,12 +7,6 @@ import { useApi } from '../../hooks/useApi';
 import { apiClient, endpoints } from '../../utils/api';
 import './AttendanceRequests.css';
 import AttendanceRequestModal from '../../components/QuickAccess/modals/AttendanceRequestModal';
-<<<<<<< HEAD
-// import WorkRecordFilterWorkInfo from './modals/WorkRecordFilterWorkInfo'; // File does not exist
-// import WorkRecordFilterEmployee from './modals/WorkRecordFilterEmployee'; // File does not exist
-// import WorkRecordFilterAdvance from './modals/WorkRecordFilterAdvance'; // File does not exist
-=======
->>>>>>> e40fc566738fdd37d2699ea20f279c110f0d7dbf
 
 interface AttendanceRequest {
   id: number;

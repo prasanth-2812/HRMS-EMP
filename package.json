@@ -10,6 +10,7 @@
     "@types/node": "^16.11.56",
     "@types/react": "^18.0.17",
     "@types/react-dom": "^18.0.6",
+    "@types/xlsx": "^0.0.35",
     "axios": "^1.11.0",
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.12",
@@ -21,7 +22,8 @@
     "react-toastify": "^11.0.5",
     "recharts": "^2.5.0",
     "typescript": "^4.7.4",
-    "web-vitals": "^2.1.4"
+    "web-vitals": "^2.1.4",
+    "xlsx": "^0.18.5"
   },
   "scripts": {
     "start": "react-scripts start",

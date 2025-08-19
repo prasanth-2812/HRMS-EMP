@@ -66,7 +66,7 @@ const HourAccountForm: React.FC<HourAccountFormProps> = ({ editingRecord, onSucc
       
       // Set default employee if not editing
       if (!editingRecord && options.length > 0) {
-        setFields(prev => ({ ...prev, employee_id: options[0].value }));
+        setFields((prev: HourAccountFormData) => ({ ...prev, employee_id: options[0].value }));
       }
     }
   }, [employeeData, editingRecord]);
@@ -97,11 +97,11 @@ const HourAccountForm: React.FC<HourAccountFormProps> = ({ editingRecord, onSucc
   const handleTimeBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (!timeRegex.test(value)) {
-      setFields((prev) => ({
+      setFields((prev: HourAccountFormData) => ({
         ...prev,
         [name]: "00:00",
       }));
-      setErrors((prev) => ({
+      setErrors((prev: { [k: string]: string }) => ({
         ...prev,
         [name]: "Invalid time format (HH:MM)",
       }));
