@@ -1,3 +1,4 @@
+import json
 from datetime import date, datetime, timedelta, timezone
 
 from django import template
@@ -454,9 +455,13 @@ class AttendanceRequestView(APIView):
             )
         return Response(serializer.errors, status=404)
 
-    @manager_permission_required("attendance.update_attendance")
+    @manager_permission_required("attendance.change_attendance")
     def put(self, request, pk):
-        attendance = Attendance.objects.get(id=pk)
+        try:
+            attendance = Attendance.objects.get(id=pk)
+        except Attendance.DoesNotExist:
+            return Response({"detail": "Attendance record not found."}, status=404)
+        
         serializer = AttendanceRequestSerializer(instance=attendance, data=request.data)
         if serializer.is_valid():
             instance = serializer.save()
@@ -473,7 +478,7 @@ class AttendanceRequestView(APIView):
                 instance.is_validate_request = True
                 instance.save()
             return Response(serializer.data, status=200)
-        return Response(serializer.errors, status=404)
+        return Response(serializer.errors, status=400)
 
 
 class AttendanceRequestApproveView(APIView):

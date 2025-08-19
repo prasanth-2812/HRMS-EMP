@@ -46,11 +46,41 @@ interface Employee {
   avatar?: string;
 }
 
+interface OfflineEmployee {
+  employee_first_name: string;
+  employee_last_name: string;
+  employee_profile: string;
+  id: number;
+  leave_status: string;
+  job_position_id: number | null;
+}
+
+interface OfflineEmployeesResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: OfflineEmployee[];
+}
+
+interface AttendancePermissions {
+  can_view_attendance: boolean;
+  can_create_attendance: boolean;
+  can_edit_attendance: boolean;
+  can_delete_attendance: boolean;
+  can_approve_attendance: boolean;
+  can_validate_attendance: boolean;
+  can_view_reports: boolean;
+  can_manage_overtime: boolean;
+  can_view_all_employees: boolean;
+  can_export_data: boolean;
+}
+
 const AttendanceDashboard: React.FC = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().split('T')[0]);
   const [mailModalOpen, setMailModalOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<OfflineEmployee | null>(null);
   const [attendanceStats, setAttendanceStats] = useState<AttendanceStats>({
     totalAttendances: 0,
     onTimeCount: 0,
@@ -60,18 +90,32 @@ const AttendanceDashboard: React.FC = () => {
     latePercentage: 0
   });
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [offlineEmployees, setOfflineEmployees] = useState<Employee[]>([]);
+  const [offlineEmployees, setOfflineEmployees] = useState<OfflineEmployee[]>([]);
   const [attendancesToValidate, setAttendancesToValidate] = useState<AttendanceRecord[]>([]);
   const [overtimeToApprove, setOvertimeToApprove] = useState<AttendanceRecord[]>([]);
   const [todayAttendances, setTodayAttendances] = useState<AttendanceRecord[]>([]);
   const [offlineEmployeesCount, setOfflineEmployeesCount] = useState<number>(0);
+  const [permissions, setPermissions] = useState<AttendancePermissions>({
+    can_view_attendance: false,
+    can_create_attendance: false,
+    can_edit_attendance: false,
+    can_delete_attendance: false,
+    can_approve_attendance: false,
+    can_validate_attendance: false,
+    can_view_reports: false,
+    can_manage_overtime: false,
+    can_view_all_employees: false,
+    can_export_data: false,
+  });
+  const [permissionsLoading, setPermissionsLoading] = useState<boolean>(true);
+  // Removed permissionsError state - no longer showing error messages
 
   // API hooks for different attendance types
   const { data: attendanceData, loading: attendanceLoading } = useApi<AttendanceResponse>('/api/v1/attendance/attendance/');
   const { data: validateAttendanceData, loading: validateLoading } = useApi<AttendanceResponse>('/api/v1/attendance/attendance/list/validate');
   const { data: overtimeAttendanceData, loading: overtimeLoading } = useApi<AttendanceResponse>('/api/v1/attendance/attendance/list/overtime');
   const { data: todayAttendanceData, loading: todayLoading } = useApi<AttendanceResponse>(endpoints.attendance.todayAttendance);
-  const { data: offlineEmployeesData, loading: offlineLoading } = useApi<{results: Employee[]}>(endpoints.attendance.offlineEmployees.list);
+  const { data: offlineEmployeesData, loading: offlineLoading } = useApi<OfflineEmployeesResponse>(endpoints.attendance.offlineEmployees.list);
   const { data: offlineCountData, loading: offlineCountLoading } = useApi<{count: number}>(endpoints.attendance.offlineEmployees.count);
 
   // Calculate attendance statistics
@@ -101,6 +145,36 @@ const AttendanceDashboard: React.FC = () => {
       latePercentage
     };
   };
+
+  // Load permissions data
+  useEffect(() => {
+    const loadPermissions = async () => {
+      try {
+        setPermissionsLoading(true);
+        const permissionsData = await apiClient.get<AttendancePermissions>(endpoints.attendance.permissionCheck.attendance);
+        setPermissions(permissionsData);
+      } catch (error) {
+        console.error('Failed to load permissions:', error);
+        // Set default permissions on error
+        setPermissions({
+          can_view_attendance: true, // Allow basic viewing by default
+          can_create_attendance: false,
+          can_edit_attendance: false,
+          can_delete_attendance: false,
+          can_approve_attendance: false,
+          can_validate_attendance: false,
+          can_view_reports: false,
+          can_manage_overtime: false,
+          can_view_all_employees: false,
+          can_export_data: false,
+        });
+      } finally {
+        setPermissionsLoading(false);
+      }
+    };
+    
+    loadPermissions();
+  }, []);
 
   // Load employees data
   useEffect(() => {
@@ -152,6 +226,36 @@ const AttendanceDashboard: React.FC = () => {
     }
   }, [overtimeAttendanceData]);
 
+  // Fetch attendance permissions
+  useEffect(() => {
+    const fetchPermissions = async () => {
+      try {
+        setPermissionsLoading(true);
+        const response = await apiClient.get(endpoints.attendance.permissionCheck.attendance);
+        setPermissions((response as any).data);
+      } catch (error) {
+        console.error('Failed to fetch attendance permissions:', error);
+        // Set default permissions on error (silently)
+        setPermissions({
+          can_view_attendance: true,
+          can_create_attendance: false,
+          can_edit_attendance: false,
+          can_delete_attendance: false,
+          can_approve_attendance: false,
+          can_validate_attendance: false,
+          can_view_reports: true,
+          can_manage_overtime: false,
+          can_view_all_employees: true,
+          can_export_data: false,
+        });
+      } finally {
+        setPermissionsLoading(false);
+      }
+    };
+
+    fetchPermissions();
+  }, []);
+
   // Handle attendance validation using the dedicated validate endpoint
   const handleValidateAttendance = async (recordId: number) => {
     try {
@@ -179,8 +283,19 @@ const AttendanceDashboard: React.FC = () => {
         </div>
         <div className="ad-content">
           <div className="ad-content-container">
+            {/* Permission Error Message - Removed */}
+
+            {/* Loading State */}
+            {permissionsLoading && (
+              <div className="ad-loading-banner">
+                <div className="ad-spinner"></div>
+                <span>Loading permissions...</span>
+              </div>
+            )}
+
             {/* Top Statistics Cards */}
-            <div className="ad-stats-grid">
+            {permissions.can_view_attendance && (
+              <div className="ad-stats-grid">
               <div className="ad-stat-card ad-stat-card--blue">
                 <div className="ad-stat-card__header">
                   <h3 className="ad-stat-card__title">Today's Attendances</h3>
@@ -229,8 +344,10 @@ const AttendanceDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Additional Status Cards */}
+            {permissions.can_view_reports && (
             <div className="ad-additional-cards-grid">
               <div className="ad-status-card">
                 <div className="ad-status-card__header">
@@ -291,6 +408,7 @@ const AttendanceDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+            )}
 
             {/* Bottom Status Cards */}
             <div className="ad-bottom-cards-grid">
@@ -374,8 +492,10 @@ const AttendanceDashboard: React.FC = () => {
             </div>
 
             {/* Dashboard Sections */}
+            {permissions.can_view_attendance && (
             <div className="ad-dashboard-grid">
               {/* Attendance Analytic */}
+              {permissions.can_view_reports && (
               <div className="ad-dashboard-card">
                 <div className="ad-dashboard-card__header">
                   <h3 className="ad-dashboard-card__title">Attendance Analytic</h3>
@@ -409,8 +529,10 @@ const AttendanceDashboard: React.FC = () => {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Offline Employees */}
+              {permissions.can_view_all_employees && (
               <div className="ad-dashboard-card">
                 <div className="ad-dashboard-card__header">
                   <h3 className="ad-dashboard-card__title">Offline Employees ({offlineEmployeesCount})</h3>
@@ -438,20 +560,23 @@ const AttendanceDashboard: React.FC = () => {
                       {(offlineEmployees || []).slice(0, 10).map((employee) => (
                         <div key={employee.id} className="ad-employee-item">
                           <div className="ad-employee-avatar">
-                            {employee.avatar ? (
-                              <img src={employee.avatar} alt={employee.firstName || 'Employee'} className="ad-avatar-img" />
+                            {employee.employee_profile ? (
+                              <img src={employee.employee_profile} alt={employee.employee_first_name || 'Employee'} className="ad-avatar-img" />
                             ) : (
                               <div className="ad-avatar-img ad-avatar-placeholder">
-                                {(employee.firstName || '').charAt(0)}{(employee.lastName || '').charAt(0)}
+                                {(employee.employee_first_name || '').charAt(0)}{(employee.employee_last_name || '').charAt(0)}
                               </div>
                             )}
                           </div>
                           <div className="ad-employee-info">
-                            <div className="ad-employee-name">{(employee.firstName || '')} {(employee.lastName || '')}</div>
-                            <div className="ad-employee-status">{employee.status || 'Absent'}</div>
+                            <div className="ad-employee-name">{(employee.employee_first_name || '')} {(employee.employee_last_name || '')}</div>
+                            <div className="ad-employee-status">{employee.leave_status || 'Absent'}</div>
                           </div>
                           <div className="ad-employee-actions">
-                            <button className="ad-icon-btn" onClick={() => setMailModalOpen(true)} title="Send Mail">
+                            <button className="ad-icon-btn" onClick={() => {
+                              setSelectedEmployee(employee);
+                              setMailModalOpen(true);
+                            }} title="Send Mail">
                               <span role="img" aria-label="mail">✉️</span>
                             </button>
                           </div>
@@ -464,6 +589,7 @@ const AttendanceDashboard: React.FC = () => {
                   )}
                 </div>
               </div>
+              )}
 
               {/* Hours Chart */}
               <div className="ad-dashboard-card">
@@ -492,14 +618,22 @@ const AttendanceDashboard: React.FC = () => {
                 </div>
               </div>
             </div>
+            )}
           </div>
         </div>
         <QuickAccess />
         {/* SendMail Modal */}
         <SendMail
           open={mailModalOpen}
-          onClose={() => setMailModalOpen(false)}
-          employee={{ name: 'tarun sai', avatar: 'TS' }}
+          onClose={() => {
+            setMailModalOpen(false);
+            setSelectedEmployee(null);
+          }}
+          employee={{
+            name: selectedEmployee ? `${selectedEmployee.employee_first_name} ${selectedEmployee.employee_last_name}` : '',
+            avatar: selectedEmployee ? `${selectedEmployee.employee_first_name.charAt(0)}${selectedEmployee.employee_last_name.charAt(0)}` : '',
+            id: selectedEmployee?.id || 0
+          }}
         />
       </div>
     </div>

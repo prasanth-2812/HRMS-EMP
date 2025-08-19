@@ -13,10 +13,10 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
     
+    // Set up headers - merge provided headers with defaults
     const config: RequestInit = {
       headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers || {}),
       },
       ...options,
     };
@@ -50,10 +50,19 @@ class ApiClient {
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
-    return this.request<T>(endpoint, {
+    const isFormData = data instanceof FormData;
+    const options: RequestInit = {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
-    });
+      body: isFormData ? data : (data ? JSON.stringify(data) : undefined),
+    };
+    
+    // For FormData, don't set headers to let browser set Content-Type automatically
+    // For JSON data, let the request method handle default headers
+    if (!isFormData) {
+      options.headers = { 'Content-Type': 'application/json' };
+    }
+    
+    return this.request<T>(endpoint, options);
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
@@ -99,6 +108,13 @@ export const endpoints = {
         count: '/api/v1/attendance/offline-employees/count/',
         list: '/api/v1/attendance/offline-employees/list/',
       },
+      requests: {
+        list: '/api/v1/attendance/attendance-request/',
+        create: '/api/v1/attendance/attendance-request/',
+        get: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+        update: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+        delete: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+      },
       hourAccount: {
         list: '/api/v1/attendance/attendance-hour-account/',
         create: '/api/v1/attendance/attendance-hour-account/',
@@ -109,6 +125,14 @@ export const endpoints = {
       activity: {
         list: '/api/v1/attendance/attendance-activity/',
       },
+      lateComeEarlyOut: {
+        list: '/api/v1/attendance/late-come-early-out-view/',
+        delete: (id: string) => `/api/v1/attendance/late-come-early-out-view/${id}/`,
+      },
+      permissionCheck: {
+        attendance: '/api/v1/attendance/permission-check/attendance',
+      },
+      offlineEmployeeMailSend: '/api/v1/attendance/offline-employee-mail-send',
     },
   // Add more endpoints as needed
 };

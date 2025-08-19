@@ -1,0 +1,181 @@
+.edit-request-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+}
+
+.edit-request-modal__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.edit-request-modal__header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.edit-request-modal__close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #6b7280;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.edit-request-modal__close:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+}
+
+.edit-request-modal__body {
+  padding: 24px;
+}
+
+.edit-request-modal__employee-info {
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.edit-request-modal__employee-info h3 {
+  margin: 0 0 8px 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.edit-request-modal__employee-info p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}
+
+.edit-request-modal__error {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+  padding: 12px 16px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+}
+
+.edit-request-modal__form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.edit-request-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-request-modal__field label {
+  font-weight: 500;
+  color: #374151;
+  font-size: 0.9rem;
+}
+
+.edit-request-modal__field input,
+.edit-request-modal__field select {
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  background-color: white;
+}
+
+.edit-request-modal__field input:focus,
+.edit-request-modal__field select:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.edit-request-modal__field input:invalid {
+  border-color: #ef4444;
+}
+
+.edit-request-modal__actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.edit-request-modal__btn {
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  min-width: 100px;
+}
+
+.edit-request-modal__btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.edit-request-modal__btn--secondary {
+  background-color: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.edit-request-modal__btn--secondary:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.edit-request-modal__btn--primary {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.edit-request-modal__btn--primary:hover:not(:disabled) {
+  background-color: #2563eb;
+}
+
+/* Responsive design */
+@media (max-width: 640px) {
+  .edit-request-modal {
+    width: 95%;
+    margin: 10px;
+  }
+  
+  .edit-request-modal__header,
+  .edit-request-modal__body {
+    padding: 16px;
+  }
+  
+  .edit-request-modal__actions {
+    flex-direction: column;
+  }
+  
+  .edit-request-modal__btn {
+    width: 100%;
+  }
+}

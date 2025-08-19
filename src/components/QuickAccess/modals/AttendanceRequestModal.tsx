@@ -1,30 +1,62 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../../../utils/api';
+import { apiClient, endpoints } from '../../../utils/api';
 import { getAllEmployees } from '../../../services/employeeService';
 import '../QuickAccess.css';
+
+interface AttendanceRequest {
+  id: number;
+  employee_first_name: string;
+  employee_last_name: string;
+  badge_id: string | null;
+  employee_profile_url: string | null;
+  is_active?: boolean;
+  attendance_date: string;
+  attendance_clock_in_date: string | null;
+  attendance_clock_in: string | null;
+  attendance_clock_out_date: string | null;
+  attendance_clock_out: string | null;
+  attendance_worked_hour: string | null;
+  minimum_hour: string;
+  at_work_second: number | null;
+  overtime_second: number | null;
+  is_bulk_request?: boolean;
+  request_description: string | null;
+  is_holiday?: boolean;
+  requested_data: string | null;
+  created_by: number | null;
+  modified_by: number | null;
+  employee_id: number;
+  shift_id: number;
+  work_type_id: number;
+  attendance_day: number | null;
+  batch_attendance_id: number | null;
+  shift_name?: string;
+}
 
 interface AttendanceRequestModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: (message: string) => void;
   onRefresh?: () => void;
+  editingRequest?: AttendanceRequest | null;
 }
 
-const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen, onClose, onSuccess, onRefresh }) => {
+const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen, onClose, onSuccess, onRefresh, editingRequest }) => {
+  const isEditMode = !!editingRequest;
   const [formData, setFormData] = useState({
     employee_id: '', // Will be populated from employee list
     create_bulk: false,
     attendance_date: '',
     shift_id: '',
     work_type_id: 1,
-    check_in_date: '',
-    check_in_time: '',
-    check_out_date: '',
-    check_out_time: '',
-    worked_hours: '00:00',
+    attendance_clock_in_date: '',
+    attendance_clock_in: '',
+    attendance_clock_out_date: '',
+    attendance_clock_out: '',
+    attendance_worked_hour: '00:00',
     minimum_hour: '00:00',
     request_description: '',
-    batch_attendance: ''
+    batch_attendance_id: ''
   });
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<any[]>([]);
@@ -36,6 +68,44 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       fetchEmployees();
     }
   }, [isOpen]);
+
+  // Populate form data when editing
+  useEffect(() => {
+    if (isEditMode && editingRequest) {
+      setFormData({
+        employee_id: editingRequest.employee_id.toString(),
+        create_bulk: false,
+        attendance_date: editingRequest.attendance_date,
+        shift_id: editingRequest.shift_id.toString(),
+        work_type_id: editingRequest.work_type_id,
+        attendance_clock_in_date: editingRequest.attendance_clock_in_date || '',
+        attendance_clock_in: editingRequest.attendance_clock_in || '',
+        attendance_clock_out_date: editingRequest.attendance_clock_out_date || '',
+        attendance_clock_out: editingRequest.attendance_clock_out || '',
+        attendance_worked_hour: editingRequest.attendance_worked_hour || '00:00',
+        minimum_hour: editingRequest.minimum_hour,
+        request_description: editingRequest.request_description || '',
+        batch_attendance_id: editingRequest.batch_attendance_id?.toString() || ''
+      });
+    } else if (!isEditMode) {
+      // Reset form for create mode
+      setFormData({
+        employee_id: employees.length > 0 ? employees[0].id.toString() : '',
+        create_bulk: false,
+        attendance_date: '',
+        shift_id: '',
+        work_type_id: 1,
+        attendance_clock_in_date: '',
+        attendance_clock_in: '',
+        attendance_clock_out_date: '',
+        attendance_clock_out: '',
+        attendance_worked_hour: '00:00',
+        minimum_hour: '00:00',
+        request_description: '',
+        batch_attendance_id: ''
+      });
+    }
+  }, [isEditMode, editingRequest, employees]);
 
   const fetchEmployees = async () => {
     try {
@@ -91,44 +161,38 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       return;
     }
     
-    if (!formData.request_description.trim()) {
-      if (onSuccess) {
-        onSuccess('Please enter request description');
-      }
-      return;
-    }
-    
-    if (!formData.worked_hours.trim()) {
-      if (onSuccess) {
-        onSuccess('Please enter worked hours');
-      }
-      return;
-    }
+    // Optional validation for worked hours
+    // if (!formData.attendance_worked_hour.trim()) {
+    //   if (onSuccess) {
+    //     onSuccess('Please enter worked hours');
+    //   }
+    //   return;
+    // }
     
     setLoading(true);
     
     try {
-      // Call the attendance request API
+      // Call the attendance request API - matching exact backend format
       const requestPayload = {
         employee_id: parseInt(formData.employee_id),
         attendance_date: formData.attendance_date,
         shift_id: parseInt(formData.shift_id),
-        work_type_id: formData.work_type_id,
-        minimum_hour: formData.minimum_hour,
-        request_description: formData.request_description,
-        attendance_clock_in_date: formData.check_in_date || null,
-        attendance_clock_in: formData.check_in_time || null,
-        attendance_clock_out_date: formData.check_out_date || null,
-        attendance_clock_out: formData.check_out_time || null,
-        attendance_worked_hour: formData.worked_hours || null,
-        batch_attendance_id: formData.batch_attendance || null
+        work_type_id: parseInt(formData.work_type_id.toString()),
+        minimum_hour: formData.minimum_hour
       };
       
-      console.log('Sending attendance request payload:', requestPayload);
+      console.log(`Sending attendance request payload for ${isEditMode ? 'update' : 'create'}:`, requestPayload);
       
-      const response = await apiClient.post('/api/v1/attendance/attendance-request/', requestPayload) as any;
-      
-      console.log('Attendance request created:', response.data);
+      let response;
+      if (isEditMode && editingRequest) {
+        // Update existing request
+        response = await apiClient.put(endpoints.attendance.requests.update(editingRequest.id.toString()), requestPayload) as any;
+        console.log('Attendance request updated:', response.data);
+      } else {
+        // Create new request
+        response = await apiClient.post(endpoints.attendance.requests.create, requestPayload) as any;
+        console.log('Attendance request created:', response.data);
+      }
       
       // Reset form
       setFormData({
@@ -137,14 +201,14 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
         attendance_date: '',
         shift_id: '',
         work_type_id: 1,
-        check_in_date: '',
-        check_in_time: '',
-        check_out_date: '',
-        check_out_time: '',
-        worked_hours: '00:00',
+        attendance_clock_in_date: '',
+        attendance_clock_in: '',
+        attendance_clock_out_date: '',
+        attendance_clock_out: '',
+        attendance_worked_hour: '00:00',
         minimum_hour: '00:00',
         request_description: '',
-        batch_attendance: ''
+        batch_attendance_id: ''
       });
       
       // Close modal
@@ -157,11 +221,11 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       
       // Show success notification
       if (onSuccess) {
-        onSuccess('Attendance request submitted successfully!');
+        onSuccess(`Attendance request ${isEditMode ? 'updated' : 'submitted'} successfully!`);
       }
     } catch (error: any) {
       console.error('Error creating attendance request:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to submit attendance request. Please try again.';
+      const errorMessage = error.response?.data?.message || error.message || `Failed to ${isEditMode ? 'update' : 'submit'} attendance request. Please try again.`;
       if (onSuccess) {
         onSuccess(errorMessage);
       }
@@ -182,7 +246,7 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
     <div className="oh-modal-overlay" onClick={onClose}>
       <div className="oh-create-attendance-modal" onClick={(e) => e.stopPropagation()}>
         <div className="oh-modal-header">
-          <h2 className="oh-modal-title">New Attendances Request</h2>
+          <h2 className="oh-modal-title">{isEditMode ? 'Edit Attendance Request' : 'New Attendances Request'}</h2>
           <button 
             className="oh-modal-close" 
             aria-label="Close"
@@ -284,9 +348,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 <label className="oh-form-label">Check-in Date <span className="oh-required">*</span></label>
                 <input
                   type="date"
-                  id="check_in_date"
-                  name="check_in_date"
-                  value={formData.check_in_date}
+                  id="attendance_clock_in_date"
+                  name="attendance_clock_in_date"
+                  value={formData.attendance_clock_in_date}
                   onChange={handleChange}
                   className="oh-form-input"
                   placeholder="dd-mm-yyyy"
@@ -298,9 +362,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 <label className="oh-form-label">Check-in <span className="oh-required">*</span></label>
                 <input
                   type="time"
-                  id="check_in_time"
-                  name="check_in_time"
-                  value={formData.check_in_time}
+                  id="attendance_clock_in"
+                  name="attendance_clock_in"
+                  value={formData.attendance_clock_in}
                   onChange={handleChange}
                   className="oh-form-input"
                   placeholder="--:--"
@@ -311,9 +375,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 <label className="oh-form-label">Check-Out Date</label>
                 <input
                   type="date"
-                  id="check_out_date"
-                  name="check_out_date"
-                  value={formData.check_out_date}
+                  id="attendance_clock_out_date"
+                  name="attendance_clock_out_date"
+                  value={formData.attendance_clock_out_date}
                   onChange={handleChange}
                   className="oh-form-input"
                   placeholder="dd-mm-yyyy"
@@ -325,9 +389,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 <label className="oh-form-label">Check-Out</label>
                 <input
                   type="time"
-                  id="check_out_time"
-                  name="check_out_time"
-                  value={formData.check_out_time}
+                  id="attendance_clock_out"
+                  name="attendance_clock_out"
+                  value={formData.attendance_clock_out}
                   onChange={handleChange}
                   className="oh-form-input"
                   placeholder="--:--"
@@ -338,9 +402,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 <label className="oh-form-label">Worked Hours <span className="oh-required">*</span></label>
                 <input
                   type="time"
-                  id="worked_hours"
-                  name="worked_hours"
-                  value={formData.worked_hours}
+                  id="attendance_worked_hour"
+                  name="attendance_worked_hour"
+                  value={formData.attendance_worked_hour}
                   onChange={handleChange}
                   className="oh-form-input"
                   placeholder="00:00"
@@ -380,9 +444,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
               <div className="oh-form-group">
                 <label className="oh-form-label">Batch Attendance</label>
                 <select
-                  id="batch_attendance"
-                  name="batch_attendance"
-                  value={formData.batch_attendance}
+                  id="batch_attendance_id"
+                  name="batch_attendance_id"
+                  value={formData.batch_attendance_id}
                   onChange={handleChange}
                   className="oh-form-input"
                 >
@@ -399,7 +463,7 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 Cancel
               </button>
               <button type="submit" className="oh-btn oh-btn--primary" disabled={loading}>
-                {loading ? 'Requesting...' : 'Request'}
+                {loading ? (isEditMode ? 'Updating...' : 'Requesting...') : (isEditMode ? 'Update' : 'Request')}
               </button>
             </div>
           </form>
