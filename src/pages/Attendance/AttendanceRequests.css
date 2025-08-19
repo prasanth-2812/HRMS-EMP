@@ -475,6 +475,15 @@
   background-color: #fde68a;
 }
 
+.areq-action-btn--edit {
+  background-color: #e0f2fe;
+  color: #0369a1;
+}
+
+.areq-action-btn--edit:hover {
+  background-color: #bae6fd;
+}
+
 .areq-action-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;

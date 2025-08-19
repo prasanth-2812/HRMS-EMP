@@ -1,4 +1,4 @@
-const API_BASE_URL = (window as any).env?.REACT_APP_API_URL || 'http://localhost:8000';
+const API_BASE_URL = (window as any).env?.REACT_APP_API_URL || 'http://127.0.0.1:8000';
 
 class ApiClient {
   private baseURL: string;
@@ -95,6 +95,13 @@ export const endpoints = {
   attendance: {
       list: '/api/v1/attendance/attendance/',
       todayAttendance: '/api/v1/attendance/today-attendance/',
+      request: {
+        list: '/api/v1/attendance/attendance-request/',
+        create: '/api/v1/attendance/attendance-request/',
+        get: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+        update: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+        delete: (id: string) => `/api/v1/attendance/attendance-request/${id}/`,
+      },
       offlineEmployees: {
         count: '/api/v1/attendance/offline-employees/count/',
         list: '/api/v1/attendance/offline-employees/list/',

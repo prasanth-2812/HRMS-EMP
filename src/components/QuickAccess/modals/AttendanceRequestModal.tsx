@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { apiClient } from '../../../utils/api';
+import { apiClient, endpoints } from '../../../utils/api';
 import { getAllEmployees } from '../../../services/employeeService';
 import '../QuickAccess.css';
 
@@ -8,15 +8,32 @@ interface AttendanceRequestModalProps {
   onClose: () => void;
   onSuccess?: (message: string) => void;
   onRefresh?: () => void;
+  editMode?: boolean;
+  attendanceRequestId?: string;
+  initialData?: {
+    employee_id: number;
+    attendance_date: string;
+    shift_id: number;
+    work_type_id: number;
+    minimum_hour: string;
+  };
 }
 
-const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen, onClose, onSuccess, onRefresh }) => {
+const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ 
+  isOpen, 
+  onClose, 
+  onSuccess, 
+  onRefresh, 
+  editMode = false, 
+  attendanceRequestId, 
+  initialData 
+}) => {
   const [formData, setFormData] = useState({
     employee_id: '', // Will be populated from employee list
     create_bulk: false,
     attendance_date: '',
     shift_id: '',
-    work_type_id: 1,
+    work_type_id: '',
     check_in_date: '',
     check_in_time: '',
     check_out_date: '',
@@ -36,6 +53,20 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       fetchEmployees();
     }
   }, [isOpen]);
+
+  // Populate form with initial data when in edit mode
+  useEffect(() => {
+    if (editMode && initialData && isOpen) {
+      setFormData(prev => ({
+        ...prev,
+        employee_id: initialData.employee_id.toString(),
+        attendance_date: initialData.attendance_date,
+        shift_id: initialData.shift_id.toString(),
+        work_type_id: initialData.work_type_id.toString(),
+        minimum_hour: initialData.minimum_hour
+      }));
+    }
+  }, [editMode, initialData, isOpen]);
 
   const fetchEmployees = async () => {
     try {
@@ -113,7 +144,7 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
         employee_id: parseInt(formData.employee_id),
         attendance_date: formData.attendance_date,
         shift_id: parseInt(formData.shift_id),
-        work_type_id: formData.work_type_id,
+        work_type_id: parseInt(formData.work_type_id),
         minimum_hour: formData.minimum_hour,
         request_description: formData.request_description,
         attendance_clock_in_date: formData.check_in_date || null,
@@ -121,14 +152,21 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
         attendance_clock_out_date: formData.check_out_date || null,
         attendance_clock_out: formData.check_out_time || null,
         attendance_worked_hour: formData.worked_hours || null,
-        batch_attendance_id: formData.batch_attendance || null
+        batch_attendance_id: formData.batch_attendance ? parseInt(formData.batch_attendance) : null
       };
       
       console.log('Sending attendance request payload:', requestPayload);
       
-      const response = await apiClient.post('/api/v1/attendance/attendance-request/', requestPayload) as any;
-      
-      console.log('Attendance request created:', response.data);
+      let response: any;
+      if (editMode && attendanceRequestId) {
+        // Update existing attendance request
+        response = await apiClient.put(endpoints.attendance.request.update(attendanceRequestId), requestPayload);
+        console.log('Attendance request updated:', response.data);
+      } else {
+        // Create new attendance request
+        response = await apiClient.post(endpoints.attendance.request.create, requestPayload);
+        console.log('Attendance request created:', response.data);
+      }
       
       // Reset form
       setFormData({
@@ -136,7 +174,7 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
         create_bulk: false,
         attendance_date: '',
         shift_id: '',
-        work_type_id: 1,
+        work_type_id: '',
         check_in_date: '',
         check_in_time: '',
         check_out_date: '',
@@ -157,7 +195,10 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
       
       // Show success notification
       if (onSuccess) {
-        onSuccess('Attendance request submitted successfully!');
+        const successMessage = editMode 
+          ? 'Attendance request updated successfully!' 
+          : 'Attendance request submitted successfully!';
+        onSuccess(successMessage);
       }
     } catch (error: any) {
       console.error('Error creating attendance request:', error);
@@ -182,7 +223,9 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
     <div className="oh-modal-overlay" onClick={onClose}>
       <div className="oh-create-attendance-modal" onClick={(e) => e.stopPropagation()}>
         <div className="oh-modal-header">
-          <h2 className="oh-modal-title">New Attendances Request</h2>
+          <h2 className="oh-modal-title">
+            {editMode ? 'Edit Attendance Request' : 'New Attendances Request'}
+          </h2>
           <button 
             className="oh-modal-close" 
             aria-label="Close"
@@ -399,7 +442,10 @@ const AttendanceRequestModal: React.FC<AttendanceRequestModalProps> = ({ isOpen,
                 Cancel
               </button>
               <button type="submit" className="oh-btn oh-btn--primary" disabled={loading}>
-                {loading ? 'Requesting...' : 'Request'}
+                {loading 
+                  ? (editMode ? 'Updating...' : 'Requesting...') 
+                  : (editMode ? 'Update' : 'Request')
+                }
               </button>
             </div>
           </form>

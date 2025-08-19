@@ -4,7 +4,7 @@ import Header from '../../components/Layout/Header';
 import QuickAccess from '../../components/QuickAccess/QuickAccess';
 import { useSidebar } from '../../contexts/SidebarContext';
 import { useApi } from '../../hooks/useApi';
-import { apiClient } from '../../utils/api';
+import { apiClient, endpoints } from '../../utils/api';
 import './AttendanceRequests.css';
 import AttendanceRequestModal from '../../components/QuickAccess/modals/AttendanceRequestModal';
 
@@ -48,6 +48,8 @@ interface AttendanceRequestResponse {
 const AttendanceRequests: React.FC = () => {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const [showModal, setShowModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingRequest, setEditingRequest] = useState<AttendanceRequest | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterBy, setFilterBy] = useState('all');
   const [groupBy, setGroupBy] = useState('none');
@@ -56,7 +58,7 @@ const AttendanceRequests: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<{ [key: number | string]: string }>({});
 
   // Fetch attendance requests from API
-  const { data: requestsData, loading, error, refetch } = useApi<AttendanceRequestResponse>('/api/v1/attendance/attendance-request/');
+  const { data: requestsData, loading, error, refetch } = useApi<AttendanceRequestResponse>(endpoints.attendance.request.list);
 
   const attendanceRequests = useMemo(() => {
     console.log('=== ATTENDANCE REQUESTS DEBUG ===');
@@ -95,6 +97,18 @@ const AttendanceRequests: React.FC = () => {
     console.log('Number of requests found:', requestsData.results.length);
     return requestsData.results;
   }, [requestsData, loading, error]);
+
+  // Function to handle editing an attendance request
+  const handleEditRequest = (request: AttendanceRequest) => {
+    setEditingRequest(request);
+    setShowEditModal(true);
+  };
+
+  // Function to close edit modal
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingRequest(null);
+  };
 
   // Helper function to determine status based on validation fields
   const getRequestStatus = (request: AttendanceRequest): 'pending' | 'approved' | 'rejected' => {
@@ -592,6 +606,13 @@ const AttendanceRequests: React.FC = () => {
                                         )}
                                       </>
                                     )}
+                                    <button 
+                                      className="areq-action-btn areq-action-btn--edit" 
+                                      title="Edit Request"
+                                      onClick={() => handleEditRequest(request)}
+                                    >
+                                      ✏️
+                                    </button>
                                     <button className="areq-action-btn areq-action-btn--view" title="View Details">
                                       👁
                                     </button>
@@ -620,6 +641,32 @@ const AttendanceRequests: React.FC = () => {
                 onRefresh={refetch}
                 onSuccess={(message) => {
                   console.log('Attendance request result:', message);
+                  // You can add a toast notification here if needed
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Edit Attendance Request Modal */}
+        {showEditModal && editingRequest && (
+          <div className="areq-modal-overlay">
+            <div className="areq-modal">
+              <AttendanceRequestModal 
+                isOpen={showEditModal} 
+                onClose={handleCloseEditModal}
+                onRefresh={refetch}
+                editMode={true}
+                attendanceRequestId={editingRequest.id.toString()}
+                initialData={{
+                  employee_id: editingRequest.employee_id,
+                  attendance_date: editingRequest.attendance_date,
+                  shift_id: editingRequest.shift_id || 1,
+                  work_type_id: editingRequest.work_type_id || 1,
+                  minimum_hour: editingRequest.minimum_hour
+                }}
+                onSuccess={(message) => {
+                  console.log('Attendance request edit result:', message);
                   // You can add a toast notification here if needed
                 }}
               />
